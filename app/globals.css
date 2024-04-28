@@ -3,12 +3,18 @@
 @tailwind utilities;
 
 
-.yarl__container {
-    background-color: #ffffffe1 !important;
-    backdrop-filter: blur(10px);
-    color: #333 !important;
+body{
+    background-color: black;
+    color: white;
 }
 
+.yarl__container {
+    background-color: #5c5c5c7a !important;
+    backdrop-filter: blur(10px);
+    /* color: #333 !important; */
+}
+
+/* 
 .yarl__button {
     color: #333 !important;
     filter: none !important;
@@ -16,5 +22,5 @@
 
 .yarl__slide_placeholder,
 .yarl__slide_placeholder svg {
-        color: #333 !important;
-}
+    color: #333 !important;
+} */
