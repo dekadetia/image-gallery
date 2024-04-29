@@ -23,6 +23,7 @@ const photos = [
     image: image1,
     width: 1080,
     height: 1620,
+    description: "Vicko Mozara Dubravica, Croatia",
   },
   {
     image: image2,
@@ -113,6 +114,7 @@ const slides = photos.map((photo) => {
     src: photo.image.src,
     width,
     height,
+    description:photo.description,
   };
 });
 

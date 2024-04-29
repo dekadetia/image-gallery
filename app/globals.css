@@ -15,8 +15,20 @@ body{
 .yarl__container {
     background-color: #5c5c5c7a !important;
     backdrop-filter: blur(10px);
-    /* color: #333 !important; */
 }
+
+.yarl__slide_captions_container{
+    position: absolute;
+    top: 85%;
+    text-align: center;
+    font-size: 25px;
+    font-weight: bold;
+    background-color: #b3b0b074;
+    padding: .5rem 1.5rem;
+    border-radius: 50px;
+    backdrop-filter: blur(10px);
+}
+
 
 /* 
 .yarl__button {

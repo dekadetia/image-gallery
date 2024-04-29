@@ -9,6 +9,9 @@ import slides from "../components/slides";
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
+    const [descriptionMaxLines, setDescriptionMaxLines] = useState(3);
+    const [descriptionTextAlign, setDescriptionTextAlign] = useState("end");
+    const [isOpen, setOpen] = useState(true)
     const photos = [
         {
             image: "/assets/1.jpg",
@@ -83,6 +86,7 @@ export default function MasonaryGrid() {
                 slides={slides}
                 open={index >= 0}
                 close={() => setIndex(-1)}
+                captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
             />
         </>
     )
