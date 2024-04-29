@@ -1,4 +1,22 @@
-import { image1, image2, image3, image4, image5 } from "../utils/constants";
+import {
+  image1,
+  image2,
+  image3,
+  image4,
+  image5,
+  image6,
+  image7,
+  image8,
+  image9,
+  image10,
+  image11,
+  image12,
+  image13,
+  image14,
+  image15,
+  image16,
+  image17,
+} from "../utils/constants";
 
 const photos = [
   {
@@ -26,6 +44,66 @@ const photos = [
     width: 1080,
     height: 1620,
   },
+  {
+    image: image6,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image7,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image8,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image9,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image10,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image11,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image12,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image13,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image14,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image15,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image16,
+    width: 1080,
+    height: 1620,
+  },
+  {
+    image: image17,
+    width: 1080,
+    height: 1620,
+  },
 ];
 
 const slides = photos.map((photo) => {
@@ -34,7 +112,7 @@ const slides = photos.map((photo) => {
   return {
     src: photo.image.src,
     width,
-    height,    
+    height,
   };
 });
 

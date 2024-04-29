@@ -4,8 +4,12 @@
 
 
 body{
-    background-color: black;
+    background-color: #15181b;
     color: white;
+}
+
+.main-container{
+    break-inside: avoid;
 }
 
 .yarl__container {

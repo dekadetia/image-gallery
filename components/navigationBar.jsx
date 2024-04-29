@@ -1,30 +1,20 @@
-import { FaInstagram } from "react-icons/fa";
-import { FaTwitter } from "react-icons/fa";
-import { HiBars3BottomRight } from "react-icons/hi2";
+import Link from "next/link";
 
 export default function NavigationBar() {
     return (
-        <div className="w-full flex justify-between items-center py-9">
-            <div className="flex gap-10">
-                <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold">
-                    TALVA
-                </h2>
+        <div className="w-full flex justify-center items-center py-9">
+            <div className="w-full grid place-items-center space-y-4">
+                
+                <Link href={"/"} >
+                    <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
+                </Link>
 
-                <ul className="hidden md:flex gap-6 items-center text-sm">
-                    <li className="cursor-pointer">Blog</li>
-                    <li className="cursor-pointer">Contact</li>
-                    <li className="cursor-pointer">About</li>
-                </ul>
+                <a href="https://letterboxd.com/tndrbtns/" target="_blank">
+                    <img src="/assets/bottom-logo.svg"
+                        className="object-contain w-20"
+                        alt="" />
+                </a>
             </div>
-
-            {/* Social icons */}
-            <div className="hidden md:flex items-center gap-4">
-                <FaInstagram />
-                <FaTwitter />
-            </div>
-
-            {/* Mobile Hamburger menu */}
-            <HiBars3BottomRight className="md:hidden text-2xl cursor-pointer" /> 
         </div>
     )
 }
