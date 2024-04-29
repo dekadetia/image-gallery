@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import "yet-another-react-lightbox/styles.css";
 import Lightbox from "yet-another-react-lightbox";
-
+import Captions from "yet-another-react-lightbox/plugins/captions";
 import slides from "../components/slides";
 
 export default function MasonaryGrid() {
@@ -78,6 +78,7 @@ export default function MasonaryGrid() {
             </div>
 
             <Lightbox
+                plugins={[Captions]}
                 index={index}
                 slides={slides}
                 open={index >= 0}

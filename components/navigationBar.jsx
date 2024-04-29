@@ -11,7 +11,7 @@ export default function NavigationBar() {
 
                 <a href="https://letterboxd.com/tndrbtns/" target="_blank">
                     <img src="/assets/bottom-logo.svg"
-                        className="object-contain w-20"
+                        className="object-contain w-10"
                         alt="" />
                 </a>
             </div>
