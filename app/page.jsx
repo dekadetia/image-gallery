@@ -1,5 +1,3 @@
-'use client'
-
 import MasonaryGrid from "@/components/MasonaryGrid ";
 import NavigationBar from "@/components/navigationBar ";
 
