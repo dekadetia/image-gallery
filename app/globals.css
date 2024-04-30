@@ -13,8 +13,7 @@ body{
 }
 
 .yarl__container {
-    background-color: #5c5c5c7a !important;
-    backdrop-filter: blur(10px);
+    background-color: #15181b !important;
 }
 
 .yarl__slide_captions_container{
