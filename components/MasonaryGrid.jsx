@@ -9,71 +9,70 @@ import Captions from "yet-another-react-lightbox/plugins/captions";
 import Loader from '../components/loader/loader';
 import { ToastContainer, toast, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
+import { MdDelete } from "react-icons/md";
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
     const [descriptionMaxLines, setDescriptionMaxLines] = useState(3);
     const [descriptionTextAlign, setDescriptionTextAlign] = useState("end");
     const [isOpen, setOpen] = useState(true)
-    const photos = [
-        {
-            image: "/assets/1.jpg",
-        },
-        {
-            image: "/assets/2.jpg"
-        },
-        {
-            image: "/assets/3.jpg",
-        },
-        {
-            image: "/assets/4.jpg",
-        },
-        {
-            image: "/assets/5.jpg",
-        },
-        {
-            image: "/assets/6.jpg",
-        },
-        {
-            image: "/assets/7.jpg",
-        },
-        {
-            image: "/assets/8.jpg",
-        },
-        {
-            image: "/assets/9.jpg",
-        },
-        {
-            image: "/assets/10.jpg",
-        },
-        {
-            image: "/assets/11.jpg",
-        },
-        {
-            image: "/assets/12.jpg",
-        },
-        {
-            image: "/assets/13.jpg",
-        },
-        {
-            image: "/assets/14.jpg",
-        },
-        {
-            image: "/assets/15.jpg",
-        },
-        {
-            image: "/assets/16.jpg",
-        },
-        {
-            image: "/assets/17.webp",
-        },
-    ];
-
     const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState()
     const [loader, setLoader] = useState(false);
 
+    // const photos = [
+    //     {
+    //         image: "/assets/1.jpg",
+    //     },
+    //     {
+    //         image: "/assets/2.jpg"
+    //     },
+    //     {
+    //         image: "/assets/3.jpg",
+    //     },
+    //     {
+    //         image: "/assets/4.jpg",
+    //     },
+    //     {
+    //         image: "/assets/5.jpg",
+    //     },
+    //     {
+    //         image: "/assets/6.jpg",
+    //     },
+    //     {
+    //         image: "/assets/7.jpg",
+    //     },
+    //     {
+    //         image: "/assets/8.jpg",
+    //     },
+    //     {
+    //         image: "/assets/9.jpg",
+    //     },
+    //     {
+    //         image: "/assets/10.jpg",
+    //     },
+    //     {
+    //         image: "/assets/11.jpg",
+    //     },
+    //     {
+    //         image: "/assets/12.jpg",
+    //     },
+    //     {
+    //         image: "/assets/13.jpg",
+    //     },
+    //     {
+    //         image: "/assets/14.jpg",
+    //     },
+    //     {
+    //         image: "/assets/15.jpg",
+    //     },
+    //     {
+    //         image: "/assets/16.jpg",
+    //     },
+    //     {
+    //         image: "/assets/17.webp",
+    //     },
+    // ];
     const getImages = async () => {
         setLoader(true);
         try {
@@ -85,7 +84,7 @@ export default function MasonaryGrid() {
                 const data = await response.json();
                 const images = data.images;
                 console.log("Files fetched successfully:", images);
-                setFetchedPhotos(images)
+                setFetchedPhotos(images);
                 setSlides(images.map((photo) => {
                     const width = 1080 * 4;
                     const height = 1620 * 4;
@@ -200,10 +199,8 @@ export default function MasonaryGrid() {
         getImages()
     }, [])
 
-
     return (
         <>
-            <ToastContainer />
             {
                 loader &&
                 <div className="h-full flex items-center justify-center fixed w-full top-0 left-0 bg-black bg-opacity-50 z-10">
@@ -226,11 +223,12 @@ export default function MasonaryGrid() {
                             key={i}
                             src={photo.src}
                             alt={'images'}
-                            className="cursor-zoom-in"
+                            className="cursor-zoom-in object-cover w-full h-full"
                             onClick={() => setIndex(i)}
                         />
-                        <button onClick={() => deleteImage(photo.name)} className="text-white bg-red-500 text-base h-10 w-full cursor-pointer absolute left-0 bottom-0">
-                            Delete image
+                        <button onClick={() => deleteImage(photo.name)}
+                            className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
+                            <MdDelete />
                         </button>
                     </div>
                 )) :
