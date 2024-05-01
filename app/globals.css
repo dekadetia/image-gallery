@@ -22,18 +22,14 @@
     src: url("../public/fonts/GraphikBoldItalic.otf");
 }
 
-
 body {
     background-color: #15181b;
     color: white;
-
 }
 
 html {
     font-family: "GraphikLight";
 }
-
-
 
 .main-container {
     break-inside: avoid;
