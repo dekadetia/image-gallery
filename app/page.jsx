@@ -1,5 +1,5 @@
-import MasonaryGrid from "@/components/MasonaryGrid ";
-import NavigationBar from "@/components/navigationBar ";
+import MasonaryGrid from "../components/MasonaryGrid";
+import NavigationBar from "../components/navigationBar";
 
 export default function Page() {
   return (
