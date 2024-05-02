@@ -5,10 +5,7 @@ import { useState, useEffect } from "react";
 import "yet-another-react-lightbox/styles.css";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
-// import slides from "../components/slides";
 import Loader from '../components/loader/loader';
-import { ToastContainer, toast, Slide } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { MdDelete } from "react-icons/md";
 
 export default function MasonaryGrid() {
@@ -20,59 +17,6 @@ export default function MasonaryGrid() {
     const [slides, setSlides] = useState()
     const [loader, setLoader] = useState(false);
 
-    // const photos = [
-    //     {
-    //         image: "/assets/1.jpg",
-    //     },
-    //     {
-    //         image: "/assets/2.jpg"
-    //     },
-    //     {
-    //         image: "/assets/3.jpg",
-    //     },
-    //     {
-    //         image: "/assets/4.jpg",
-    //     },
-    //     {
-    //         image: "/assets/5.jpg",
-    //     },
-    //     {
-    //         image: "/assets/6.jpg",
-    //     },
-    //     {
-    //         image: "/assets/7.jpg",
-    //     },
-    //     {
-    //         image: "/assets/8.jpg",
-    //     },
-    //     {
-    //         image: "/assets/9.jpg",
-    //     },
-    //     {
-    //         image: "/assets/10.jpg",
-    //     },
-    //     {
-    //         image: "/assets/11.jpg",
-    //     },
-    //     {
-    //         image: "/assets/12.jpg",
-    //     },
-    //     {
-    //         image: "/assets/13.jpg",
-    //     },
-    //     {
-    //         image: "/assets/14.jpg",
-    //     },
-    //     {
-    //         image: "/assets/15.jpg",
-    //     },
-    //     {
-    //         image: "/assets/16.jpg",
-    //     },
-    //     {
-    //         image: "/assets/17.webp",
-    //     },
-    // ];
     const getImages = async () => {
         setLoader(true);
         try {
@@ -96,45 +40,12 @@ export default function MasonaryGrid() {
                     };
                 }));
                 setLoader(false);
-                toast.success("Files fetched successfully!", {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    transition: Slide,
-                })
             } else {
                 console.error("Failed to get files");
-                toast.error("Failed to get files!", {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    transition: Slide,
-                })
                 setLoader(false);
             }
         } catch (error) {
             console.error("Error fetching files:", error);
-            toast.error("Failed to get files!", {
-                position: "top-right",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-                transition: Slide,
-            })
             setLoader(false);
         }
     };
@@ -150,48 +61,15 @@ export default function MasonaryGrid() {
             });
             if (response.ok) {
                 console.log("Files deleted successfully");
-                toast.success("File deleted successfully!", {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    transition: Slide,
-                })
                 getImages();
                 setLoader(false);
             } else {
                 console.error("Failed to delete files");
                 setLoader(false);
-                toast.error("Failed to delete file!", {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    transition: Slide,
-                })
             }
         } catch (error) {
             console.error("Error deleting file:", error);
             setLoader(false);
-            toast.error("Failed to delete file!", {
-                position: "top-right",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-                transition: Slide,
-            })
         }
     }
 
@@ -202,21 +80,12 @@ export default function MasonaryGrid() {
     return (
         <>
             {
-                loader &&
-                <div className="h-full flex items-center justify-center fixed w-full top-0 left-0 bg-black bg-opacity-50 z-10">
+                loader && <div className="h-full flex items-center justify-center fixed w-full top-0 left-0 bg-black bg-opacity-50 z-10">
                     <Loader />
                 </div>
             }
-            <div className="columns-1 gap-5 sm:columns-2 sm:gap-2 md:columns-3 [&>img:not(:first-child)]:mt-2 main-container">
-                {/* {photos.map((photo, i) => (
-                    <img
-                        key={i}
-                        src={photo.image}
-                        alt={'images'}
-                        className="cursor-zoom-in"
-                        onClick={() => setIndex(i)}
-                    />
-                ))} */}
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 [&>img:not(:first-child)]:mt-2 main-container">
                 {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
                     <div className="relative" key={i}>
                         <img
@@ -232,9 +101,7 @@ export default function MasonaryGrid() {
                         </button>
                     </div>
                 )) :
-                    <div className="h-[60vh] flex items-center justify-center">
-                        No Images Found
-                    </div>
+                    <div className="h-[60vh] flex items-center justify-center" />
                 }
             </div>
 
