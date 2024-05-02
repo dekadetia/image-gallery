@@ -50,3 +50,49 @@ html {
     border-radius: 50px;
     backdrop-filter: blur(10px);
 }
+
+
+.images {
+    max-width: 100%;
+    display: block;
+}
+
+figure {
+    margin: 0;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    margin-bottom: 10px;
+    break-inside: avoid;
+    position: relative;
+}
+
+figure>.images {
+    grid-row: 1 / -1;
+    grid-column: 1;
+}
+
+
+/* Small to medium */
+@media (max-width:767px) {
+    .c-container {
+        column-count: 1;
+        column-gap: 10px;
+    }
+}
+
+/* Medium Screen */
+@media (min-width: 768px) {
+    .c-container {
+        column-count: 2;
+        column-gap: 10px;
+    }
+}
+
+/* Large Screen */
+@media (min-width: 1024px) {
+
+    .c-container {
+        column-count: 3;
+        column-gap: 10px;
+    }
+}

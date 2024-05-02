@@ -12,9 +12,9 @@ export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
     const [descriptionMaxLines, setDescriptionMaxLines] = useState(3);
     const [descriptionTextAlign, setDescriptionTextAlign] = useState("end");
-    const [isOpen, setOpen] = useState(true)
+    const [isOpen, setOpen] = useState(true);
     const [fetchPhotos, setFetchedPhotos] = useState([]);
-    const [slides, setSlides] = useState()
+    const [slides, setSlides] = useState();
     const [loader, setLoader] = useState(false);
 
     const getImages = async () => {
@@ -74,32 +74,32 @@ export default function MasonaryGrid() {
     }
 
     useEffect(() => {
-        getImages()
+        getImages();
     }, [])
 
     return (
         <>
             {
-                loader && <div className="h-full flex items-center justify-center fixed w-full top-0 left-0 bg-black bg-opacity-50 z-10">
+                loader && <div className="h-full flex items-center justify-center fixed w-full top-0 left-0 bg-black/50 z-10">
                     <Loader />
                 </div>
             }
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 [&>img:not(:first-child)]:mt-2 main-container">
+            <div className="c-container">
                 {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
-                    <div className="relative" key={i}>
+                    <figure className="relative" key={i}>
                         <img
                             key={i}
                             src={photo.src}
                             alt={'images'}
-                            className="cursor-zoom-in object-cover w-full h-full"
+                            className="cursor-zoom-in images"
                             onClick={() => setIndex(i)}
                         />
                         <button onClick={() => deleteImage(photo.name)}
                             className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
                             <MdDelete />
                         </button>
-                    </div>
+                    </figure>
                 )) :
                     <div className="h-[60vh] flex items-center justify-center" />
                 }
@@ -115,6 +115,9 @@ export default function MasonaryGrid() {
                     captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
                 />
             }
+            <div className="md:text-sm lg:text-2xl">
+
+            </div>
         </>
     )
 }
