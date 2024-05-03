@@ -7,6 +7,7 @@ import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import Loader from '../components/loader/loader';
 import { MdDelete } from "react-icons/md";
+import Layout from "react-masonry-list";
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
@@ -86,7 +87,7 @@ export default function MasonaryGrid() {
             }
 
             <div className="c-container">
-                {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
+            {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
                     <figure className="relative" key={i}>
                         <img
                             key={i}
