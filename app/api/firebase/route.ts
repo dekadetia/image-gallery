@@ -1,4 +1,4 @@
-import { ref, getDownloadURL, uploadBytesResumable, listAll, deleteObject } from 'firebase/storage';
+import { ref, getDownloadURL, uploadBytesResumable, listAll, deleteObject, getMetadata } from 'firebase/storage';
 import { storage } from '../../../firebase/firebase-config';
 import { NextResponse } from "next/server";
 
@@ -8,17 +8,21 @@ export async function GET(request) {
 
   try {
     const res = await listAll(listRef);
-    const images = await Promise.all(
+    const imagesWithDates = await Promise.all(
       res.items.map(async (itemRef) => {
         const downloadURL = await getDownloadURL(itemRef);
+        const metadata = await getMetadata(itemRef);
         return {
           src: downloadURL,
           name: itemRef.name,
+          uploadDate: metadata.timeCreated, 
         };
       })
     );
 
-    return NextResponse.json({ images: images, message: 'succesfully fetched' }, { status: 200 });
+    const images = imagesWithDates.sort((a:any, b:any) => new Date(b.uploadDate) - new Date(a.uploadDate));
+
+    return NextResponse.json({ images: images, message: 'successfully fetched' }, { status: 200 });
 
   } catch (error) {
     console.error('Error loading images:', error);
