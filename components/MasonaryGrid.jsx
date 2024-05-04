@@ -64,45 +64,7 @@ export default function MasonaryGrid() {
                     <Loader />
                 </div>
             }
-<<<<<<< HEAD
-            
-            <AnimatePresence>
-                <div className="c-container">
-                    {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
-                        <motion.div className="relative figure" key={i}
-                            whileInView={{
-                                top: "0",
-                                opacity: "1"
-                            }}
-                            initial={{
-                                top: "20px",
-                                opacity: ".4"
-                            }}
-                            animate={{
-                                top: "0",
-                                opacity: "1"
-                            }}
-                        >
-                            <Image
-                                key={i}
-                                src={photo.src}
-                                alt={'images'}
-                                fill
-                                className="cursor-zoom-in images"
-                                onClick={() => setIndex(i)}
-                                onLoadingComplete={() => setImagesLoaded(true)}
-                            />
-                            <button onClick={() => deleteImage(photo.name)}
-                                className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
-                                <MdDelete />
-                            </button>
-                        </motion.div>
-                    )) :
-                        <div className="h-[60vh] flex items-center justify-center" />
-                    }
-                </div>
-            </AnimatePresence>
-=======
+
 
             <div className="c-container">
                 {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
@@ -119,7 +81,6 @@ export default function MasonaryGrid() {
                     <div className="h-[60vh] flex items-center justify-center" />
                 }
             </div>
->>>>>>> ba44aa95429678aa4d6b5a490e268f239489c630
 
             {slides &&
                 <Lightbox
