@@ -53,29 +53,6 @@ export default function MasonaryGrid() {
         }
     };
 
-    const deleteImage = async (name) => {
-        setLoader(true);
-        const form = new FormData();
-        form.append('file_name', name);
-        try {
-            const response = await fetch("/api/firebase", {
-                method: "DELETE",
-                body: form,
-            });
-            if (response.ok) {
-                console.log("Files deleted successfully");
-                getImages();
-                setLoader(false);
-            } else {
-                console.error("Failed to delete files");
-                setLoader(false);
-            }
-        } catch (error) {
-            console.error("Error deleting file:", error);
-            setLoader(false);
-        }
-    }
-
     useEffect(() => {
         getImages();
     }, [])
@@ -87,6 +64,7 @@ export default function MasonaryGrid() {
                     <Loader />
                 </div>
             }
+<<<<<<< HEAD
             
             <AnimatePresence>
                 <div className="c-container">
@@ -124,6 +102,24 @@ export default function MasonaryGrid() {
                     }
                 </div>
             </AnimatePresence>
+=======
+
+            <div className="c-container">
+                {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
+                    <figure className="relative" key={i}>
+                        <img
+                            key={i}
+                            src={photo.src}
+                            alt={'images'}
+                            className="cursor-zoom-in images"
+                            onClick={() => setIndex(i)}
+                        />
+                    </figure>
+                )) :
+                    <div className="h-[60vh] flex items-center justify-center" />
+                }
+            </div>
+>>>>>>> ba44aa95429678aa4d6b5a490e268f239489c630
 
             {slides &&
                 <Lightbox
