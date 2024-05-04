@@ -7,7 +7,8 @@ import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import Loader from '../components/loader/loader';
 import { MdDelete } from "react-icons/md";
-import Layout from "react-masonry-list";
+import { AnimatePresence, inView, motion } from "framer-motion";
+import Image from "next/image";
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
@@ -17,6 +18,7 @@ export default function MasonaryGrid() {
     const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState();
     const [loader, setLoader] = useState(false);
+    const [isImagesLoaded, setImagesLoaded] = useState(false)
 
     const getImages = async () => {
         setLoader(true);
@@ -85,26 +87,43 @@ export default function MasonaryGrid() {
                     <Loader />
                 </div>
             }
-
-            <div className="c-container">
-            {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
-                    <figure className="relative" key={i}>
-                        <img
-                            key={i}
-                            src={photo.src}
-                            alt={'images'}
-                            className="cursor-zoom-in images"
-                            onClick={() => setIndex(i)}
-                        />
-                        <button onClick={() => deleteImage(photo.name)}
-                            className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
-                            <MdDelete />
-                        </button>
-                    </figure>
-                )) :
-                    <div className="h-[60vh] flex items-center justify-center" />
-                }
-            </div>
+            
+            <AnimatePresence>
+                <div className="c-container">
+                    {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
+                        <motion.div className="relative figure" key={i}
+                            whileInView={{
+                                top: "0",
+                                opacity: "1"
+                            }}
+                            initial={{
+                                top: "20px",
+                                opacity: ".4"
+                            }}
+                            animate={{
+                                top: "0",
+                                opacity: "1"
+                            }}
+                        >
+                            <Image
+                                key={i}
+                                src={photo.src}
+                                alt={'images'}
+                                fill
+                                className="cursor-zoom-in images"
+                                onClick={() => setIndex(i)}
+                                onLoadingComplete={() => setImagesLoaded(true)}
+                            />
+                            <button onClick={() => deleteImage(photo.name)}
+                                className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
+                                <MdDelete />
+                            </button>
+                        </motion.div>
+                    )) :
+                        <div className="h-[60vh] flex items-center justify-center" />
+                    }
+                </div>
+            </AnimatePresence>
 
             {slides &&
                 <Lightbox
