@@ -8,21 +8,25 @@ export async function GET(request) {
 
   try {
     const res = await listAll(listRef);
-    const imagesWithDates = await Promise.all(
+    const imagesWithData: { src: string, name: string, uploadDate: string }[] = await Promise.all(
       res.items.map(async (itemRef) => {
         const downloadURL = await getDownloadURL(itemRef);
         const metadata = await getMetadata(itemRef);
         return {
           src: downloadURL,
           name: itemRef.name,
-          uploadDate: metadata.timeCreated, 
+          created_at: metadata.timeCreated,
+          updated_at: metadata.updated,
+          size: metadata.size,
         };
       })
     );
 
-    const images = imagesWithDates.sort((a:any, b:any) => new Date(b.uploadDate) - new Date(a.uploadDate));
+    // const images: { src: string, name: string, uploadDate: string }[] = imagesWithDates.sort((a, b) => {
+    //   return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
+    // });
 
-    return NextResponse.json({ images: images, message: 'successfully fetched' }, { status: 200 });
+    return NextResponse.json({ images: imagesWithData, message: 'successfully fetched' }, { status: 200 });
 
   } catch (error) {
     console.error('Error loading images:', error);
@@ -55,10 +59,10 @@ export async function DELETE(request) {
 
   const delRef = ref(storage, `images/${fileName}`);
 
-  try{
+  try {
     await deleteObject(delRef);
     return NextResponse.json({ message: 'succesfully deleted' }, { status: 200 });
-  }catch{
+  } catch {
     return NextResponse.json({ message: 'error deleting file' }, { status: 400 });
   }
 }

@@ -50,29 +50,6 @@ export default function MasonaryGrid() {
         }
     };
 
-    const deleteImage = async (name) => {
-        setLoader(true);
-        const form = new FormData();
-        form.append('file_name', name);
-        try {
-            const response = await fetch("/api/firebase", {
-                method: "DELETE",
-                body: form,
-            });
-            if (response.ok) {
-                console.log("Files deleted successfully");
-                getImages();
-                setLoader(false);
-            } else {
-                console.error("Failed to delete files");
-                setLoader(false);
-            }
-        } catch (error) {
-            console.error("Error deleting file:", error);
-            setLoader(false);
-        }
-    }
-
     useEffect(() => {
         getImages();
     }, [])
@@ -95,10 +72,6 @@ export default function MasonaryGrid() {
                             className="cursor-zoom-in images"
                             onClick={() => setIndex(i)}
                         />
-                        <button onClick={() => deleteImage(photo.name)}
-                            className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
-                            <MdDelete />
-                        </button>
                     </figure>
                 )) :
                     <div className="h-[60vh] flex items-center justify-center" />
