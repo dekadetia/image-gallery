@@ -11,7 +11,7 @@ export async function GET(request) {
     const imagesWithData: any = await Promise.all(
       res.items.map(async (itemRef) => {
         const downloadURL = await getDownloadURL(itemRef);
-        const metadata: any = await getMetadata(itemRef);
+        const metadata:any = await getMetadata(itemRef);
         return {
           src: downloadURL,
           name: itemRef.name,
@@ -41,7 +41,7 @@ export async function POST(request, response) {
   const caption = formData.get('caption');
 
   formData.forEach(async (data: any, index: any) => {
-    if (index != 'caption') {
+    if(index != 'caption'){
       const file = data;
       if (!file) {
         return NextResponse.json({ error: "No files received." }, { status: 400 });
