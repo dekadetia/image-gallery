@@ -8,6 +8,7 @@ import { MdDelete } from "react-icons/md";
 
 export default function Page() {
     const [images, setImages] = useState([]);
+    const [caption, setCaption] = useState('');
     const [loader, setLoader] = useState(false);
     const [modal, setModal] = useState(false);
     const [delId, setdelId] = useState();
@@ -28,6 +29,8 @@ export default function Page() {
             formData.append(`file[${index}]`, image);
         });
 
+        formData.append('caption', caption)
+
         try {
             const response = await fetch("/api/firebase", {
                 method: "POST",
@@ -36,6 +39,7 @@ export default function Page() {
 
             if (response.ok) {
                 console.log("Files uploaded successfully");
+                getImages();
                 toast.success("Files uploaded successfully!", {
                     position: "top-right",
                     autoClose: 5000,
@@ -47,7 +51,6 @@ export default function Page() {
                     theme: "dark",
                     transition: Slide,
                 })
-                getImages();
                 setLoader(false);
             } else {
                 console.error("Failed to upload files");
@@ -163,11 +166,14 @@ export default function Page() {
                 </div>
             }
             <div className="w-full p-6">
-                <form onSubmit={checkState} className="flex flex-col space-y-6 py-5 px-4 rounded-lg w-1/3 border border-solid border-white mx-auto">
+                <form onSubmit={checkState} className="flex flex-col py-5 px-4 rounded-lg w-1/3 border border-solid border-white mx-auto">
                     <h2 className="w-full text-center text-2xl font-bold">Upload Images</h2>
 
-                    <input multiple onChange={changeHandler} className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400" id="file_input" type="file" />
-
+                    <label className="mb-2 mt-4">Add Caption</label>
+                    <input type="text" onChange={(e)=>setCaption(e.target.value)} name="caption" className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 h-10 p-4" />
+                    
+                    <label className="mb-2 mt-4">Add Files</label>
+                    <input multiple onChange={changeHandler} className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 mb-6" id="file_input" type="file" />
                     <button disabled={images.length === 0} type="submit" className="bg-white text-black transition-all duration-300 hover:opacity-90 py-2 disabled:bg-gray-200 disabled:cursor-not-allowed">
                         Upload
                     </button>
@@ -183,6 +189,7 @@ export default function Page() {
                                 className="w-full h-60 object-cover object-top rounded-xl"
                             />
                             <p className="text-white font-bold my-2 truncate">Name : <span className="font-normal">{photo.name}</span></p>
+                            <p className="text-white font-bold my-2 truncate">Caption : <span className="font-normal">{photo.caption}</span></p>
                             <p className="text-white font-bold my-2 truncate">Size : <span className="font-normal">{formatFileSize(photo.size)}</span></p>
                             <p className="text-white font-bold my-2 truncate">Created at : <span className="font-normal">{new Date(photo.created_at).toLocaleString('en-US')}</span></p>
                             <p className="text-white font-bold my-2 truncate">Updated at : <span className="font-normal">{new Date(photo.updated_at).toLocaleString('en-US')}</span></p>
@@ -214,7 +221,7 @@ export default function Page() {
                                 </svg>
                                 <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Are you sure you want to delete this image?</h3>
                                 <button onClick={() => deleteImage(delId)} type="button" className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center">
-                                    Yes, I'm sure
+                                    {`Yes, I'm sure`}
                                 </button>
                                 <button onClick={()=>setModal(false)} type="button" className="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
                                     No, cancel
