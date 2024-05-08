@@ -23,7 +23,7 @@ export default function MasonaryGrid() {
     const getImages = async () => {
         setSkeleton(true);
         try {
-            const response = await fetch(`/api/firebase?page=${pageNumber}`, {
+            const response = await fetch(`/api/firebase`, {
                 method: "GET",
             });
 
