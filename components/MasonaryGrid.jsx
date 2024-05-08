@@ -1,13 +1,10 @@
-'use client';
-
-import { useState, useEffect } from "react";
+'use client'
 
 import "yet-another-react-lightbox/styles.css";
+import React, { useState, useEffect } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import Loader from '../components/loader/loader';
-import "yet-another-react-lightbox/plugins/captions.css";
-
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
@@ -15,14 +12,18 @@ export default function MasonaryGrid() {
     const [descriptionTextAlign, setDescriptionTextAlign] = useState("end");
     const [isOpen, setOpen] = useState(true);
     const [fetchPhotos, setFetchedPhotos] = useState([]);
-    const [slides, setSlides] = useState();
+    const [slides, setSlides] = useState([]);
     const [loader, setLoader] = useState(false);
-    const [isImagesLoaded, setImagesLoaded] = useState(false)
+    const [skeleton, setSkeleton] = useState(false);
+    const [pageNumber, setPageNumber] = useState(1);
+    const [newImages, setNewImages] = useState([]);
+
+    const arr = Array.from({ length: 35 }, (_, index) => index + 1);
 
     const getImages = async () => {
-        setLoader(true);
+        setSkeleton(true);
         try {
-            const response = await fetch("/api/firebase", {
+            const response = await fetch(`/api/firebase`, {
                 method: "GET",
             });
 
@@ -30,55 +31,111 @@ export default function MasonaryGrid() {
                 const data = await response.json();
                 const images = data.images;
                 console.log("Files fetched successfully:", images);
-                setFetchedPhotos(images);
-                console.log(images)
-                setSlides(images.map((photo) => {
-                    const width = 1080 * 4;
-                    const height = 1620 * 4;
-                    return {
-                        title: photo.caption,
-                        src: photo.src,
-                        width,
-                        height,
-                        description: '',
-                    };
-                }));
-                setLoader(false);
+                setFetchedPhotos([...images]);
+                if (images.length > 35) {
+                    const slice = images.slice(0, 35);
+                    setNewImages(slice);
+                    setSlides(slice.map((photo) => {
+                        const width = 1080 * 4;
+                        const height = 1620 * 4;
+                        return {
+                            src: photo.src,
+                            width,
+                            height,
+                            description: '',
+                        };
+                    }));
+                } else {
+                    setNewImages(images);
+                    setSlides(images.map((photo) => {
+                        const width = 1080 * 4;
+                        const height = 1620 * 4;
+                        return {
+                            src: photo.src,
+                            width,
+                            height,
+                            description: '',
+                        };
+                    }));
+                }
+                setSkeleton(false);
             } else {
                 console.error("Failed to get files");
-                setLoader(false);
+                setSkeleton(false);
             }
         } catch (error) {
             console.error("Error fetching files:", error);
-            setLoader(false);
+            setSkeleton(false);
         }
+    };
+
+    const handleScroll = () => {
+        setSkeleton(true);
+        const nextImages = [...newImages, ...fetchPhotos.slice(newImages.length, newImages.length + 35)];
+        setNewImages(nextImages)
+        setSlides(nextImages.map((photo) => {
+            const width = 1080 * 4;
+            const height = 1620 * 4;
+            return {
+                src: photo.src,
+                width,
+                height,
+                description: '',
+            };
+        }));
+        setTimeout(() => {
+            setSkeleton(false);
+        }, 1500);
+
     };
 
     useEffect(() => {
         getImages();
-    }, [])
+    }, []);
 
     return (
         <>
-            {
-                loader && <div className="h-full flex items-center justify-center fixed w-full top-0 left-0 bg-black/50 z-10">
+            {/* {loader && (
+                <div className="h-full flex items-center justify-center fixed w-full top-0 left-0 bg-black/50 z-10">
                     <Loader />
                 </div>
-            }
-            
-            {/* Grid Cards */}
+            )} */}
+
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-                {fetchPhotos?.map((imgProps, i) => (
-                    <img
-                        key={i}
-                        src={imgProps.src}
-                        alt="images"
-                        className="aspect-[16/9] 
-                        object-cover cursor-zoom-in"
-                        onClick={() => setIndex(i)}
-                    />
+                {newImages.map((photo, i) => (
+                    <figure className="relative" key={i}>
+                        <img
+                            src={photo.src}
+                            alt={'images'}
+                            className="aspect-[16/9] object-cover cursor-zoom-in"
+                            onClick={() => setIndex(i)}
+                            loading="lazy"
+                        />
+                    </figure>
                 ))}
             </div>
+
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+                {skeleton &&
+                    arr.map((val, index) => {
+                        const heights = ['h-40', 'h-96', 'h-48', 'h-72', 'h-60', 'h-80'];
+                        const randomHeight = heights[Math.floor(Math.random() * heights.length)];
+                        return <div
+                            key={index}
+                            className={`bg-gray-700 w-full mb-2 animate-pulse shadow-lg ${randomHeight}`}
+                        />
+                    })
+                }
+            </div>
+
+
+            <button
+                className="bg-gray-600 h-12 font-medium text-base w-[200px] block mx-auto my-6"
+                onClick={handleScroll}
+            >
+                Load More
+            </button>
+
 
             {slides &&
                 <Lightbox
@@ -90,6 +147,7 @@ export default function MasonaryGrid() {
                     captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
                 />
             }
+            <div className="md:text-sm lg:text-2xl"></div>
         </>
     )
 }
