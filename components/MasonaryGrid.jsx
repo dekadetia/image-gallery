@@ -73,7 +73,7 @@ export default function MasonaryGrid() {
                         key={i}
                         src={imgProps.src}
                         alt="images"
-                        className="aspect-square 
+                        className="aspect-[16/9] 
                         object-cover cursor-zoom-in"
                         onClick={() => setIndex(i)}
                     />
