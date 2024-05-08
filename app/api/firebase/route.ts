@@ -8,16 +8,17 @@ export async function GET(request) {
 
   try {
     const res = await listAll(listRef);
-    const imagesWithData: { src: string, name: string, uploadDate: string }[] = await Promise.all(
+    const imagesWithData: any = await Promise.all(
       res.items.map(async (itemRef) => {
         const downloadURL = await getDownloadURL(itemRef);
-        const metadata = await getMetadata(itemRef);
+        const metadata:any = await getMetadata(itemRef);
         return {
           src: downloadURL,
           name: itemRef.name,
           created_at: metadata.timeCreated,
           updated_at: metadata.updated,
           size: metadata.size,
+          caption: metadata.customMetadata?.caption,
         };
       })
     );
@@ -37,16 +38,22 @@ export async function GET(request) {
 // To handle a POST request to /api
 export async function POST(request, response) {
   const formData = await request.formData();
+  const caption = formData.get('caption');
 
   formData.forEach(async (data: any, index: any) => {
-
-    const file = data;
-    if (!file) {
-      return NextResponse.json({ error: "No files received." }, { status: 400 });
+    if(index != 'caption'){
+      const file = data;
+      if (!file) {
+        return NextResponse.json({ error: "No files received." }, { status: 400 });
+      }
+      const metadata = {
+        customMetadata: {
+          caption: caption,
+        },
+      };
+      const storageRef = ref(storage, `images/${file.name}`);
+      await uploadBytesResumable(storageRef, file, metadata);
     }
-
-    const storageRef = ref(storage, `images/${file.name}`);
-    await uploadBytesResumable(storageRef, file);
   });
 
   return NextResponse.json({ message: 'File uploaded successfully' }, { status: 200 });
