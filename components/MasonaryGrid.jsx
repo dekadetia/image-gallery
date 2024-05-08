@@ -89,10 +89,61 @@ export default function MasonaryGrid() {
 
     };
 
+    function isInViewport() {
+        // Get the bounding client rectangle position in the viewport
+        const element = document.getElementById("load-more-button")
+        var bounding = element.getBoundingClientRect();
+
+        // Checking part. Here the code checks if it's *fully* visible
+        // Edit this part if you just want a partial visibility
+        if (
+            bounding.top >= 0 &&
+            bounding.left >= 0 &&
+            bounding.right <= (window.innerWidth || document.documentElement.clientWidth) &&
+            bounding.bottom <= (window.innerHeight || document.documentElement.clientHeight)
+        ) {
+            console.log('In the viewport! :)');
+            return true;
+        } else {
+            console.log('Not in the viewport. :(');
+            return false;
+        }
+    }
+
+    function throttle(func, delay) {
+        let lastFunc;
+        let lastRan;
+        return function (...args) {
+            const context = this;
+            if (!lastRan) {
+                func.call(context, ...args);
+                lastRan = Date.now();
+            } else {
+                clearTimeout(lastFunc);
+                lastFunc = setTimeout(function () {
+                    if ((Date.now() - lastRan) >= delay) {
+                        func.call(context, ...args);
+                        lastRan = Date.now();
+                    }
+                }, delay - (Date.now() - lastRan));
+            }
+        };
+    }
+
     useEffect(() => {
         getImages();
-    }, []);
 
+        const handleScrollThrottled = throttle(function (event) {
+            if (isInViewport()) {
+                handleScroll();
+            }
+        }, 200); // Throttle scroll event to fire every 200ms
+
+        window.addEventListener('scroll', handleScrollThrottled, false);
+
+        return () => window.removeEventListener("scroll", handleScrollThrottled);
+    }, []);
+    
     return (
         <>
             {/* {loader && (
@@ -130,10 +181,10 @@ export default function MasonaryGrid() {
 
 
             <button
-                className="bg-gray-600 h-12 font-medium text-base w-[200px] block mx-auto my-6"
-                onClick={handleScroll}
+                className="capitalize bg-gray-600 h-12 font-medium text-base w-[200px] block mx-auto my-6"
+                id="load-more-button"
             >
-                Load More
+                Loading more images
             </button>
 
 
