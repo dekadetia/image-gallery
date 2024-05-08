@@ -1,10 +1,21 @@
 'use client';
 
-import React from 'react'
-
 function Loader() {
     return (
-        <div className="lds-default"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+        <div className="lds-default">
+            <div />
+            <div />
+            <div />
+            <div />
+            <div />
+            <div />
+            <div />
+            <div />
+            <div />
+            <div />
+            <div />
+            <div />
+
             <style jsx>{`                        
                 .lds-default,
                 .lds-default div {

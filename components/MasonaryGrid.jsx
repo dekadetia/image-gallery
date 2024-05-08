@@ -6,9 +6,9 @@ import "yet-another-react-lightbox/styles.css";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import Loader from '../components/loader/loader';
-import { MdDelete } from "react-icons/md";
-import { AnimatePresence, inView, motion } from "framer-motion";
-import Image from "next/image";
+import "yet-another-react-lightbox/plugins/captions.css";
+import Masonry from "react-masonry-css";
+
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
@@ -32,10 +32,12 @@ export default function MasonaryGrid() {
                 const images = data.images;
                 console.log("Files fetched successfully:", images);
                 setFetchedPhotos(images);
+                console.log(images)
                 setSlides(images.map((photo) => {
                     const width = 1080 * 4;
                     const height = 1620 * 4;
                     return {
+                        title: photo.caption,
                         src: photo.src,
                         width,
                         height,
@@ -53,6 +55,13 @@ export default function MasonaryGrid() {
         }
     };
 
+    const breakpointCols = {
+        default: 3,
+        1100: 3,
+        700: 2,
+        500: 1
+    }
+
     useEffect(() => {
         getImages();
     }, [])
@@ -66,7 +75,7 @@ export default function MasonaryGrid() {
             }
 
 
-            <div className="c-container">
+            {/* <div className="c-container">
                 {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
                     <figure className="relative" key={i}>
                         <img
@@ -80,6 +89,19 @@ export default function MasonaryGrid() {
                 )) :
                     <div className="h-[60vh] flex items-center justify-center" />
                 }
+            </div> */}
+
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+                {fetchPhotos?.map((imgProps, i) => (
+                    <img
+                        key={i}
+                        src={imgProps.src}
+                        alt="images"
+                        className="aspect-square 
+                        object-cover cursor-zoom-in"
+                        onClick={() => setIndex(i)}
+                    />
+                ))}
             </div>
 
             {slides &&
@@ -92,9 +114,6 @@ export default function MasonaryGrid() {
                     captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
                 />
             }
-            <div className="md:text-sm lg:text-2xl">
-
-            </div>
         </>
     )
 }
