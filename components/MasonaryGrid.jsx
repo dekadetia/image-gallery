@@ -7,7 +7,6 @@ import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import Loader from '../components/loader/loader';
 import "yet-another-react-lightbox/plugins/captions.css";
-import Masonry from "react-masonry-css";
 
 
 export default function MasonaryGrid() {
@@ -55,13 +54,6 @@ export default function MasonaryGrid() {
         }
     };
 
-    const breakpointCols = {
-        default: 3,
-        1100: 3,
-        700: 2,
-        500: 1
-    }
-
     useEffect(() => {
         getImages();
     }, [])
@@ -73,24 +65,8 @@ export default function MasonaryGrid() {
                     <Loader />
                 </div>
             }
-
-
-            {/* <div className="c-container">
-                {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
-                    <figure className="relative" key={i}>
-                        <img
-                            key={i}
-                            src={photo.src}
-                            alt={'images'}
-                            className="cursor-zoom-in images"
-                            onClick={() => setIndex(i)}
-                        />
-                    </figure>
-                )) :
-                    <div className="h-[60vh] flex items-center justify-center" />
-                }
-            </div> */}
-
+            
+            {/* Grid Cards */}
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
                 {fetchPhotos?.map((imgProps, i) => (
                     <img
