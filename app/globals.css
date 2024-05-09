@@ -47,5 +47,9 @@ html {
     margin-top: 2rem;
     margin-bottom: 5rem;
     text-transform: capitalize;
-    font-family: GraphikBoldItalic;
+    font-family: GraphikSemibold;
+}
+
+.yarl__slide_captions_container{
+    width: 100%;
 }

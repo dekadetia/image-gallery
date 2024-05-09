@@ -4,7 +4,7 @@ import "yet-another-react-lightbox/styles.css";
 import React, { useState, useEffect } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
-import { FaPlus } from "react-icons/fa6";
+import { AiOutlinePlus } from "react-icons/ai";
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
@@ -13,9 +13,7 @@ export default function MasonaryGrid() {
     const [isOpen, setOpen] = useState(true);
     const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState([]);
-    const [loader, setLoader] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
-    const [pageNumber, setPageNumber] = useState(1);
     const [newImages, setNewImages] = useState([]);
 
     const arr = Array.from({ length: 36 }, (_, index) => index + 1);
@@ -126,9 +124,8 @@ export default function MasonaryGrid() {
                 className="grid place-items-center text-4xl py-10"
                 onClick={handleScroll}
             >
-                <FaPlus className="cursor-pointer transition-all duration-300 hover:opacity-80" />
+                <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80" />
             </div>
-
 
             {slides &&
                 <Lightbox
@@ -140,6 +137,7 @@ export default function MasonaryGrid() {
                     captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
                 />
             }
+
             <div className="md:text-sm lg:text-2xl"></div>
         </>
     )
