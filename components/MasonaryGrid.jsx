@@ -124,7 +124,7 @@ export default function MasonaryGrid() {
                 className="grid place-items-center text-4xl py-10"
                 onClick={handleScroll}
             >
-                <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80" />
+                <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
             </div>
 
             {slides &&

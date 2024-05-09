@@ -48,6 +48,7 @@ html {
     margin-bottom: 5rem;
     text-transform: capitalize;
     font-family: GraphikSemibold;
+    color: #CECECF !important;
 }
 
 .yarl__slide_captions_container{
