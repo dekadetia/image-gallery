@@ -3,22 +3,22 @@
 @tailwind utilities;
 
 @font-face {
-    font-family: "GraphikLight";
+    font-family: GraphikLight;
     src: url("../public/fonts/GraphikLight.otf");
 }
 
 @font-face {
-    font-family: "GraphikSemibold";
+    font-family: GraphikSemibold;
     src: url("../public/fonts/GraphikSemibold.otf");
 }
 
 @font-face {
-    font-family: "GraphikLightItalic";
+    font-family: GraphikLightItalic;
     src: url("../public/fonts/GraphikLightItalic.otf");
 }
 
 @font-face {
-    font-family: "GraphikBoldItalic";
+    font-family: GraphikBoldItalic;
     src: url("../public/fonts/GraphikBoldItalic.otf");
 }
 
@@ -37,4 +37,15 @@ html {
 
 .yarl__container {
     background-color: #15181b !important;
+}
+
+.yarl__slide {
+    flex-direction: column;
+}
+
+.yarl__slide_description {
+    margin-top: 2rem;
+    margin-bottom: 5rem;
+    text-transform: capitalize;
+    font-family: GraphikBoldItalic;
 }

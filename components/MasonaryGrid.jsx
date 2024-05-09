@@ -4,7 +4,7 @@ import "yet-another-react-lightbox/styles.css";
 import React, { useState, useEffect } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
-import { FaCirclePlus } from "react-icons/fa6";
+import { FaPlus } from "react-icons/fa6";
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
@@ -18,7 +18,7 @@ export default function MasonaryGrid() {
     const [pageNumber, setPageNumber] = useState(1);
     const [newImages, setNewImages] = useState([]);
 
-    const arr = Array.from({ length: 35 }, (_, index) => index + 1);
+    const arr = Array.from({ length: 36 }, (_, index) => index + 1);
 
     const getImages = async () => {
         setSkeleton(true);
@@ -32,8 +32,8 @@ export default function MasonaryGrid() {
                 const images = data.images;
                 console.log("Files fetched successfully:", images);
                 setFetchedPhotos([...images]);
-                if (images.length > 35) {
-                    const slice = images.slice(0, 35);
+                if (images.length > 36) {
+                    const slice = images.slice(0, 36);
                     setNewImages(slice);
                     setSlides(slice.map((photo) => {
                         const width = 1080 * 4;
@@ -42,7 +42,7 @@ export default function MasonaryGrid() {
                             src: photo.src,
                             width,
                             height,
-                            description: '',
+                            description: photo.caption,
                         };
                     }));
                 } else {
@@ -71,7 +71,7 @@ export default function MasonaryGrid() {
 
     const handleScroll = () => {
         setSkeleton(true);
-        const nextImages = [...newImages, ...fetchPhotos.slice(newImages.length, newImages.length + 35)];
+        const nextImages = [...newImages, ...fetchPhotos.slice(newImages.length, newImages.length + 36)];
         setNewImages(nextImages)
         setSlides(nextImages.map((photo) => {
             const width = 1080 * 4;
@@ -92,7 +92,7 @@ export default function MasonaryGrid() {
     useEffect(() => {
         getImages();
     }, []);
-    
+
     return (
         <>
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
@@ -122,12 +122,11 @@ export default function MasonaryGrid() {
                 }
             </div>
 
-
             <div
                 className="grid place-items-center text-4xl py-10"
                 onClick={handleScroll}
             >
-                <FaCirclePlus className="cursor-pointer transition-all duration-300 hover:opacity-80" />
+                <FaPlus className="cursor-pointer transition-all duration-300 hover:opacity-80" />
             </div>
 
 
