@@ -52,7 +52,7 @@ export default function MasonaryGrid() {
                             src: photo.src,
                             width,
                             height,
-                            description: '',
+                            description: photo.caption,
                         };
                     }));
                 }
