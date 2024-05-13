@@ -78,13 +78,12 @@ export default function MasonaryGrid() {
                 src: photo.src,
                 width,
                 height,
-                description: '',
+                description: photo.caption,
             };
         }));
         setTimeout(() => {
             setSkeleton(false);
         }, 1500);
-
     };
 
     useEffect(() => {

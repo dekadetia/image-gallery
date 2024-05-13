@@ -46,7 +46,6 @@ html {
 .yarl__slide_description {
     margin-top: 2rem;
     margin-bottom: 5rem;
-    text-transform: capitalize;
     font-family: GraphikLight;
     color: #CECECF !important;
 }

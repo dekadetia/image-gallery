@@ -5,15 +5,29 @@ import Loader from '../../components/loader/loader';
 import { ToastContainer, toast, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { MdDelete } from "react-icons/md";
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as Yup from "yup"
+
+
+const schema = Yup.object().shape({
+    username: Yup.string().required("Username is required"),
+    password: Yup.string().trim().required("Password is required")
+})
+
 
 export default function Page() {
+    const [userError, setUserError] = useState()
+    const [userIsLogged, setUserLogging] = useState(false)
     const [images, setImages] = useState([]);
     const [caption, setCaption] = useState('');
     const [loader, setLoader] = useState(false);
     const [modal, setModal] = useState(false);
     const [delId, setdelId] = useState();
-
     const [fetchPhotos, setFetchedPhotos] = useState([]);
+    const { register, handleSubmit, formState: { errors } } = useForm({
+        resolver: yupResolver(schema),
+    });
 
     const changeHandler = (e) => {
         const files = Array.from(e.target.files);
@@ -151,13 +165,84 @@ export default function Page() {
         console.log(name, delId);
     }
 
+    function isObjectMatch(obj1, obj2) {
+        var obj1Keys = Object.keys(obj1);
+        var obj2Keys = Object.keys(obj2);
+
+        if (obj1Keys.length !== obj2Keys.length) {
+            return false;
+        }
+
+        for (var i = 0; i < obj1Keys.length; i++) {
+            var propName = obj1Keys[i];
+
+            if (obj1[propName] !== obj2[propName]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    const submitHandler = (formData) => {
+        console.log(formData)
+        const userLogingDetails = {
+            username: "Joseph",
+            password: "1deaKadet!!!"
+        }
+
+        const userDetailsMatched = isObjectMatch(formData, userLogingDetails);
+
+        if (userDetailsMatched && typeof window !== undefined) {
+            localStorage.setItem("userIsLogged", JSON.stringify(userDetailsMatched))
+            setUserLogging(true)
+        } else {
+            setUserError("Credentials Are Wrong!")
+        }
+    }
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const userIsLogged = localStorage.getItem("userIsLogged")
+            if (userIsLogged) setUserLogging(true)
+        }
         getImages();
     }, [])
 
     return (
-        <>
+        !userIsLogged ? <>
+            <div className='w-full h-screen bg-black grid place-items-center'>
+                <form
+                    className='max-w-screen-xl mx-auto rounded-lg border border-solid border-white space-y-4 px-8 py-10 flex flex-col'
+                    onSubmit={handleSubmit(submitHandler)}
+                >
+
+                    <h2 className='text-3xl font-bold w-full text-center'>
+                        Sign In First To Upload
+                    </h2>
+
+                    <input
+                        {...register("username")}
+                        className='px-2 py-1 rounded-lg border border-solid border-white outline-none text-black' placeholder='Username'
+                    />
+
+                    {errors.username && <p className="text-red-400">{errors.username.message}</p>}
+                    <input
+                        {...register("password")}
+                        type="password"
+                        className='px-2 py-1 rounded-lg border border-solid border-white outline-none text-black' placeholder='Password'
+                    />
+
+                    {errors.password && <p className="text-red-400">{errors.password.message}</p>}
+                    {userError && <p className="text-red-400">{userError}</p>}
+
+                    <button
+                        className='w-full py-1 bg-white text-black transition-all duration-200 hover:opacity-80 rounded-lg'>
+                        Sign In
+                    </button>
+                </form>
+            </div>
+        </> : <>
             <ToastContainer />
             {
                 loader &&
@@ -165,7 +250,7 @@ export default function Page() {
                     <Loader />
                 </div>
             }
-            
+
             <div className="w-full p-6">
                 <form onSubmit={checkState} className="flex flex-col py-5 px-4 rounded-lg w-1/3 border border-solid border-white mx-auto">
                     <h2 className="w-full text-center text-2xl font-bold">Upload Images</h2>
