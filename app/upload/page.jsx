@@ -9,12 +9,10 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from "yup"
 
-
 const schema = Yup.object().shape({
     username: Yup.string().required("Username is required"),
     password: Yup.string().trim().required("Password is required")
 })
-
 
 export default function Page() {
     const [userError, setUserError] = useState()
@@ -185,7 +183,6 @@ export default function Page() {
     }
 
     const submitHandler = (formData) => {
-        console.log(formData)
         const userLogingDetails = {
             username: "Joseph",
             password: "1deaKadet!!!"
@@ -194,17 +191,17 @@ export default function Page() {
         const userDetailsMatched = isObjectMatch(formData, userLogingDetails);
 
         if (userDetailsMatched && typeof window !== undefined) {
-            localStorage.setItem("userIsLogged", JSON.stringify(userDetailsMatched))
-            setUserLogging(true)
+            localStorage.setItem("userIsLogged", JSON.stringify(userDetailsMatched));
+            setUserLogging(true);
         } else {
-            setUserError("Credentials Are Wrong!")
+            setUserError("Credentials Are Wrong!");
         }
     }
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const userIsLogged = localStorage.getItem("userIsLogged")
-            if (userIsLogged) setUserLogging(true)
+            const userIsLogged = localStorage.getItem("userIsLogged");
+            if (userIsLogged) setUserLogging(true);
         }
         getImages();
     }, [])
@@ -269,14 +266,14 @@ export default function Page() {
 
                     {fetchPhotos && fetchPhotos.length > 0 ? fetchPhotos.map((photo, i) => (
                         <div className="relative break-all p-2 border-2 rounded-xl border-white transition-all duration-300 hover:shadow-md hover:shadow-white" key={i}>
-                            <img
+                            {/* <img
                                 key={i}
                                 src={photo.src}
                                 alt={'images'}
                                 className="w-full h-60 object-cover object-top rounded-xl"
-                            />
+                            /> */}
 
-                            <p className="text-white font-bold my-2 truncate">
+                            <p className="text-white font-bold my-2 mt-10">
                                 Name :
                                 <span className="font-normal">
                                     {photo.name}
