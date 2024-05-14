@@ -223,18 +223,24 @@ export default function Page() {
                         className='px-2 py-1 rounded-lg border border-solid border-white outline-none text-black' placeholder='Username'
                     />
 
-                    {errors.username && <p className="text-red-400">{errors.username.message}</p>}
+                    {
+                        errors.username && <p className="text-red-400">{errors.username.message}</p>
+                    }
+
                     <input
                         {...register("password")}
                         type="password"
                         className='px-2 py-1 rounded-lg border border-solid border-white outline-none text-black' placeholder='Password'
                     />
 
-                    {errors.password && <p className="text-red-400">{errors.password.message}</p>}
-                    {userError && <p className="text-red-400">{userError}</p>}
+                    {
+                        errors.password && <p className="text-red-400">{errors.password.message}</p>
+                    }
+                    {
+                        userError && <p className="text-red-400">{userError}</p>
+                    }
 
-                    <button
-                        className='w-full py-1 bg-white text-black transition-all duration-200 hover:opacity-80 rounded-lg'>
+                    <button className='w-full py-1 bg-white text-black transition-all duration-200 hover:opacity-80 rounded-lg'>
                         Sign In
                     </button>
                 </form>

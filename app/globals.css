@@ -53,3 +53,7 @@ html {
 .yarl__slide_captions_container {
     width: 100%;
 }
+
+.yarl__slide{
+    padding-top: 7rem !important;
+}
