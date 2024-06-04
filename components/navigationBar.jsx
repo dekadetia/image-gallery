@@ -12,15 +12,17 @@ export default function NavigationBar() {
                     <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
                 </Link>
 
-                <div className="flex gap-4">
+                <div className="flex gap-8 items-center">
                     <Link href={"/indx"}>
-                        <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105" />
+                        <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
                     </Link>
+                    
                     <Link href={"/ordr"}>
-                        <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+                        <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
                     </Link>
+
                     <Link href={"/rndm"}>
-                        <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105" />
+                        <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
                     </Link>
                 </div>
             </div>
