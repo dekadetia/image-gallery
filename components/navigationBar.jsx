@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { IoMdList } from "react-icons/io";
+import { RxCaretSort } from "react-icons/rx";
+import { IoMdShuffle } from "react-icons/io";
 
 export default function NavigationBar() {
     return (
@@ -9,12 +12,17 @@ export default function NavigationBar() {
                     <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
                 </Link>
 
-                <a href="https://letterboxd.com/tndrbtns/" target="_blank">
-                    <img src="/assets/bottom-logo.svg"
-                        className="object-contain w-10"
-                        alt=""
-                    />
-                </a>
+                <div className="flex gap-4">
+                    <Link href={"/indx"}>
+                        <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105" />
+                    </Link>
+                    <Link href={"/ordr"}>
+                        <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+                    </Link>
+                    <Link href={"/rndm"}>
+                        <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105" />
+                    </Link>
+                </div>
             </div>
         </div>
     )

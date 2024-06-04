@@ -29,6 +29,7 @@ export default function Page() {
     const [editmodal, setEditModal] = useState(false);
     const [delId, setdelId] = useState();
     const [fetchPhotos, setFetchedPhotos] = useState([]);
+
     const { register, handleSubmit, formState: { errors } } = useForm({
         resolver: yupResolver(schema),
     });
@@ -296,7 +297,6 @@ export default function Page() {
                     className='max-w-screen-xl mx-auto rounded-lg border border-solid border-white space-y-4 px-8 py-10 flex flex-col'
                     onSubmit={handleSubmit(submitHandler)}
                 >
-
                     <h2 className='text-3xl font-bold w-full text-center'>
                         Sign In First To Upload
                     </h2>
