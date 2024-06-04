@@ -6,7 +6,7 @@ import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
 import { getImagesAPI } from "../utils/getImages";
 
-export default function MasonaryGrid({ }) {
+export default function MasonaryGrid() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
     const [index, setIndex] = useState(-1);

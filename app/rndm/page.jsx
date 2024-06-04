@@ -5,6 +5,9 @@ import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
 import { getImagesAPI } from "../../utils/getImages";
+import Link from "next/link";
+import { IoMdList, IoMdShuffle } from "react-icons/io";
+import { RxCaretSort } from "react-icons/rx";
 
 export default function Random() {
     const descriptionTextAlign = "end";
@@ -104,6 +107,17 @@ export default function Random() {
         return { array1, array2 }
     }
 
+    const randomizeSequence = () => {
+        // Shuffle the arrays
+        const shuffledImages = [...Images];
+        const shuffledSlides = [...slides];
+        shuffleArraysInSync(shuffledImages, shuffledSlides);
+
+        // Update state with shuffled arrays
+        setImages(shuffledImages);
+        setSlides(shuffledSlides);
+    };
+
     function shuffleArray(array) {
         let currentIndex = array.length;
 
@@ -123,6 +137,28 @@ export default function Random() {
 
     return (
         <>
+            {/* Navigation */}
+            <div className="w-full flex justify-center items-center py-9">
+                <div className="w-full grid place-items-center space-y-6">
+
+                    <Link href={"/"}>
+                        <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
+                    </Link>
+
+                    <div className="flex gap-8 items-center">
+                        <Link href={"/indx"}>
+                            <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                        </Link>
+
+                        <Link href={"/ordr"}>
+                            <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
+                        </Link>
+
+                        <IoMdShuffle onClick={randomizeSequence} className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                    </div>
+                </div>
+            </div>
+
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
                 {Images.map((photo, i) => (
                     <figure className="relative" key={i}>
