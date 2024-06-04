@@ -9,6 +9,7 @@ import { getImagesAPI } from "../../utils/getImages";
 export default function Random() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
+    const [randomizeOrder, setRandomizeOrder] = useState(false)
     const [index, setIndex] = useState(-1);
     const [isOpen, setOpen] = useState(true);
     const [fetchPhotos, setFetchedPhotos] = useState([]);
@@ -27,6 +28,7 @@ export default function Random() {
             if (response.ok) {
                 const data = await response.json();
                 const images = data.images;
+                shuffleArray(images)
                 setFetchedPhotos([...images]);
                 if (images.length > 36) {
                     const slice = images.slice(0, 36);
@@ -84,6 +86,24 @@ export default function Random() {
         }, 1500);
     };
 
+    function shuffleArraysInSync(array1, array2) {
+        if (array1.length !== array2.length) {
+            throw new Error("Arrays must have the same length.");
+        }
+
+        let currentIndex = array1.length;
+
+        while (currentIndex !== 0) {
+            const randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            [array1[currentIndex], array1[randomIndex]] = [array1[randomIndex], array1[currentIndex]];
+            [array2[currentIndex], array2[randomIndex]] = [array2[randomIndex], array2[currentIndex]];
+        }
+        console.log("shuffled")
+        return { array1, array2 }
+    }
+
     function shuffleArray(array) {
         let currentIndex = array.length;
 
@@ -93,7 +113,8 @@ export default function Random() {
 
             [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
         }
-        return array
+
+        return array; // Add this line to return the shuffled array
     }
 
     useEffect(() => {
@@ -102,9 +123,8 @@ export default function Random() {
 
     return (
         <>
-
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-                {Images && shuffleArray(Images).map((photo, i) => (
+                {Images.map((photo, i) => (
                     <figure className="relative" key={i}>
                         <img
                             src={photo.src}
