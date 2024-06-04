@@ -23,6 +23,7 @@ export default function Page() {
     const [photographer, setPhotographer] = useState('');
     const [year, setYear] = useState('');
     const [alphaname, setAlphaname] = useState('');
+    const [dimensions, setDimensions] = useState('');
 
     const [loader, setLoader] = useState(false);
     const [modal, setModal] = useState(false);
@@ -53,6 +54,7 @@ export default function Page() {
         formData.append('photographer', photographer)
         formData.append('year', year)
         formData.append('alphaname', alphaname)
+        formData.append('dimensions', dimensions)
 
         try {
             const response = await fetch("/api/firebase", {
@@ -226,6 +228,7 @@ export default function Page() {
         formData.append('photographer', photographer)
         formData.append('year', year)
         formData.append('alphaname', alphaname)
+        formData.append('dimensions', dimensions)
 
         try {
             const response = await fetch("/api/firebase", {
@@ -356,6 +359,9 @@ export default function Page() {
                     <label className="mb-2 mt-4">Add Alphaname</label>
                     <input type="text" onChange={(e) => setAlphaname(e.target.value)} name="alphaname" className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 h-10 p-4" />
 
+                    <label className="mb-2 mt-4">Add Dimensions</label>
+                    <input type="text" onChange={(e) => setDimensions(e.target.value)} name="dimensions" className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 h-10 p-4" />
+
                     <label className="mb-2 mt-4">Add Files</label>
                     <input multiple onChange={changeHandler} className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 mb-6" id="file_input" type="file" />
                     <button disabled={images.length === 0} type="submit" className="bg-white text-black transition-all duration-300 hover:opacity-90 py-2 disabled:bg-gray-200 disabled:cursor-not-allowed">
@@ -414,6 +420,12 @@ export default function Page() {
                                 Image Format :
                                 <span className="font-normal">
                                     {photo.contentType}
+                                </span>
+                            </p>
+                            <p className="text-white font-bold my-2 truncate">
+                                Dimensions :
+                                <span className="font-normal">
+                                    {photo.dimensions}
                                 </span>
                             </p>
                             <p className="text-white font-bold my-2 truncate">
@@ -508,9 +520,12 @@ export default function Page() {
                                     <label className="mb-2 mt-4">Add Alphaname</label>
                                     <input type="text" onChange={(e) => setAlphaname(e.target.value)} name="alphaname" className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 h-10 p-4" />
 
+                                    <label className="mb-2 mt-4">Add Dimensions</label>
+                                    <input type="text" onChange={(e) => setDimensions(e.target.value)} name="dimensions" className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 h-10 p-4" />
+
                                     <button type="button" onClick={() => updateImageData()} className="bg-white text-black my-4 transition-all duration-300 hover:opacity-90 py-2 bg-gray-200">
-                                            Update
-                                        </button>
+                                        Update
+                                    </button>
                                     <button onClick={() => setEditModal(false)} type="button" className="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
                                         Cancel
                                     </button>
