@@ -5,6 +5,8 @@ import React, { useState, useEffect } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
+import { getImagesAPI } from "../utils/getImages"
+import Image from "next/image";
 
 export default function MasonaryGrid() {
     const [index, setIndex] = useState(-1);
@@ -21,9 +23,7 @@ export default function MasonaryGrid() {
     const getImages = async () => {
         setSkeleton(true);
         try {
-            const response = await fetch(`/api/firebase`, {
-                method: "GET",
-            });
+            const response = await getImagesAPI();
 
             if (response.ok) {
                 const data = await response.json();
@@ -95,12 +95,13 @@ export default function MasonaryGrid() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
                 {newImages.map((photo, i) => (
                     <figure className="relative" key={i}>
-                        <img
+                        <Image
                             src={photo.src}
                             alt={'images'}
-                            className="aspect-[16/9] object-cover cursor-zoom-in"
+                            className="w-full h-full aspect-[16/9] object-cover cursor-zoom-in"
                             onClick={() => setIndex(i)}
                             loading="lazy"
+                            style={{ width: "auto", height: "auto" }}
                         />
                     </figure>
                 ))}
