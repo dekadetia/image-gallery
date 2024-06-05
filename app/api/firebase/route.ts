@@ -24,6 +24,7 @@ export async function GET(request) {
           year:  metadata.customMetadata.year ? metadata.customMetadata.year : '',
           alphaname :  metadata.customMetadata.alphaname ? metadata.customMetadata.alphaname : '',
           contentType: metadata.contentType,
+          dimensions: metadata.customMetadata.dimensions ? metadata.customMetadata.dimensions : '',
         };
       })
     );
@@ -48,6 +49,7 @@ export async function POST(request, response) {
   const photographer = formData.get('photographer');
   const year = formData.get('year');
   const alphaname = formData.get('alphaname');
+  const dimensions = formData.get('dimensions');
 
   formData.forEach(async (data: any, index: any) => {
     if (index != 'caption') {
@@ -62,6 +64,7 @@ export async function POST(request, response) {
           photographer: photographer,
           year: year,
           alphaname: alphaname,
+          dimensions: dimensions,
         },
       };
       const storageRef = ref(storage, `images/${file.name}`);
@@ -82,6 +85,7 @@ export async function PUT(request, response) {
   const photographer = formData.get('photographer');
   const year = formData.get('year');
   const alphaname = formData.get('alphaname');
+  const dimensions = formData.get('dimensions');
 
   const metadata = {
     customMetadata: {
@@ -90,6 +94,7 @@ export async function PUT(request, response) {
       photographer: photographer,
       year: year,
       alphaname: alphaname,
+      dimensions: dimensions,
     },
   };
   const storageRef = ref(storage, `images/${filename}`);
