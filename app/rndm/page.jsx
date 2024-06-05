@@ -136,7 +136,7 @@ export default function Random() {
     }, []);
 
     return (
-        <>
+        <div className="px-4 lg:px-16 pb-10">
             {/* Navigation */}
             <div className="w-full flex justify-center items-center py-9">
                 <div className="w-full grid place-items-center space-y-6">
@@ -205,6 +205,6 @@ export default function Random() {
             }
 
             <div className="md:text-sm lg:text-2xl"></div>
-        </>
+        </div>
     )
 }
