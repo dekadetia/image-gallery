@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { RxCaretSort } from "react-icons/rx";
 import { BsSortAlphaDown } from "react-icons/bs";
@@ -17,51 +17,40 @@ export default function Index() {
     const descriptionMaxLines = 3;
     const [index, setIndex] = useState(-1);
     const [isOpen, setOpen] = useState(true);
-    const [fetchPhotos, setFetchedPhotos] = useState([]);
+    // const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState([]);
-    const [loader, setLoader] = useState(false);
+    // const [loader, setLoader] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
+    const [nextPageToken, setNextPageToken] = useState(null);
+    const wasCalled = useRef(false);
 
     const arr = Array.from({ length: 35 }, (_, index) => index + 1);
 
-    const getImages = async () => {
+    const getImages = async (token) => {
         setSkeleton(true);
         try {
-            const response = await getImagesAPI();
+            const response = await getImagesAPI(token);
 
             if (response.ok) {
                 const data = await response.json();
-                console.log(data)
                 const images = data.images;
-                console.log("Files fetched successfully:", images);
-                setFetchedPhotos([...images]);
-                if (images.length > 36) {
-                    const slice = images.slice(0, 36);
-                    setImages(slice);
-                    setSlides(slice.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            description: photo.caption,
-                        };
-                    }));
-                } else {
-                    setImages(images);
-                    setSlides(images.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            description: photo.caption,
-                        };
-                    }));
-                }
+
+                setNextPageToken(data.nextPageToken);
+                setImages((prevImages) => [...prevImages, ...images]);
+
+                const newSlides = images.map((photo) => {
+                    const width = 1080 * 4;
+                    const height = 1620 * 4;
+                    return {
+                        src: photo.src,
+                        width,
+                        height,
+                        description: photo.caption,
+                    };
+                });
+
+                setSlides((prevSlides) => [...prevSlides, ...newSlides]);
                 setSkeleton(false);
             } else {
                 console.error("Failed to get files");
@@ -74,26 +63,15 @@ export default function Index() {
     };
 
     const moreImagesLoadHandler = () => {
-        setSkeleton(true);
-        const nextImages = [...Images, ...fetchPhotos.slice(Images.length, Images.length + 36)];
-        setImages(nextImages)
-        setSlides(nextImages.map((photo) => {
-            const width = 1080 * 4;
-            const height = 1620 * 4;
-            return {
-                src: photo.src,
-                width,
-                height,
-                description: photo.caption,
-            };
-        }));
-        setTimeout(() => {
-            setSkeleton(false);
-        }, 1500);
+        if (nextPageToken) {
+            getImages(nextPageToken);
+        }
     };
 
     useEffect(() => {
-        getImages();
+        if(wasCalled.current) return;
+        wasCalled.current = true;
+        getImages(nextPageToken);
     }, []);
 
     return (

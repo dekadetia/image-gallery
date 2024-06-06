@@ -4,10 +4,15 @@ import { NextResponse } from "next/server";
 
 // To handle a GET request to /api
 export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const pageToken = searchParams.get('pageToken') || null;
   const listRef = ref(storage, 'images');
 
   try {
-    const res = await list(listRef, { maxResults: 30 });
+    const res = pageToken
+      ? await list(listRef, { maxResults: 30, pageToken })
+      : await list(listRef, { maxResults: 30 });
+    
     const imagesWithData: any = await Promise.all(
       res.items.map(async (itemRef) => {
         const downloadURL = await getDownloadURL(itemRef);
@@ -33,7 +38,7 @@ export async function GET(request) {
     //   return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
     // });
 
-    return NextResponse.json({ images: imagesWithData, message: 'successfully fetched' }, { status: 200 });
+    return NextResponse.json({ images: imagesWithData, nextPageToken: res.nextPageToken || null, message: 'successfully fetched' }, { status: 200 });
 
   } catch (error) {
     console.error('Error loading images:', error);

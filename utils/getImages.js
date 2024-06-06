@@ -1,5 +1,5 @@
-const getImagesAPI = async () => {
-  const response = await fetch(`/api/firebase`, {
+const getImagesAPI = async (pageToken) => {
+  const response = await fetch(`/api/firebase${pageToken ? `?pageToken=${pageToken}` : ''}`, {
     method: "GET",
   });
   return response
