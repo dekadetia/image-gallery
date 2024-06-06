@@ -119,12 +119,12 @@ export default function Index() {
             </div>
 
             <div className="px-4 lg:px-16 pb-10">
-                <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-7 place-items-start">
+                <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 place-items-start">
                     {Images.map((photo, i) => {
                         const caption = photo?.caption.split('(')[0].trim();
                         const year = photo?.caption.split('(')[1].slice(0, -1);
                         return (
-                            <div className="relative flex items-center gap-1 cursor-pointer" key={i}
+                            <div className="relative flex justify-center items-start gap-1 cursor-pointer text-sm" key={i}
                                 onClick={() => setIndex(i)}>
                                 <h2 className="transition-all duration-200 hover:text-[#def] text-[#9ab]" >
                                     {caption}
@@ -136,7 +136,7 @@ export default function Index() {
                 </div>
 
                 {/* Skeleton */}
-                <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 place-items-center">
+                <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 place-items-center gap-[10px]">
                     {skeleton &&
                         arr.map((val, index) => {
                             const heights = ['h-40', 'h-96', 'h-48', 'h-72', 'h-60', 'h-80'];
