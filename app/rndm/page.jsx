@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
@@ -20,45 +20,32 @@ export default function Random() {
     const [loader, setLoader] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
+    const [nextPageToken, setNextPageToken] = useState(null);
+    const wasCalled = useRef(false);
 
-    const arr = Array.from({ length: 35 }, (_, index) => index + 1);
-
-    const getImages = async () => {
+    const getImages = async (token) => {
         setSkeleton(true);
         try {
-            const response = await getImagesAPI();
-
+            const response = await getImagesAPI(token);
             if (response.ok) {
                 const data = await response.json();
                 const images = data.images;
                 shuffleArray(images)
-                setFetchedPhotos([...images]);
-                if (images.length > 36) {
-                    const slice = images.slice(0, 36);
-                    setImages(slice);
-                    setSlides(slice.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            description: photo.caption,
-                        };
-                    }));
-                } else {
-                    setImages(images);
-                    setSlides(images.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            description: photo.caption,
-                        };
-                    }));
-                }
+                setNextPageToken(data.nextPageToken);
+                setImages((prevImages) => [...prevImages, ...images]);
+
+                const newSlides = images.map((photo) => {
+                    const width = 1080 * 4;
+                    const height = 1620 * 4;
+                    return {
+                        src: photo.src,
+                        width,
+                        height,
+                        description: photo.caption,
+                    };
+                });
+
+                setSlides((prevSlides) => [...prevSlides, ...newSlides]);
                 setSkeleton(false);
             } else {
                 console.error("Failed to get files");
@@ -71,22 +58,9 @@ export default function Random() {
     };
 
     const moreImagesLoadHandler = () => {
-        setSkeleton(true);
-        const nextImages = [...Images, ...fetchPhotos.slice(Images.length, Images.length + 36)];
-        setImages(nextImages)
-        setSlides(nextImages.map((photo) => {
-            const width = 1080 * 4;
-            const height = 1620 * 4;
-            return {
-                src: photo.src,
-                width,
-                height,
-                description: photo.caption,
-            };
-        }));
-        setTimeout(() => {
-            setSkeleton(false);
-        }, 1500);
+        if (nextPageToken) {
+            getImages(nextPageToken);
+        }
     };
 
     function shuffleArraysInSync(array1, array2) {
@@ -131,8 +105,12 @@ export default function Random() {
         return array; // Add this line to return the shuffled array
     }
 
+    const arr = Array.from({ length: 35 }, (_, index) => index + 1);
+
     useEffect(() => {
-        getImages();
+        if (wasCalled.current) return;
+        wasCalled.current = true;
+        getImages(nextPageToken);
     }, []);
 
     return (
