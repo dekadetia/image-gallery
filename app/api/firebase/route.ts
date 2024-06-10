@@ -2,6 +2,42 @@ import { ref, getDownloadURL, uploadBytesResumable, listAll, deleteObject, getMe
 import { storage } from '../../../firebase/firebase-config';
 import { NextResponse } from "next/server";
 
+// To handle a GET request to /api/all-images
+export async function GET_ALL_IMAGES(request) {
+  const listRef = ref(storage, 'images');
+
+  try {
+    const res = await listAll(listRef);
+
+    const imagesWithData = await Promise.all(
+      res.items.map(async (itemRef) => {
+        const downloadURL = await getDownloadURL(itemRef);
+        const metadata = await getMetadata(itemRef);
+        return {
+          src: downloadURL,
+          name: itemRef.name,
+          created_at: metadata.timeCreated,
+          updated_at: metadata.updated,
+          size: metadata.size,
+          caption: metadata.customMetadata.caption || '',
+          director: metadata.customMetadata.director || '',
+          photographer: metadata.customMetadata.photographer || '',
+          year: metadata.customMetadata.year || '',
+          alphaname: metadata.customMetadata.alphaname || '',
+          contentType: metadata.contentType,
+          dimensions: metadata.customMetadata.dimensions || '',
+        };
+      })
+    );
+
+    return NextResponse.json({ images: imagesWithData, message: 'Successfully fetched all images' }, { status: 200 });
+
+  } catch (error) {
+    console.error('Error loading all images:', error);
+    return NextResponse.json({ error: 'Error fetching all images' }, { status: 400 });
+  }
+}
+
 // To handle a GET request to /api
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -33,10 +69,6 @@ export async function GET(request) {
         };
       })
     );
-
-    // const images: { src: string, name: string, uploadDate: string }[] = imagesWithDates.sort((a, b) => {
-    //   return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
-    // });
 
     return NextResponse.json({ images: imagesWithData, nextPageToken: res.nextPageToken || null, message: 'successfully fetched' }, { status: 200 });
 
@@ -79,7 +111,6 @@ export async function POST(request, response) {
 
   return NextResponse.json({ message: 'File uploaded successfully' }, { status: 200 });
 }
-
 
 // To handle a POST request to /api
 export async function PUT(request, response) {

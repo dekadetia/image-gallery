@@ -8,6 +8,7 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from "yup"
+import { getAllImages } from '../../utils/getImages';
 
 const schema = Yup.object().shape({
     username: Yup.string().required("Username is required"),
@@ -114,20 +115,30 @@ export default function Page() {
 
     const getImages = async () => {
         setLoader(true);
-        try {
-            const response = await fetch("/api/firebase", {
-                method: "GET",
-            });
 
-            if (response.ok) {
-                const data = await response.json();
-                const images = data.images;
-                console.log(data.images)
-                setFetchedPhotos(images);
-                setLoader(false);
-            } else {
-                console.error("Failed to get files");
-                setLoader(false);
+        try {
+            if(!localStorage.getItem('images_data')){
+                const response = await getAllImages();
+    
+                if (response.ok) {
+                    const data = await response.json();
+                    const images = data.images;
+
+                    localStorage.setItem("images_data", JSON.stringify(images));
+                    setFetchedPhotos((prevImages) => [...prevImages, ...images]);
+                    setLoader(false);
+                } else {
+                    console.error("Failed to get files");
+                    setLoader(false);
+                }
+            }else{
+                setLoader(true);
+                let data = localStorage.getItem('images_data');
+                if(data){
+                    data = JSON.parse(data);
+                    setFetchedPhotos((prevImages) => [...data]);
+                    setLoader(false);
+                }
             }
         } catch (error) {
             console.error("Error fetching files:", error);
