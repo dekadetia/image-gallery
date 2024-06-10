@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 import { RxCaretSort } from "react-icons/rx";
 import { BsSortAlphaDown } from "react-icons/bs";
 import { TbClockDown } from "react-icons/tb";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
-import { AiOutlinePlus } from "react-icons/ai";
 import { getAllImages } from "../../utils/getImages";
+import Footer from '../../components/Footer'
+import Loader from "../../components/loader/loader";
 
 export default function Index() {
     const descriptionTextAlign = "end";
@@ -22,8 +23,6 @@ export default function Index() {
     // const [loader, setLoader] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
-    const [nextPageToken, setNextPageToken] = useState(null);
-    const wasCalled = useRef(false);
 
     const arr = Array.from({ length: 35 }, (_, index) => index + 1);
 
@@ -86,12 +85,6 @@ export default function Index() {
         }
     };
 
-    const moreImagesLoadHandler = () => {
-        if (nextPageToken) {
-            getImages();
-        }
-    };
-
     useEffect(() => {
         // if(wasCalled.current) return;
         // wasCalled.current = true;
@@ -123,8 +116,6 @@ export default function Index() {
             <div className="px-4 lg:px-16 pb-10">
                 <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 place-items-start">
                     {Images.map((photo, i) => {
-                        // const caption = photo?.caption.split('(')[0].trim();
-                        // const year = photo?.caption.split('(')[1].slice(0, -1);
                         return (
                             <div className="relative flex justify-center items-start gap-1 cursor-pointer text-sm" key={i}
                                 onClick={() => setIndex(i)}>
@@ -138,24 +129,8 @@ export default function Index() {
                 </div>
 
                 {/* Skeleton */}
-                <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 place-items-center gap-[10px]">
-                    {skeleton &&
-                        arr.map((val, index) => {
-                            const heights = ['h-40', 'h-96', 'h-48', 'h-72', 'h-60', 'h-80'];
-                            const randomHeight = heights[Math.floor(Math.random() * heights.length)];
-                            return <div
-                                key={index}
-                                className={`bg-gray-700 w-full mb-2 animate-pulse shadow-lg ${randomHeight}`}
-                            />
-                        })
-                    }
-                </div>
-
-                {/* Loading More Images Icon */}
-                <div className="grid place-items-center text-4xl py-10" onClick={moreImagesLoadHandler}>
-                    <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-                </div>
-
+                {skeleton && <Loader />}
+             
                 {/* Lightbox Component */}
                 {slides &&
                     <Lightbox
@@ -168,6 +143,8 @@ export default function Index() {
                     />
                 }
             </div>
+
+            {!skeleton && <Footer />}
         </>
     );
 }

@@ -161,13 +161,13 @@ export default function Random() {
 
                 {skeleton && <Loader />}
 
-                <div
+                {!skeleton && <div
                     className="grid place-items-center text-4xl py-10"
                     onClick={moreImagesLoadHandler}
                 >
                     <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
                     {moreImageloaderState && <MoreImageLoader />}
-                </div>
+                </div>}
 
                 {
                     slides && <Lightbox

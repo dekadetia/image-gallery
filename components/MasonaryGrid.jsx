@@ -5,6 +5,8 @@ import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
 import { getImagesAPI } from "../utils/getImages";
+import Loader from "./loader/loader";
+import Footer from "./Footer";
 
 export default function MasonaryGrid() {
     const descriptionTextAlign = "end";
@@ -63,21 +65,15 @@ export default function MasonaryGrid() {
     };
 
     useEffect(() => {
-        if(wasCalled.current) return;
+        if (wasCalled.current) return;
         wasCalled.current = true;
         getImages(nextPageToken);
-    },[]);
+    }, []);
 
     return (
         <>
-            {/* {loader && (
-                <div className="h-full flex items-center justify-center fixed w-full top-0 left-0 bg-black/50 z-10">
-                    <Loader />
-                </div>
-            )} */}
 
             {/* Images */}
-
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
                 {Images.map((photo, i) => (
                     <figure className="relative" key={i}>
@@ -93,23 +89,14 @@ export default function MasonaryGrid() {
             </div>
 
             {/* Skeleton */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-                {skeleton &&
-                    arr.map((val, index) => {
-                        const heights = ['h-40', 'h-96', 'h-48', 'h-72', 'h-60', 'h-80'];
-                        const randomHeight = heights[Math.floor(Math.random() * heights.length)];
-                        return <div
-                            key={index}
-                            className={`bg-gray-700 w-full mb-2 animate-pulse shadow-lg ${randomHeight}`}
-                        />
-                    })
-                }
-            </div>
+            {skeleton && <Loader />}
 
             {/* Loading More Images Icon */}
-            <div className="grid place-items-center text-4xl py-10" onClick={moreImagesLoadHandler}>
-                <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-            </div>
+            {
+                !skeleton && <div className="grid place-items-center text-4xl py-10" onClick={moreImagesLoadHandler}>
+                    <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
+                </div>
+            }
 
             {/* Lightbox Component */}
             {slides &&
@@ -122,6 +109,8 @@ export default function MasonaryGrid() {
                     captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
                 />
             }
+
+            {!skeleton && <Footer />}
         </>
     )
 }
