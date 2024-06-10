@@ -1,24 +1,26 @@
 'use client'
 
 import Link from "next/link";
-
 import { useState, useEffect } from "react";
 
-import { RxCaretSort } from "react-icons/rx";
-import { BsSortAlphaDown } from "react-icons/bs";
-import { TbClockDown } from "react-icons/tb";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
+
 import { getAllImages } from "../../utils/getImages";
 import Footer from '../../components/Footer'
 import Loader from "../../components/loader/loader";
+
+import { BsSortAlphaDown } from "react-icons/bs";
+import { TbClockDown } from "react-icons/tb";
 import { TbClockUp } from "react-icons/tb";
+import { IoMdList } from "react-icons/io";
 
 export default function Index() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
     const isOpen = true;
-
+    
+    const [isSorted, setSorted] = useState(false);
     const [index, setIndex] = useState(-1);
     const [slides, setSlides] = useState([]);
     const [skeleton, setSkeleton] = useState(false);
@@ -83,6 +85,31 @@ export default function Index() {
         }
     };
 
+    const sortImagesByYear = () => {
+        // Assuming your image data has a property called 'year'
+        const sortedImages = [...Images].sort((a, b) => {
+            // Assuming 'year' is a string in the format 'YYYY'
+            const yearA = parseInt(a.year);
+            const yearB = parseInt(b.year);
+            return yearB - yearA; // Sort in descending order (newest first)
+        });
+        setSorted(true);
+        setImages(sortedImages);
+        setSlides(sortedImages);
+    };
+
+    const sortImagesOldestFirst = () => {
+        const sortedImages = [...Images].sort((a, b) => {
+            const yearA = parseInt(a.year);
+            const yearB = parseInt(b.year);
+            return yearA - yearB; // Sort in ascending order (oldest first)
+        });
+
+        setSorted(false);
+        setImages(sortedImages);
+        setSlides(sortedImages);
+    };
+
     useEffect(() => {
         getImages();
     }, []);
@@ -101,10 +128,14 @@ export default function Index() {
                         <BsSortAlphaDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
 
                         <Link href={"/ordr"}>
-                            <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
+                            <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
                         </Link>
 
-                        <TbClockDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                        {!isSorted ?
+                            <TbClockDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" onClick={sortImagesByYear} />
+                            :
+                            <TbClockUp className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" onClick={sortImagesOldestFirst} />
+                        }
                     </div>
                 </div>
             </div>
@@ -113,12 +144,12 @@ export default function Index() {
                 <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
                     {Images.map((photo, i) => {
                         return (
-                            <div className="truncate flex justify-start gap-2 relative cursor-pointer text-sm" key={i}
+                            <div className="cursor-pointer text-sm space-x-1" key={i}
                                 onClick={() => setIndex(i)}>
-                                <h2 className="inline transition-all duration-200 hover:text-[#def] text-[#9ab]" >
+                                <h2 className="w-fit inline transition-all duration-200 hover:text-[#def] text-[#9ab]" >
                                     {photo.caption}
                                 </h2>
-                                <p className="text-[#678]">{photo.year}</p>
+                                <p className="inline w-fit text-[#678]">{photo.year}</p>
                             </div>
                         )
                     })}

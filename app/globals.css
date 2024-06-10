@@ -205,3 +205,7 @@ html {
         transform: scale(2);
     }
 }
+
+.captions-container {
+    text-wrap: stable;
+}

@@ -21,7 +21,7 @@ export default function Order() {
     const descriptionMaxLines = 3;
     const isOpen = true;
 
-    const [isSorted, setSorted] = useState(false)
+    const [isSorted, setSorted] = useState(false);
     const [index, setIndex] = useState(-1);
     const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState([]);
