@@ -30,18 +30,18 @@ export default function Index() {
         setSkeleton(true);
 
         try {
-            if(!localStorage.getItem('images_data')){
+            if (typeof window !== 'undefined' && !localStorage.getItem('images_data')) {
                 const response = await getAllImages();
-    
+
                 if (response.ok) {
                     const data = await response.json();
                     const images = data.images;
 
                     localStorage.setItem("images_data", JSON.stringify(images));
-    
+
                     setNextPageToken(data.nextPageToken);
                     setImages((prevImages) => [...prevImages, ...images]);
-    
+
                     const newSlides = images.map((photo) => {
                         const width = 1080 * 4;
                         const height = 1620 * 4;
@@ -52,17 +52,17 @@ export default function Index() {
                             description: photo.caption,
                         };
                     });
-    
+
                     setSlides((prevSlides) => [...prevSlides, ...newSlides]);
                     setSkeleton(false);
                 } else {
                     console.error("Failed to get files");
                     setSkeleton(false);
                 }
-            }else{
+            } else {
                 setSkeleton(true);
-                let data = localStorage.getItem('images_data');
-                if(data){
+                let data = typeof window !== 'undefined' && localStorage.getItem('images_data');
+                if (data) {
                     data = JSON.parse(data);
                     setImages((prevImages) => [...data]);
                     const newSlides = data.map((photo) => {
@@ -130,7 +130,7 @@ export default function Index() {
 
                 {/* Skeleton */}
                 {skeleton && <Loader />}
-             
+
                 {/* Lightbox Component */}
                 {slides &&
                     <Lightbox

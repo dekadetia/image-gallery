@@ -117,7 +117,7 @@ export default function Page() {
         setLoader(true);
 
         try {
-            if(!localStorage.getItem('images_data')){
+            if(typeof window !== 'undefined' && !localStorage.getItem('images_data')){
                 const response = await getAllImages();
     
                 if (response.ok) {
@@ -133,7 +133,7 @@ export default function Page() {
                 }
             }else{
                 setLoader(true);
-                let data = localStorage.getItem('images_data');
+                let data = typeof window !== 'undefined' && localStorage.getItem('images_data');
                 if(data){
                     data = JSON.parse(data);
                     setFetchedPhotos((prevImages) => [...data]);
