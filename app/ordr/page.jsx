@@ -14,19 +14,20 @@ import { getImagesAPI } from "../../utils/getImages";
 
 import Footer from "../../components/Footer"
 import Loader from "../../components/loader/loader";
+import { TbClockUp } from "react-icons/tb";
 
 export default function Order() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
+    const isOpen = true;
+
+    const [isSorted, setSorted] = useState(false)
     const [index, setIndex] = useState(-1);
-    const [isOpen, setOpen] = useState(true);
     const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState([]);
     const [loader, setLoader] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
-
-    const arr = Array.from({ length: 35 }, (_, index) => index + 1);
 
     const getImages = async () => {
         setSkeleton(true);
@@ -94,8 +95,34 @@ export default function Order() {
         }, 1500);
     };
 
+    const sortImagesByYear = () => {
+        // Assuming your image data has a property called 'year'
+        const sortedImages = [...Images].sort((a, b) => {
+            // Assuming 'year' is a string in the format 'YYYY'
+            const yearA = parseInt(a.year);
+            const yearB = parseInt(b.year);
+            return yearB - yearA; // Sort in descending order (newest first)
+        });
+        setSorted(true);
+        setImages(sortedImages);
+        setSlides(sortedImages);
+    };
+
+    const sortImagesOldestFirst = () => {
+        const sortedImages = [...Images].sort((a, b) => {
+            const yearA = parseInt(a.year);
+            const yearB = parseInt(b.year);
+            return yearA - yearB; // Sort in ascending order (oldest first)
+        });
+
+        setSorted(false);
+        setImages(sortedImages);
+        setSlides(sortedImages);
+    };
+
     useEffect(() => {
         getImages();
+        sortImagesByYear();
     }, []);
 
     return (
@@ -115,7 +142,11 @@ export default function Order() {
                             <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
                         </Link>
 
-                        <TbClockDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                        {!isSorted ?
+                            <TbClockDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" onClick={sortImagesByYear} />
+                            :
+                            <TbClockUp className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" onClick={sortImagesOldestFirst} />
+                        }
                     </div>
                 </div>
             </div>

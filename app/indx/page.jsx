@@ -12,19 +12,17 @@ import Captions from "yet-another-react-lightbox/plugins/captions";
 import { getAllImages } from "../../utils/getImages";
 import Footer from '../../components/Footer'
 import Loader from "../../components/loader/loader";
+import { TbClockUp } from "react-icons/tb";
 
 export default function Index() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
+    const isOpen = true;
+
     const [index, setIndex] = useState(-1);
-    const [isOpen, setOpen] = useState(true);
-    // const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState([]);
-    // const [loader, setLoader] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
-
-    const arr = Array.from({ length: 35 }, (_, index) => index + 1);
 
     const getImages = async () => {
         setSkeleton(true);
@@ -86,8 +84,6 @@ export default function Index() {
     };
 
     useEffect(() => {
-        // if(wasCalled.current) return;
-        // wasCalled.current = true;
         getImages();
     }, []);
 
@@ -114,10 +110,10 @@ export default function Index() {
             </div>
 
             <div className="px-4 lg:px-16 pb-10">
-                <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 place-items-start">
+                <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
                     {Images.map((photo, i) => {
                         return (
-                            <div className="relative flex justify-center items-start gap-1 cursor-pointer text-sm" key={i}
+                            <div className="relative cursor-pointer text-sm" key={i}
                                 onClick={() => setIndex(i)}>
                                 <h2 className="transition-all duration-200 hover:text-[#def] text-[#9ab]" >
                                     {photo.caption}

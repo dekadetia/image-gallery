@@ -11,18 +11,14 @@ import Footer from "./Footer";
 export default function MasonaryGrid() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
+    const isOpen = true;
+
     const [index, setIndex] = useState(-1);
-    const [isOpen, setOpen] = useState(true);
-    // const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState([]);
-    // const [loader, setLoader] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
     const [nextPageToken, setNextPageToken] = useState(null);
     const wasCalled = useRef(false);
-
-
-    const arr = Array.from({ length: 35 }, (_, index) => index + 1);
 
     const getImages = async (token) => {
         setSkeleton(true);
