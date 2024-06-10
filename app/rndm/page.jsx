@@ -10,13 +10,14 @@ import { IoMdList, IoMdShuffle } from "react-icons/io";
 import { RxCaretSort } from "react-icons/rx";
 import Loader from "../../components/loader/loader";
 import MoreImageLoader from "../../components/MoreImageLoader/index";
+import Footer from "../../components/Footer"
 
 export default function Random() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
+    const isOpen = true;
+
     const [index, setIndex] = useState(-1);
-    const [isOpen, setOpen] = useState(true);
-    const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState([]);
     const [moreImageloaderState, setMoreImageloaderState] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
@@ -66,7 +67,20 @@ export default function Random() {
         }
     };
 
-    function shuffleArraysInSync(array1, array2) {
+    function shuffleArray(array) {
+        let currentIndex = array.length;
+
+        while (currentIndex !== 0) {
+            const randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+
+        return array; // Add this line to return the shuffled array
+    }
+
+    function randomizeArraysInSync(array1, array2) {
         if (array1.length !== array2.length) {
             throw new Error("Arrays must have the same length.");
         }
@@ -88,92 +102,86 @@ export default function Random() {
         // Shuffle the arrays
         const shuffledImages = [...Images];
         const shuffledSlides = [...slides];
-        shuffleArraysInSync(shuffledImages, shuffledSlides);
+        randomizeArraysInSync(shuffledImages, shuffledSlides);
 
         // Update state with shuffled arrays
         setImages(shuffledImages);
         setSlides(shuffledSlides);
     };
 
-    function shuffleArray(array) {
-        let currentIndex = array.length;
-
-        while (currentIndex !== 0) {
-            const randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex--;
-
-            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-        }
-
-        return array; // Add this line to return the shuffled array
-    }
-
-    const arr = Array.from({ length: 35 }, (_, index) => index + 1);
+    const handleCloseLightbox = () => {
+        setIndex(-1);
+    };
 
     useEffect(() => {
         if (wasCalled.current) return;
         wasCalled.current = true;
         getImages(nextPageToken);
+
     }, []);
 
     return (
-        <div className="px-4 lg:px-16 pb-10">
-            {/* Navigation */}
-            <div className="w-full flex justify-center items-center py-9">
-                <div className="w-full grid place-items-center space-y-6">
+        <>
+            <div className="px-4 lg:px-16 pb-10">
+                {/* Navigation */}
+                <div className="w-full flex justify-center items-center py-9">
+                    <div className="w-full grid place-items-center space-y-6">
 
-                    <Link href={"/"}>
-                        <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
-                    </Link>
-
-                    <div className="flex gap-8 items-center">
-                        <Link href={"/indx"}>
-                            <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                        <Link href={"/"}>
+                            <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
                         </Link>
 
-                        <Link href={"/ordr"}>
-                            <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
-                        </Link>
+                        <div className="flex gap-8 items-center">
+                            <Link href={"/indx"}>
+                                <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                            </Link>
 
-                        <IoMdShuffle onClick={randomizeSequence} className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                            <Link href={"/ordr"}>
+                                <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
+                            </Link>
+
+                            <IoMdShuffle onClick={randomizeSequence} className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                        </div>
                     </div>
                 </div>
+
+                <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+                    {Images.map((photo, i) => (
+                        <figure className="relative" key={i}>
+                            <img
+                                src={photo.src}
+                                alt={'images'}
+                                className="aspect-[16/9] object-cover cursor-zoom-in"
+                                onClick={() => setIndex(i)}
+                                loading="lazy"
+                            />
+                        </figure>
+                    ))}
+                </div>
+
+                {skeleton && <Loader />}
+
+                <div
+                    className="grid place-items-center text-4xl py-10"
+                    onClick={moreImagesLoadHandler}
+                >
+                    <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
+                    {moreImageloaderState && <MoreImageLoader />}
+                </div>
+
+                {
+                    slides && <Lightbox
+                        plugins={[Captions]}
+                        index={index}
+                        slides={slides}
+                        open={index >= 0}
+                        close={handleCloseLightbox}
+                        captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+                    />
+                }
             </div>
+            {!skeleton && <Footer />}
+        </>
 
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-                {Images.map((photo, i) => (
-                    <figure className="relative" key={i}>
-                        <img
-                            src={photo.src}
-                            alt={'images'}
-                            className="aspect-[16/9] object-cover cursor-zoom-in"
-                            onClick={() => setIndex(i)}
-                            loading="lazy"
-                        />
-                    </figure>
-                ))}
-            </div>
-
-            {skeleton && <Loader />}
-
-            <div
-                className="grid place-items-center text-4xl py-10"
-                onClick={moreImagesLoadHandler}
-            >
-                <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-                {moreImageloaderState && <MoreImageLoader />}
-            </div>
-
-            {slides &&
-                <Lightbox
-                    plugins={[Captions]}
-                    index={index}
-                    slides={slides}
-                    open={index >= 0}
-                    close={() => setIndex(-1)}
-                    captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
-                />
-            }
-        </div>
     )
 }

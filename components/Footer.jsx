@@ -1,4 +1,3 @@
-
 export default function Footer() {
     return (
         <div className="w-full grid place-items-center pt-4 pb-16">
