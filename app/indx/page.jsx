@@ -113,9 +113,9 @@ export default function Index() {
                 <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
                     {Images.map((photo, i) => {
                         return (
-                            <div className="relative cursor-pointer text-sm" key={i}
+                            <div className="truncate flex justify-start gap-2 relative cursor-pointer text-sm" key={i}
                                 onClick={() => setIndex(i)}>
-                                <h2 className="transition-all duration-200 hover:text-[#def] text-[#9ab]" >
+                                <h2 className="inline transition-all duration-200 hover:text-[#def] text-[#9ab]" >
                                     {photo.caption}
                                 </h2>
                                 <p className="text-[#678]">{photo.year}</p>
