@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "yet-another-react-lightbox/styles.css";
+// import "yet-another-react-lightbox/plugins/captions.css";
 
 const inter = Inter({ subsets: ["latin"] });
 

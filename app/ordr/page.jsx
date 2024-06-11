@@ -12,6 +12,7 @@ import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
 import { getImagesAPI } from "../../utils/getImages";
 
+import MoreImageLoader from '../../components/MoreImageLoader/index';
 import Footer from "../../components/Footer"
 import Loader from "../../components/loader/loader";
 import { TbClockUp } from "react-icons/tb";
@@ -25,9 +26,10 @@ export default function Order() {
     const [index, setIndex] = useState(-1);
     const [fetchPhotos, setFetchedPhotos] = useState([]);
     const [slides, setSlides] = useState([]);
-    const [loader, setLoader] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
+    const [moreImageLoader, setLoader] = useState(false);
+   
 
     const getImages = async () => {
         setSkeleton(true);
@@ -173,11 +175,11 @@ export default function Order() {
 
                 {/* Loading More Images Icon */}
 
+                {/* Loading More Images Icon */}
                 {
-                    !skeleton &&
-                    <div className="grid place-items-center text-4xl py-10" onClick={moreImagesLoadHandler}>
+                    !skeleton && (!moreImageLoader ? <div className="grid place-items-center text-4xl py-10" onClick={moreImagesLoadHandler}>
                         <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-                    </div>
+                    </div> : <MoreImageLoader />)
                 }
 
                 {/* Lightbox Component */}
