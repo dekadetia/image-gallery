@@ -11,10 +11,10 @@ export async function GET_ALL_IMAGES(request) {
 
     const imagesWithData = await Promise.all(
       res.items.map(async (itemRef) => {
-        const downloadURL = await getDownloadURL(itemRef);
+        // const downloadURL = await getDownloadURL(itemRef);
         const metadata = await getMetadata(itemRef);
         return {
-          src: downloadURL,
+          // src: downloadURL,
           name: itemRef.name,
           created_at: metadata.timeCreated,
           updated_at: metadata.updated,
