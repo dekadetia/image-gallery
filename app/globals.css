@@ -57,8 +57,12 @@ html {
 .yarl__slide_description {
     margin-top: 2rem;
     margin-bottom: 5rem;
+    margin-left: 100px;
     font-family: GraphikLight;
     color: #CECECF !important;
+    @media (max-width:991px) {
+        margin-left: 0;
+    }
 }
 
 .yarl__slide_captions_container {

@@ -16,17 +16,17 @@ export default function Random() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
     const isOpen = true;
-
+    
+    const [moreImageLoader, setLoader] = useState(false);
     const [index, setIndex] = useState(-1);
     const [slides, setSlides] = useState([]);
-    const [moreImageloaderState, setMoreImageloaderState] = useState(false);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
     const [nextPageToken, setNextPageToken] = useState(null);
     const wasCalled = useRef(false);
 
     const getImages = async (token) => {
-        token ? setMoreImageloaderState(true) : setSkeleton(true);
+        token ? setLoader(true) : setSkeleton(true);
         try {
             const response = await getImagesAPI(token);
             if (response.ok) {
@@ -49,15 +49,19 @@ export default function Random() {
 
                 setSlides((prevSlides) => [...prevSlides, ...newSlides]);
                 setSkeleton(false);
+                setLoader(false);
             } else {
                 console.error("Failed to get files");
                 setSkeleton(false);
+                setLoader(false);
+
             }
         } catch (error) {
             console.error("Error fetching files:", error);
         } finally {
             setSkeleton(false);
-            setMoreImageloaderState(false);
+            setLoader(false);
+
         }
     };
 
@@ -161,13 +165,12 @@ export default function Random() {
 
                 {skeleton && <Loader />}
 
-                {!skeleton && <div
-                    className="grid place-items-center text-4xl py-10"
-                    onClick={moreImagesLoadHandler}
-                >
-                    <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-                    {moreImageloaderState && <MoreImageLoader />}
-                </div>}
+                {/* Loading More Images Icon */}
+                {
+                    !skeleton && (!moreImageLoader ? <div className="grid place-items-center text-4xl py-10" onClick={moreImagesLoadHandler}>
+                        <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
+                    </div> : <MoreImageLoader />)
+                }
 
                 {
                     slides && <Lightbox

@@ -19,12 +19,13 @@ export default function Index() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
     const isOpen = true;
-    
+
     const [isSorted, setSorted] = useState(false);
     const [index, setIndex] = useState(-1);
     const [slides, setSlides] = useState([]);
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
+    const [moreImageLoader, setLoader] = useState(false);
 
     const getImages = async () => {
         setSkeleton(true);
@@ -86,12 +87,10 @@ export default function Index() {
     };
 
     const sortImagesByYear = () => {
-        // Assuming your image data has a property called 'year'
         const sortedImages = [...Images].sort((a, b) => {
-            // Assuming 'year' is a string in the format 'YYYY'
             const yearA = parseInt(a.year);
             const yearB = parseInt(b.year);
-            return yearB - yearA; // Sort in descending order (newest first)
+            return yearB - yearA; // descending order Sort (newest first)
         });
         setSorted(true);
         setImages(sortedImages);
@@ -102,7 +101,7 @@ export default function Index() {
         const sortedImages = [...Images].sort((a, b) => {
             const yearA = parseInt(a.year);
             const yearB = parseInt(b.year);
-            return yearA - yearB; // Sort in ascending order (oldest first)
+            return yearA - yearB; // ascending order Sort (oldest first)
         });
 
         setSorted(false);
@@ -118,16 +117,16 @@ export default function Index() {
         <>
             {/* Navigation */}
             <div className="w-full flex justify-center items-center py-9">
-                <div className="w-full grid place-items-center space-y-6">
+                <div className="w-full grid place-items-center space-y-7">
 
                     <Link href={"/"} >
                         <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
                     </Link>
 
-                    <div className="flex gap-8 items-center">
+                    <div className="flex gap-9 items-center">
                         <BsSortAlphaDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
 
-                        <Link href={"/ordr"}>
+                        <Link href={"/indx"}>
                             <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
                         </Link>
 

@@ -7,21 +7,23 @@ import { AiOutlinePlus } from "react-icons/ai";
 import { getImagesAPI } from "../utils/getImages";
 import Loader from "./loader/loader";
 import Footer from "./Footer";
+import MoreImageLoader from '../components/MoreImageLoader/index';
 
 export default function MasonaryGrid() {
-    const descriptionTextAlign = "end";
+    const descriptionTextAlign = "start";
     const descriptionMaxLines = 3;
     const isOpen = true;
 
     const [index, setIndex] = useState(-1);
     const [slides, setSlides] = useState([]);
     const [skeleton, setSkeleton] = useState(false);
+    const [moreImageLoader, setLoader] = useState(false);
     const [Images, setImages] = useState([]);
     const [nextPageToken, setNextPageToken] = useState(null);
     const wasCalled = useRef(false);
 
     const getImages = async (token) => {
-        setSkeleton(true);
+        token ? setLoader(true) : setSkeleton(true);
         try {
             const response = await getImagesAPI(token);
             if (response.ok) {
@@ -44,13 +46,17 @@ export default function MasonaryGrid() {
 
                 setSlides((prevSlides) => [...prevSlides, ...newSlides]);
                 setSkeleton(false);
+                setLoader(false);
             } else {
                 console.error("Failed to get files");
                 setSkeleton(false);
+                setLoader(false);
             }
         } catch (error) {
             console.error("Error fetching files:", error);
             setSkeleton(false);
+            setLoader(false);
+
         }
     };
 
@@ -89,9 +95,14 @@ export default function MasonaryGrid() {
 
             {/* Loading More Images Icon */}
             {
-                !skeleton && <div className="grid place-items-center text-4xl py-10" onClick={moreImagesLoadHandler}>
-                    <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-                </div>
+                !skeleton && (
+                    !moreImageLoader ?
+                        <div className="grid place-items-center text-4xl py-10"
+                            onClick={moreImagesLoadHandler}>
+                            <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
+                        </div> :
+                        <MoreImageLoader />
+                )
             }
 
             {/* Lightbox Component */}
@@ -105,7 +116,6 @@ export default function MasonaryGrid() {
                     captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
                 />
             }
-
             {!skeleton && <Footer />}
         </>
     )
