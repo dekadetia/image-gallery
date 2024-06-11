@@ -33,6 +33,16 @@
     src: url("../public/fonts/GraphikBoldItalic.otf");
 }
 
+@font-face {
+    font-family: TiemposTextSemiBold;
+    src: url("../public/fonts/TiemposText-Semibold.otf");
+}
+
+@font-face {
+    font-family: GraphikBoldItalic;
+    src: url("../public/fonts/GraphikBoldItalic.otf");
+}
+
 body {
     background-color: #15181b;
     color: white;
@@ -54,12 +64,27 @@ html {
     flex-direction: column;
 }
 
-.yarl__slide_description {
+.yarl__slide_title {
+    font-family: TiemposTextSemiBold;
     margin-top: 2rem;
-    margin-bottom: 5rem;
-    margin-left: 100px;
-    font-family: GraphikLight;
+    font-size: 1.4rem;
+    color: #e5e7eb;
+}
+
+.yarl__slide_description {
+    margin-bottom: 6.5rem;
+    font-size: .8rem;
     color: #CECECF !important;
+
+    @media (max-width:991px) {
+        margin-bottom: 3rem;
+    }
+}
+
+.yarl__slide_description,
+.yarl__slide_title {
+    margin-left: 100px;
+
     @media (max-width:991px) {
         margin-left: 0;
     }
