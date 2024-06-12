@@ -11,10 +11,10 @@ export async function GET_ALL_IMAGES(request) {
 
     const imagesWithData = await Promise.all(
       res.items.map(async (itemRef) => {
-        // const downloadURL = await getDownloadURL(itemRef);
+        const downloadURL = await getDownloadURL(itemRef);
         const metadata = await getMetadata(itemRef);
         return {
-          // src: downloadURL,
+          src: downloadURL,
           name: itemRef.name,
           created_at: metadata.timeCreated,
           updated_at: metadata.updated,
@@ -29,6 +29,13 @@ export async function GET_ALL_IMAGES(request) {
         };
       })
     );
+
+    // Sort images by year in descending order
+    imagesWithData.sort((a, b) => {
+      const yearA = a.year ? parseInt(a.year) : 0;
+      const yearB = b.year ? parseInt(b.year) : 0;
+      return yearB - yearA;
+    });
 
     return NextResponse.json({ images: imagesWithData, message: 'Successfully fetched all images' }, { status: 200 });
 

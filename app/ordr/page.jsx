@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { RxCaretSort } from "react-icons/rx";
 import { BsSortAlphaDown } from "react-icons/bs";
@@ -10,7 +10,7 @@ import { TbClockDown } from "react-icons/tb";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
-import { getImagesAPI } from "../../utils/getImages";
+import { getAllImages } from "../../utils/getImages";
 
 import MoreImageLoader from '../../components/MoreImageLoader/index';
 import Footer from "../../components/Footer"
@@ -29,22 +29,24 @@ export default function Order() {
     const [skeleton, setSkeleton] = useState(false);
     const [Images, setImages] = useState([]);
     const [moreImageLoader, setLoader] = useState(false);
-   
+    const wasCalled = useRef(false);
 
     const getImages = async () => {
         setSkeleton(true);
-        try {
-            const response = await getImagesAPI();
 
-            if (response.ok) {
-                const data = await response.json();
-                const images = data.images;
-                console.log("Files fetched successfully:", images);
-                setFetchedPhotos([...images]);
-                if (images.length > 36) {
-                    const slice = images.slice(0, 36);
-                    setImages(slice);
-                    setSlides(slice.map((photo) => {
+        try {
+            if (typeof window !== 'undefined' && !localStorage.getItem('images_data')) {
+                const response = await getAllImages();
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const images = data.images;
+
+                    localStorage.setItem("images_data", JSON.stringify(images));
+
+                    setImages((prevImages) => [...images]);
+
+                    const newSlides = images.map((photo) => {
                         const width = 1080 * 4;
                         const height = 1620 * 4;
                         return {
@@ -53,10 +55,22 @@ export default function Order() {
                             height,
                             description: photo.caption,
                         };
-                    }));
+                    });
+
+                    setSlides((prevSlides) => [...prevSlides, ...newSlides]);
+                    setSkeleton(false);
+
                 } else {
-                    setImages(images);
-                    setSlides(images.map((photo) => {
+                    console.error("Failed to get files");
+                    setSkeleton(false);
+                }
+            } else {
+                setSkeleton(true);
+                let data = typeof window !== 'undefined' && localStorage.getItem('images_data');
+                if (data) {
+                    data = JSON.parse(data);
+                    setImages((prevImages) => [...data]);
+                    const newSlides = data.map((photo) => {
                         const width = 1080 * 4;
                         const height = 1620 * 4;
                         return {
@@ -65,12 +79,10 @@ export default function Order() {
                             height,
                             description: photo.caption,
                         };
-                    }));
+                    });
+                    setSlides((prevSlides) => [...newSlides]);
+                    setSkeleton(false);
                 }
-                setSkeleton(false);
-            } else {
-                console.error("Failed to get files");
-                setSkeleton(false);
             }
         } catch (error) {
             console.error("Error fetching files:", error);
@@ -105,6 +117,7 @@ export default function Order() {
             const yearB = parseInt(b.year);
             return yearB - yearA; // Sort in descending order (newest first)
         });
+        console.log(sortedImages);
         setSorted(true);
         setImages(sortedImages);
         setSlides(sortedImages);
@@ -116,15 +129,18 @@ export default function Order() {
             const yearB = parseInt(b.year);
             return yearA - yearB; // Sort in ascending order (oldest first)
         });
-
+        
+        console.log(sortedImages);
         setSorted(false);
         setImages(sortedImages);
         setSlides(sortedImages);
     };
 
     useEffect(() => {
+        if (wasCalled.current) return;
+        wasCalled.current = true;
         getImages();
-        sortImagesByYear();
+        setSorted(true);
     }, []);
 
     return (

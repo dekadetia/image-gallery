@@ -40,8 +40,7 @@ export default function Index() {
 
                     localStorage.setItem("images_data", JSON.stringify(images));
 
-                    setNextPageToken(data.nextPageToken);
-                    setImages((prevImages) => [...prevImages, ...images]);
+                    setImages((prevImages) => [...images]);
 
                     const newSlides = images.map((photo) => {
                         const width = 1080 * 4;
@@ -111,6 +110,7 @@ export default function Index() {
 
     useEffect(() => {
         getImages();
+        setSorted(true);
     }, []);
 
     return (
