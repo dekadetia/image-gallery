@@ -110,6 +110,17 @@ export default function Index() {
         setSlides(sortedImages);
     };
 
+    const sortImagesAlphabetically = () => {
+        const sortedImages = [...Images].sort((a, b) => {
+            const nameA = a.alphaname.toLowerCase(); // Convert to lowercase for case-insensitive sorting
+            const nameB = b.alphaname.toLowerCase();
+            return nameA.localeCompare(nameB); // Sort alphabetically (A to Z)
+        });
+
+        setImages(sortedImages);
+        setSlides(sortedImages);
+    };
+
     useEffect(() => {
         getImages();
         setSorted(true);
@@ -126,7 +137,7 @@ export default function Index() {
                     </Link>
 
                     <div className="flex gap-9 items-center">
-                        <BsSortAlphaDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+                        <BsSortAlphaDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" onClick={sortImagesAlphabetically} />
 
                         <Link href={"/indx"}>
                             <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
