@@ -53,7 +53,7 @@ export default function Order() {
                             src: photo.src,
                             width,
                             height,
-                            title: `${photo.caption} ${photo.year}`,
+                            title: `${photo.caption}`,
                             description: photo.dimensions
                         };
                     });
@@ -78,7 +78,7 @@ export default function Order() {
                             src: photo.src,
                             width,
                             height,
-                            title: `${photo.caption} ${photo.year}`,
+                            title: `${photo.caption}`,
                             description: photo.dimensions
                         };
                     });
@@ -103,7 +103,7 @@ export default function Order() {
                 src: photo.src,
                 width,
                 height,
-                title: `${photo.caption} ${photo.year}`,
+                title: `${photo.caption}`,
                 description: photo.dimensions
             };
         }));
@@ -202,16 +202,7 @@ export default function Order() {
                 {
                     skeleton && <Loader />
                 }
-
-                {/* Loading More Images Icon */}
-
-                {/* Loading More Images Icon */}
-                {
-                    !skeleton && (!moreImageLoader ? <div className="grid place-items-center text-4xl py-10" onClick={moreImagesLoadHandler}>
-                        <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-                    </div> : <MoreImageLoader />)
-                }
-
+              
                 {/* Lightbox Component */}
                 {slides &&
                     <Lightbox
