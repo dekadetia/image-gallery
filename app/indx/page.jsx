@@ -49,7 +49,8 @@ export default function Index() {
                             src: photo.src,
                             width,
                             height,
-                            description: photo.caption,
+                            title: `${photo.caption} ${photo.year}`,
+                            description: photo.dimensions
                         };
                     });
 
@@ -72,7 +73,8 @@ export default function Index() {
                             src: photo.src,
                             width,
                             height,
-                            description: photo.caption,
+                            title: `${photo.caption} ${photo.year}`,
+                            description: photo.dimensions
                         };
                     });
                     setSlides((prevSlides) => [...newSlides]);

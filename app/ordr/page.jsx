@@ -53,7 +53,8 @@ export default function Order() {
                             src: photo.src,
                             width,
                             height,
-                            description: photo.caption,
+                            title: `${photo.caption} ${photo.year}`,
+                            description: photo.dimensions
                         };
                     });
 
@@ -77,7 +78,8 @@ export default function Order() {
                             src: photo.src,
                             width,
                             height,
-                            description: photo.caption,
+                            title: `${photo.caption} ${photo.year}`,
+                            description: photo.dimensions
                         };
                     });
                     setSlides((prevSlides) => [...newSlides]);
@@ -101,7 +103,8 @@ export default function Order() {
                 src: photo.src,
                 width,
                 height,
-                description: photo.caption,
+                title: `${photo.caption} ${photo.year}`,
+                description: photo.dimensions
             };
         }));
         setTimeout(() => {
@@ -129,7 +132,7 @@ export default function Order() {
             const yearB = parseInt(b.year);
             return yearA - yearB; // Sort in ascending order (oldest first)
         });
-        
+
         console.log(sortedImages);
         setSorted(false);
         setImages(sortedImages);

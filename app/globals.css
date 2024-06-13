@@ -66,9 +66,11 @@ html {
 
 .yarl__slide_title {
     font-family: TiemposTextSemiBold;
-    margin-top: 2rem;
+    margin-top: 1rem;
     font-size: 1.4rem;
     color: #e5e7eb;
+    line-height: .9;
+    margin-bottom: 10px;
 }
 
 .yarl__slide_description {
@@ -83,7 +85,7 @@ html {
 
 .yarl__slide_description,
 .yarl__slide_title {
-    margin-left: 100px;
+    margin-left: 20px;
 
     @media (max-width:991px) {
         margin-left: 0;
