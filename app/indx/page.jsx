@@ -130,13 +130,13 @@ export default function Index() {
         <>
             {/* Navigation */}
             <div className="w-full flex justify-center items-center py-9">
-                <div className="w-full grid place-items-center space-y-7">
+                <div className="w-full grid place-items-center space-y-[1.7rem]">
 
                     <Link href={"/"} >
                         <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
                     </Link>
 
-                    <div className="flex gap-9 items-center">
+                    <div className="flex gap-[2.225rem] items-center">
                         <BsSortAlphaDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" onClick={sortImagesAlphabetically} />
 
                         <Link href={"/indx"}>
