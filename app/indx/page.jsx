@@ -40,8 +40,7 @@ export default function Index() {
 
                     localStorage.setItem("images_data", JSON.stringify(images));
 
-                    setImages((prevImages) => [...images]);
-
+                    setImages(images);
                     const newSlides = images.map((photo) => {
                         const width = 1080 * 4;
                         const height = 1620 * 4;
@@ -54,7 +53,7 @@ export default function Index() {
                         };
                     });
 
-                    setSlides((prevSlides) => [...prevSlides, ...newSlides]);
+                    setSlides(newSlides);
                     setSkeleton(false);
                 } else {
                     console.error("Failed to get files");
@@ -65,7 +64,7 @@ export default function Index() {
                 let data = typeof window !== 'undefined' && localStorage.getItem('images_data');
                 if (data) {
                     data = JSON.parse(data);
-                    setImages((prevImages) => [...data]);
+                    setImages(data);
                     const newSlides = data.map((photo) => {
                         const width = 1080 * 4;
                         const height = 1620 * 4;
@@ -77,7 +76,7 @@ export default function Index() {
                             description: photo.dimensions
                         };
                     });
-                    setSlides((prevSlides) => [...newSlides]);
+                    setSlides(newSlides);
                     setSkeleton(false);
                 }
             }
@@ -95,7 +94,17 @@ export default function Index() {
         });
         setSorted(true);
         setImages(sortedImages);
-        setSlides(sortedImages);
+        setSlides(sortedImages.map((photo) => {
+            const width = 1080 * 4;
+            const height = 1620 * 4;
+            return {
+                src: photo.src,
+                width,
+                height,
+                title: `${photo.caption}`,
+                description: photo.dimensions
+            };
+        }));
     };
 
     const sortImagesOldestFirst = () => {
@@ -107,7 +116,17 @@ export default function Index() {
 
         setSorted(false);
         setImages(sortedImages);
-        setSlides(sortedImages);
+        setSlides(sortedImages.map((photo) => {
+            const width = 1080 * 4;
+            const height = 1620 * 4;
+            return {
+                src: photo.src,
+                width,
+                height,
+                title: `${photo.caption}`,
+                description: photo.dimensions
+            };
+        }));
     };
 
     const sortImagesAlphabetically = () => {
@@ -118,12 +137,21 @@ export default function Index() {
         });
 
         setImages(sortedImages);
-        setSlides(sortedImages);
+        setSlides(sortedImages.map((photo) => {
+            const width = 1080 * 4;
+            const height = 1620 * 4;
+            return {
+                src: photo.src,
+                width,
+                height,
+                title: `${photo.caption}`,
+                description: photo.dimensions
+            };
+        }));
     };
 
     useEffect(() => {
         getImages();
-        setSorted(true);
     }, []);
 
     return (

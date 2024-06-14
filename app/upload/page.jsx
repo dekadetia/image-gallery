@@ -77,6 +77,8 @@ export default function Page() {
                     theme: "dark",
                     transition: Slide,
                 })
+                localStorage.removeItem('images_data');
+                localStorage.removeItem('random_images_data');
                 setLoader(false);
             } else {
                 console.error("Failed to upload files");
@@ -117,9 +119,9 @@ export default function Page() {
         setLoader(true);
 
         try {
-            if(typeof window !== 'undefined' && !localStorage.getItem('images_data')){
+            if (typeof window !== 'undefined' && !localStorage.getItem('images_data')) {
                 const response = await getAllImages();
-    
+
                 if (response.ok) {
                     const data = await response.json();
                     const images = data.images;
@@ -131,10 +133,10 @@ export default function Page() {
                     console.error("Failed to get files");
                     setLoader(false);
                 }
-            }else{
+            } else {
                 setLoader(true);
                 let data = typeof window !== 'undefined' && localStorage.getItem('images_data');
-                if(data){
+                if (data) {
                     data = JSON.parse(data);
                     setFetchedPhotos((prevImages) => [...data]);
                     setLoader(false);
@@ -261,6 +263,10 @@ export default function Page() {
                     theme: "dark",
                     transition: Slide,
                 })
+
+                localStorage.removeItem('images_data');
+                localStorage.removeItem('random_images_data');
+
                 setLoader(false);
             } else {
                 console.error("Failed to update file");

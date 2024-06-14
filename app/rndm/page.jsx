@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
-import { getImagesAPI } from "../../utils/getImages";
+import { getRandomImages } from "../../utils/getImages";
 import Link from "next/link";
 import { IoMdList, IoMdShuffle } from "react-icons/io";
 import { RxCaretSort } from "react-icons/rx";
@@ -16,7 +16,7 @@ export default function Random() {
     const descriptionTextAlign = "end";
     const descriptionMaxLines = 3;
     const isOpen = true;
-    
+
     const [moreImageLoader, setLoader] = useState(false);
     const [index, setIndex] = useState(-1);
     const [slides, setSlides] = useState([]);
@@ -25,44 +25,64 @@ export default function Random() {
     const [nextPageToken, setNextPageToken] = useState(null);
     const wasCalled = useRef(false);
 
-    const getImages = async (token) => {
-        token ? setLoader(true) : setSkeleton(true);
+    const getImages = async () => {
+        setSkeleton(true);
+
         try {
-            const response = await getImagesAPI(token);
-            if (response.ok) {
-                const data = await response.json();
-                const images = data.images;
-                shuffleArray(images)
-                setNextPageToken(data.nextPageToken);
-                setImages((prevImages) => [...prevImages, ...images]);
+            if (typeof window !== 'undefined' && !localStorage.getItem('random_images_data')) {
+                const response = await getRandomImages();
 
-                const newSlides = images.map((photo) => {
-                    const width = 1080 * 4;
-                    const height = 1620 * 4;
-                    return {
-                        src: photo.src,
-                        width,
-                        height,
-                        title: `${photo.caption}`,
-                        description: photo.dimensions
-                    };
-                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const images = data.images;
 
-                setSlides((prevSlides) => [...prevSlides, ...newSlides]);
-                setSkeleton(false);
-                setLoader(false);
+                    localStorage.setItem("random_images_data", JSON.stringify(images));
+
+                    setImages(images);
+                    const newSlides = images.map((photo) => {
+                        const width = 1080 * 4;
+                        const height = 1620 * 4;
+                        return {
+                            src: photo.src,
+                            width,
+                            height,
+                            title: `${photo.caption}`,
+                            description: photo.dimensions
+                        };
+                    });
+
+                    setSlides(newSlides);
+                    setSkeleton(false);
+                } else {
+                    console.error("Failed to get files");
+                    setSkeleton(false);
+                }
             } else {
-                console.error("Failed to get files");
-                setSkeleton(false);
-                setLoader(false);
+                setSkeleton(true);
+                let data = typeof window !== 'undefined' && localStorage.getItem('random_images_data');
+                if (data) {
+                    data = JSON.parse(data);
+                    const shuffledData = shuffleArray(data);
 
+                    setImages(shuffledData);
+                    const newSlides = shuffledData.map((photo) => {
+                        const width = 1080 * 4;
+                        const height = 1620 * 4;
+                        return {
+                            src: photo.src,
+                            width,
+                            height,
+                            title: `${photo.caption}`,
+                            description: photo.dimensions
+                        };
+                    });
+                    setSlides(newSlides);
+                    setSkeleton(false);
+                }
             }
         } catch (error) {
             console.error("Error fetching files:", error);
-        } finally {
             setSkeleton(false);
-            setLoader(false);
-
         }
     };
 
@@ -111,7 +131,18 @@ export default function Random() {
 
         // Update state with shuffled arrays
         setImages(shuffledImages);
-        setSlides(shuffledSlides);
+        const newSlides = shuffledImages.map((photo) => {
+            const width = 1080 * 4;
+            const height = 1620 * 4;
+            return {
+                src: photo.src,
+                width,
+                height,
+                title: `${photo.caption}`,
+                description: photo.dimensions
+            };
+        });
+        setSlides(newSlides);
     };
 
     const handleCloseLightbox = () => {
@@ -165,7 +196,7 @@ export default function Random() {
                 </div>
 
                 {skeleton && <Loader />}
-               
+
                 {
                     slides && <Lightbox
                         plugins={[Captions]}
