@@ -89,27 +89,7 @@ export default function Order() {
             setSkeleton(false);
         }
     };
-
-    const moreImagesLoadHandler = () => {
-        setSkeleton(true);
-        const nextImages = [...Images, ...fetchPhotos.slice(Images.length, Images.length + 36)];
-        setImages(nextImages)
-        setSlides(nextImages.map((photo) => {
-            const width = 1080 * 4;
-            const height = 1620 * 4;
-            return {
-                src: photo.src,
-                width,
-                height,
-                title: `${photo.caption}`,
-                description: photo.dimensions
-            };
-        }));
-        setTimeout(() => {
-            setSkeleton(false);
-        }, 1500);
-    };
-
+    
     const sortImagesByYear = () => {
         // Assuming your image data has a property called 'year'
         const sortedImages = [...Images].sort((a, b) => {

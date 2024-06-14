@@ -86,12 +86,6 @@ export default function Random() {
         }
     };
 
-    const moreImagesLoadHandler = () => {
-        if (nextPageToken) {
-            getImages(nextPageToken);
-        }
-    };
-
     function shuffleArray(array) {
         let currentIndex = array.length;
 
