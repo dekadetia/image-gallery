@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 
-import { getAllImages } from "../../utils/getImages";
+import { getAllImagesA_Z } from "../../utils/getImages";
 import Footer from '../../components/Footer'
 import Loader from "../../components/loader/loader";
 
@@ -31,14 +31,14 @@ export default function Index() {
         setSkeleton(true);
 
         try {
-            if (typeof window !== 'undefined' && !localStorage.getItem('images_data')) {
-                const response = await getAllImages();
+            if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
+                const response = await getAllImagesA_Z();
 
                 if (response.ok) {
                     const data = await response.json();
                     const images = data.images;
 
-                    localStorage.setItem("images_data", JSON.stringify(images));
+                    localStorage.setItem("alpha_images_data", JSON.stringify(images));
 
                     setImages(images);
                     const newSlides = images.map((photo) => {
@@ -61,7 +61,7 @@ export default function Index() {
                 }
             } else {
                 setSkeleton(true);
-                let data = typeof window !== 'undefined' && localStorage.getItem('images_data');
+                let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
                 if (data) {
                     data = JSON.parse(data);
                     setImages(data);

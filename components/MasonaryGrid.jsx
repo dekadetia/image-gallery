@@ -40,7 +40,7 @@ export default function MasonaryGrid() {
                         src: photo.src,
                         width,
                         height,
-                        title: `${photo.caption}` ,
+                        title: `${photo.caption}`,
                         description: photo.dimensions
                     };
                 });

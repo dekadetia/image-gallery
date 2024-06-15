@@ -65,7 +65,6 @@ export default function Page() {
 
             if (response.ok) {
                 console.log("Files uploaded successfully");
-                getImages();
                 toast.success("Files uploaded successfully!", {
                     position: "top-right",
                     autoClose: 5000,
@@ -79,7 +78,9 @@ export default function Page() {
                 })
                 localStorage.removeItem('images_data');
                 localStorage.removeItem('random_images_data');
+                localStorage.removeItem('alpha_images_data');
                 setLoader(false);
+                window.location.reload();
             } else {
                 console.error("Failed to upload files");
                 toast.error("Failed to upload files!", {
@@ -128,7 +129,23 @@ export default function Page() {
 
                     localStorage.setItem("images_data", JSON.stringify(images));
                     setFetchedPhotos((prevImages) => [...prevImages, ...images]);
+
                     setLoader(false);
+
+                    const orderImages = images;
+                    orderImages.sort((a, b) => {
+                        const nameA = a.alphaname.toLowerCase();
+                        const nameB = b.alphaname.toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    });
+                    localStorage.setItem("alpha_images_data", JSON.stringify(orderImages));
+
+                    const randomImages = images;
+                    for (let currentIndex = randomImages.length - 1; currentIndex > 0; currentIndex--) {
+                        const randomIndex = Math.floor(Math.random() * (currentIndex + 1));
+                        [randomImages[currentIndex], randomImages[randomIndex]] = [randomImages[randomIndex], randomImages[currentIndex]];
+                    }
+                    localStorage.setItem('random_images_data', JSON.stringify(randomImages));
                 } else {
                     console.error("Failed to get files");
                     setLoader(false);
@@ -140,6 +157,21 @@ export default function Page() {
                     data = JSON.parse(data);
                     setFetchedPhotos((prevImages) => [...data]);
                     setLoader(false);
+
+                    const orderImages = images;
+                    orderImages.sort((a, b) => {
+                        const nameA = a.alphaname.toLowerCase();
+                        const nameB = b.alphaname.toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    });
+                    localStorage.setItem("alpha_images_data", JSON.stringify(orderImages));
+
+                    const randomImages = images;
+                    for (let currentIndex = randomImages.length - 1; currentIndex > 0; currentIndex--) {
+                        const randomIndex = Math.floor(Math.random() * (currentIndex + 1));
+                        [randomImages[currentIndex], randomImages[randomIndex]] = [randomImages[randomIndex], randomImages[currentIndex]];
+                    }
+                    localStorage.setItem('random_images_data', JSON.stringify(randomImages));
                 }
             }
         } catch (error) {
@@ -160,8 +192,11 @@ export default function Page() {
             });
             if (response.ok) {
                 console.log("Files deleted successfully");
-                getImages();
                 setLoader(false);
+                localStorage.removeItem('images_data');
+                localStorage.removeItem('random_images_data');
+                localStorage.removeItem('alpha_images_data');
+                window.location.reload();
             } else {
                 console.error("Failed to delete files");
                 setLoader(false);
@@ -251,7 +286,6 @@ export default function Page() {
 
             if (response.ok) {
                 console.log("Files updated successfully");
-                // getImages();
                 toast.success("Files updated successfully!", {
                     position: "top-right",
                     autoClose: 5000,
@@ -266,8 +300,10 @@ export default function Page() {
 
                 localStorage.removeItem('images_data');
                 localStorage.removeItem('random_images_data');
-
+                localStorage.removeItem('alpha_images_data');
+                window.location.reload();
                 setLoader(false);
+
             } else {
                 console.error("Failed to update file");
                 toast.error("Failed to update file!", {
