@@ -33,9 +33,7 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-16 pb-10">
-        <MasonaryGrid />
-      </div>
+      <MasonaryGrid />
     </>
   );
 }

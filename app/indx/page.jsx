@@ -158,7 +158,7 @@ export default function Index() {
         <>
             {/* Navigation */}
             <div className="w-full flex justify-center items-center py-9">
-                <div className="w-full grid place-items-center space-y-[1.7rem]">
+                <div className="w-full grid place-items-center space-y-[1.65rem]">
 
                     <Link href={"/"} >
                         <img src="/assets/logo.svg" className="object-contain w-40" alt="" />

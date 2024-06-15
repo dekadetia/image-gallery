@@ -75,48 +75,51 @@ export default function MasonaryGrid() {
 
     return (
         <>
+            <div className="px-4 lg:px-16 pb-10">
 
-            {/* Images */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-                {Images.map((photo, i) => (
-                    <figure className="relative" key={i}>
-                        <img
-                            src={photo.src}
-                            alt={'images'}
-                            className="aspect-[16/9] object-cover cursor-zoom-in"
-                            onClick={() => setIndex(i)}
-                            loading="lazy"
-                        />
-                    </figure>
-                ))}
+                {/* Images */}
+                <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+                    {Images.map((photo, i) => (
+                        <figure className="relative" key={i}>
+                            <img
+                                src={photo.src}
+                                alt={'images'}
+                                className="aspect-[16/9] object-cover cursor-zoom-in"
+                                onClick={() => setIndex(i)}
+                                loading="lazy"
+                            />
+                        </figure>
+                    ))}
+                </div>
+
+                {/* Skeleton */}
+                {skeleton && <Loader />}
+
+                {/* Loading More Images Icon */}
+                {
+                    !skeleton && (
+                        !moreImageLoader ?
+                            <div className="grid place-items-center text-4xl py-10"
+                                onClick={moreImagesLoadHandler}>
+                                <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
+                            </div> :
+                            <MoreImageLoader />
+                    )
+                }
+
+                {/* Lightbox Component */}
+                {slides &&
+                    <Lightbox
+                        plugins={[Captions]}
+                        index={index}
+                        slides={slides}
+                        open={index >= 0}
+                        close={() => setIndex(-1)}
+                        captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+                    />
+                }
             </div>
 
-            {/* Skeleton */}
-            {skeleton && <Loader />}
-
-            {/* Loading More Images Icon */}
-            {
-                !skeleton && (
-                    !moreImageLoader ?
-                        <div className="grid place-items-center text-4xl py-10"
-                            onClick={moreImagesLoadHandler}>
-                            <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-                        </div> :
-                        <MoreImageLoader />
-                )
-            }
-
-            {/* Lightbox Component */}
-            {slides &&
-                <Lightbox
-                    plugins={[Captions]}
-                    index={index}
-                    slides={slides}
-                    open={index >= 0}
-                    close={() => setIndex(-1)}
-                    captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
-                />
-            }
             {!skeleton && <Footer />}
         </>
     )
