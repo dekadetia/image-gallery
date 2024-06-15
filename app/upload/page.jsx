@@ -5,7 +5,7 @@ import Loader from '../../components/loader/loader';
 import { ToastContainer, toast, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { MdDelete, MdEdit } from "react-icons/md";
-import { useForm } from 'react-hook-form';
+import { set, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from "yup"
 import { getAllImages } from '../../utils/getImages';
@@ -219,10 +219,18 @@ export default function Page() {
         }
     }
 
-    const openModal = (name) => {
+    const openModal = (photo) => {
         setModal(true);
-        setdelId(name);
-        console.log(name, delId);
+        setdelId(photo.name);
+
+        setCaption(photo.caption)
+        setDirector(photo.director)
+        setPhotographer(photo.photographer)
+        setYear(photo.year)
+        setAlphaname(photo.alphaname)
+        setDimensions(photo.dimensions)
+
+        console.log(photo.name, delId);
     }
 
     const openEditModal = (name) => {
@@ -499,7 +507,7 @@ export default function Page() {
                                     {new Date(photo.updated_at).toLocaleString('en-US')}
                                 </span>
                             </p>
-                            <button onClick={() => openModal(photo.name)}
+                            <button onClick={() => openModal(photo)}
                                 className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
                                 <MdDelete />
                             </button>
