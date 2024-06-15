@@ -164,7 +164,7 @@ export default function Index() {
                         <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
                     </Link>
 
-                    <div className="flex gap-[2.225rem] items-center">
+                    <div className="flex gap-[34.6px] items-center">
                         <BsSortAlphaDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" onClick={sortImagesAlphabetically} />
 
                         <Link href={"/indx"}>

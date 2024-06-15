@@ -99,7 +99,7 @@ export default function MasonaryGrid() {
                 {
                     !skeleton && (
                         !moreImageLoader ?
-                            <div className="grid place-items-center text-4xl py-10"
+                            <div className="grid place-items-center text-[24px] pt-10 "
                                 onClick={moreImagesLoadHandler}>
                                 <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
                             </div> :
