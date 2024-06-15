@@ -132,7 +132,7 @@ export default function Page() {
 
                     setLoader(false);
 
-                    const orderImages = images;
+                    const orderImages = [...images];
                     orderImages.sort((a, b) => {
                         const nameA = a.alphaname.toLowerCase();
                         const nameB = b.alphaname.toLowerCase();
@@ -140,7 +140,7 @@ export default function Page() {
                     });
                     localStorage.setItem("alpha_images_data", JSON.stringify(orderImages));
 
-                    const randomImages = images;
+                    const randomImages = [...images];;
                     for (let currentIndex = randomImages.length - 1; currentIndex > 0; currentIndex--) {
                         const randomIndex = Math.floor(Math.random() * (currentIndex + 1));
                         [randomImages[currentIndex], randomImages[randomIndex]] = [randomImages[randomIndex], randomImages[currentIndex]];
@@ -158,7 +158,7 @@ export default function Page() {
                     setFetchedPhotos((prevImages) => [...data]);
                     setLoader(false);
 
-                    const orderImages = images;
+                    const orderImages = [...data];
                     orderImages.sort((a, b) => {
                         const nameA = a.alphaname.toLowerCase();
                         const nameB = b.alphaname.toLowerCase();
@@ -166,7 +166,7 @@ export default function Page() {
                     });
                     localStorage.setItem("alpha_images_data", JSON.stringify(orderImages));
 
-                    const randomImages = images;
+                    const randomImages = [...data];
                     for (let currentIndex = randomImages.length - 1; currentIndex > 0; currentIndex--) {
                         const randomIndex = Math.floor(Math.random() * (currentIndex + 1));
                         [randomImages[currentIndex], randomImages[randomIndex]] = [randomImages[randomIndex], randomImages[currentIndex]];
