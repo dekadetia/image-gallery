@@ -10,7 +10,7 @@ import { TbClockDown } from "react-icons/tb";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
 import { AiOutlinePlus } from "react-icons/ai";
-import { getAllImages } from "../../utils/getImages";
+import { getAllImagesA_Z } from "../../utils/getImages";
 
 import MoreImageLoader from '../../components/MoreImageLoader/index';
 import Footer from "../../components/Footer"
@@ -35,14 +35,14 @@ export default function Order() {
         setSkeleton(true);
 
         try {
-            if (typeof window !== 'undefined' && !localStorage.getItem('images_data')) {
-                const response = await getAllImages();
+            if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
+                const response = await getAllImagesA_Z();
 
                 if (response.ok) {
                     const data = await response.json();
                     const images = data.images;
 
-                    localStorage.setItem("images_data", JSON.stringify(images));
+                    localStorage.setItem("alpha_images_data", JSON.stringify(images));
 
                     setImages(images);
                     const newSlides = images.map((photo) => {
@@ -65,7 +65,7 @@ export default function Order() {
                 }
             } else {
                 setSkeleton(true);
-                let data = typeof window !== 'undefined' && localStorage.getItem('images_data');
+                let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
                 if (data) {
                     data = JSON.parse(data);
                     setImages(data);
