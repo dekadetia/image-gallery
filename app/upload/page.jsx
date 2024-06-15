@@ -219,8 +219,15 @@ export default function Page() {
         }
     }
 
-    const openModal = (photo) => {
+    const openModal = (name) => {
         setModal(true);
+        setdelId(name);
+
+        console.log(name, delId);
+    }
+
+    const openEditModal = (photo) => {
+        setEditModal(true);
         setdelId(photo.name);
 
         setCaption(photo.caption)
@@ -230,13 +237,7 @@ export default function Page() {
         setAlphaname(photo.alphaname)
         setDimensions(photo.dimensions)
 
-        console.log(photo.name, delId);
-    }
-
-    const openEditModal = (name) => {
-        setEditModal(true);
-        setdelId(name);
-        console.log(name, delId);
+        console.log(photo, delId);
     }
 
     function isObjectMatch(obj1, obj2) {
@@ -507,7 +508,7 @@ export default function Page() {
                                     {new Date(photo.updated_at).toLocaleString('en-US')}
                                 </span>
                             </p>
-                            <button onClick={() => openModal(photo)}
+                            <button onClick={() => openModal(photo.name)}
                                 className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
                                 <MdDelete />
                             </button>
