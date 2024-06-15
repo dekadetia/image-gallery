@@ -512,7 +512,7 @@ export default function Page() {
                                 className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer">
                                 <MdDelete />
                             </button>
-                            <button onClick={() => openEditModal(photo.name)}
+                            <button onClick={() => openEditModal(photo)}
                                 className="absolute top-5 right-14 rounded-full p-1 text-white bg-red-500 cursor-pointer">
                                 <MdEdit />
                             </button>
