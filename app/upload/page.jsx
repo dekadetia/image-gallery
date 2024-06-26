@@ -9,6 +9,9 @@ import { set, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from "yup"
 import { getAllImages } from '../../utils/getImages';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:3002');
 
 const schema = Yup.object().shape({
     username: Yup.string().required("Username is required"),
@@ -31,6 +34,29 @@ export default function Page() {
     const [editmodal, setEditModal] = useState(false);
     const [delId, setdelId] = useState();
     const [fetchPhotos, setFetchedPhotos] = useState([]);
+
+    useEffect(() => {
+        // Handle image uploaded event
+        socket.on('imageUploaded', (data) => {
+            setFetchedPhotos((prevPhotos) => [...prevPhotos, data]);
+        });
+
+        // Handle image deleted event
+        socket.on('imageDeleted', (data) => {
+            setFetchedPhotos((prevPhotos) => prevPhotos.filter(photo => photo.name !== data.name));
+        });
+
+        // Handle image updated event
+        socket.on('imageUpdated', (data) => {
+            setFetchedPhotos((prevPhotos) => prevPhotos.map(photo => photo.name === data.name ? data : photo));
+        });
+
+        return () => {
+            socket.off('imageUploaded');
+            socket.off('imageDeleted');
+            socket.off('imageUpdated');
+        };
+    }, []);
 
     const { register, handleSubmit, formState: { errors } } = useForm({
         resolver: yupResolver(schema),
