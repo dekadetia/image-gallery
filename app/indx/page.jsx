@@ -31,7 +31,7 @@ export default function Index() {
         setSkeleton(true);
 
         try {
-            if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
+            // if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
                 const response = await getAllImagesA_Z();
 
                 if (response.ok) {
@@ -59,27 +59,27 @@ export default function Index() {
                     console.error("Failed to get files");
                     setSkeleton(false);
                 }
-            } else {
-                setSkeleton(true);
-                let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
-                if (data) {
-                    data = JSON.parse(data);
-                    setImages(data);
-                    const newSlides = data.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            title: `${photo.caption}`,
-                            description: photo.dimensions
-                        };
-                    });
-                    setSlides(newSlides);
-                    setSkeleton(false);
-                }
-            }
+            // } else {
+            //     setSkeleton(true);
+            //     let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
+            //     if (data) {
+            //         data = JSON.parse(data);
+            //         setImages(data);
+            //         const newSlides = data.map((photo) => {
+            //             const width = 1080 * 4;
+            //             const height = 1620 * 4;
+            //             return {
+            //                 src: photo.src,
+            //                 width,
+            //                 height,
+            //                 title: `${photo.caption}`,
+            //                 description: photo.dimensions
+            //             };
+            //         });
+            //         setSlides(newSlides);
+            //         setSkeleton(false);
+            //     }
+            // }
         } catch (error) {
             console.error("Error fetching files:", error);
             setSkeleton(false);

@@ -1,8 +1,8 @@
 import { ref, getDownloadURL, uploadBytesResumable, listAll, deleteObject, getMetadata, getStorage, list, updateMetadata } from 'firebase/storage';
 import { storage } from '../../../firebase/firebase-config';
 import { NextResponse } from "next/server";
-import { io } from 'socket.io-client';
-const socket = io("https://image-gallery-omega-one.vercel.app");
+// import { io } from 'socket.io-client';
+// const socket = io("https://image-gallery-omega-one.vercel.app");
 
 // To handle a GET request to /api/all-images
 export async function GET_ALL_IMAGES_A_Z(request) {
@@ -192,18 +192,18 @@ export async function POST(request, response) {
       const storageRef = ref(storage, `images/${file.name}`);
       await uploadBytesResumable(storageRef, file, metadata);
 
-      const downloadURL = await getDownloadURL(storageRef);
-      // Emit event
-      socket.emit('image_uploaded', {
-        src: downloadURL,
-        name: file.name,
-        caption,
-        director,
-        photographer,
-        year,
-        alphaname,
-        dimensions,
-      });
+      // const downloadURL = await getDownloadURL(storageRef);
+      // // Emit event
+      // socket.emit('image_uploaded', {
+      //   src: downloadURL,
+      //   name: file.name,
+      //   caption,
+      //   director,
+      //   photographer,
+      //   year,
+      //   alphaname,
+      //   dimensions,
+      // });
     }
   });
 
@@ -234,18 +234,18 @@ export async function PUT(request, response) {
   const storageRef = ref(storage, `images/${filename}`);
   await updateMetadata(storageRef, metadata);
 
-  const downloadURL = await getDownloadURL(storageRef);
-  // Emit event
-  socket.emit('image_updated', {
-    src: downloadURL,
-    name: filename,
-    caption,
-    director,
-    photographer,
-    year,
-    alphaname,
-    dimensions,
-  });
+  // const downloadURL = await getDownloadURL(storageRef);
+  // // Emit event
+  // socket.emit('image_updated', {
+  //   src: downloadURL,
+  //   name: filename,
+  //   caption,
+  //   director,
+  //   photographer,
+  //   year,
+  //   alphaname,
+  //   dimensions,
+  // });
 
   return NextResponse.json({ message: 'File uploaded successfully' }, { status: 200 });
 }
@@ -259,7 +259,7 @@ export async function DELETE(request) {
 
   try {
     await deleteObject(delRef);
-    socket.emit('image_deleted');
+    // socket.emit('image_deleted');
 
     return NextResponse.json({ message: 'succesfully deleted' }, { status: 200 });
   } catch {

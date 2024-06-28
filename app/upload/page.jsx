@@ -9,7 +9,6 @@ import { set, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { getAllImages } from "../../utils/getImages";
-import io from "socket.io-client";
 
 const schema = Yup.object().shape({
   username: Yup.string().required("Username is required"),
@@ -32,48 +31,6 @@ export default function Page() {
   const [editmodal, setEditModal] = useState(false);
   const [delId, setdelId] = useState();
   const [fetchPhotos, setFetchedPhotos] = useState([]);
-  const socket = io("https://image-gallery-omega-one.vercel.app");
-
-  useEffect(() => {
-    socket.on("connect", () => {
-      console.log("connected to socket.io server");
-    });
-
-    socket.on("image_uploaded", (data) => {
-      console.log("Image uploaded:", data);
-      // Update your UI accordingly
-      localStorage.removeItem("images_data");
-      localStorage.removeItem("random_images_data");
-      localStorage.removeItem("alpha_images_data");
-      window.location.reload();
-    });
-
-    socket.on("image_deleted", () => {
-      console.log("Image deleted:");
-      // Update your UI accordingly
-      localStorage.removeItem("images_data");
-      localStorage.removeItem("random_images_data");
-      localStorage.removeItem("alpha_images_data");
-      window.location.reload();
-    });
-
-    socket.on("image_updated", (data) => {
-      console.log("Image updated:", data);
-      // Update your UI accordingly
-      localStorage.removeItem("images_data");
-      localStorage.removeItem("random_images_data");
-      localStorage.removeItem("alpha_images_data");
-      window.location.reload();
-    });
-
-    return () => {
-      socket.off("image_uploaded");
-      socket.off("image_deleted");
-      socket.off("image_updated");
-
-      socket.disconnect();
-    };
-  }, []);
 
   const {
     register,
@@ -123,9 +80,9 @@ export default function Page() {
           theme: "dark",
           transition: Slide,
         });
-        localStorage.removeItem("images_data");
-        localStorage.removeItem("random_images_data");
-        localStorage.removeItem("alpha_images_data");
+        // localStorage.removeItem("images_data");
+        // localStorage.removeItem("random_images_data");
+        // localStorage.removeItem("alpha_images_data");
         setLoader(false);
         window.location.reload();
       } else {
@@ -167,10 +124,10 @@ export default function Page() {
     setLoader(true);
 
     try {
-      if (
-        typeof window !== "undefined" &&
-        !localStorage.getItem("images_data")
-      ) {
+      // if (
+      //   typeof window !== "undefined" &&
+      //   !localStorage.getItem("images_data")
+      // ) {
         const response = await getAllImages();
 
         if (response.ok) {
@@ -213,44 +170,44 @@ export default function Page() {
           console.error("Failed to get files");
           setLoader(false);
         }
-      } else {
-        setLoader(true);
-        let data =
-          typeof window !== "undefined" && localStorage.getItem("images_data");
-        if (data) {
-          data = JSON.parse(data);
-          setFetchedPhotos((prevImages) => [...data]);
-          setLoader(false);
+      // } else {
+      //   setLoader(true);
+      //   let data =
+      //     typeof window !== "undefined" && localStorage.getItem("images_data");
+      //   if (data) {
+      //     data = JSON.parse(data);
+      //     setFetchedPhotos((prevImages) => [...data]);
+      //     setLoader(false);
 
-          const orderImages = [...data];
-          orderImages.sort((a, b) => {
-            const nameA = a.alphaname.toLowerCase();
-            const nameB = b.alphaname.toLowerCase();
-            return nameA.localeCompare(nameB);
-          });
-          localStorage.setItem(
-            "alpha_images_data",
-            JSON.stringify(orderImages)
-          );
+      //     const orderImages = [...data];
+      //     orderImages.sort((a, b) => {
+      //       const nameA = a.alphaname.toLowerCase();
+      //       const nameB = b.alphaname.toLowerCase();
+      //       return nameA.localeCompare(nameB);
+      //     });
+      //     localStorage.setItem(
+      //       "alpha_images_data",
+      //       JSON.stringify(orderImages)
+      //     );
 
-          const randomImages = [...data];
-          for (
-            let currentIndex = randomImages.length - 1;
-            currentIndex > 0;
-            currentIndex--
-          ) {
-            const randomIndex = Math.floor(Math.random() * (currentIndex + 1));
-            [randomImages[currentIndex], randomImages[randomIndex]] = [
-              randomImages[randomIndex],
-              randomImages[currentIndex],
-            ];
-          }
-          localStorage.setItem(
-            "random_images_data",
-            JSON.stringify(randomImages)
-          );
-        }
-      }
+      //     const randomImages = [...data];
+      //     for (
+      //       let currentIndex = randomImages.length - 1;
+      //       currentIndex > 0;
+      //       currentIndex--
+      //     ) {
+      //       const randomIndex = Math.floor(Math.random() * (currentIndex + 1));
+      //       [randomImages[currentIndex], randomImages[randomIndex]] = [
+      //         randomImages[randomIndex],
+      //         randomImages[currentIndex],
+      //       ];
+      //     }
+      //     localStorage.setItem(
+      //       "random_images_data",
+      //       JSON.stringify(randomImages)
+      //     );
+      //   }
+      // }
     } catch (error) {
       console.error("Error fetching files:", error);
       setLoader(false);
@@ -270,9 +227,9 @@ export default function Page() {
       if (response.ok) {
         console.log("Files deleted successfully");
         setLoader(false);
-        localStorage.removeItem("images_data");
-        localStorage.removeItem("random_images_data");
-        localStorage.removeItem("alpha_images_data");
+        // localStorage.removeItem("images_data");
+        // localStorage.removeItem("random_images_data");
+        // localStorage.removeItem("alpha_images_data");
         window.location.reload();
       } else {
         console.error("Failed to delete files");
@@ -384,9 +341,9 @@ export default function Page() {
           transition: Slide,
         });
 
-        localStorage.removeItem("images_data");
-        localStorage.removeItem("random_images_data");
-        localStorage.removeItem("alpha_images_data");
+        // localStorage.removeItem("images_data");
+        // localStorage.removeItem("random_images_data");
+        // localStorage.removeItem("alpha_images_data");
         window.location.reload();
         setLoader(false);
       } else {

@@ -29,7 +29,7 @@ export default function Random() {
         setSkeleton(true);
 
         try {
-            if (typeof window !== 'undefined' && !localStorage.getItem('random_images_data')) {
+            // if (typeof window !== 'undefined' && !localStorage.getItem('random_images_data')) {
                 const response = await getRandomImages();
 
                 if (response.ok) {
@@ -57,29 +57,29 @@ export default function Random() {
                     console.error("Failed to get files");
                     setSkeleton(false);
                 }
-            } else {
-                setSkeleton(true);
-                let data = typeof window !== 'undefined' && localStorage.getItem('random_images_data');
-                if (data) {
-                    data = JSON.parse(data);
-                    const shuffledData = shuffleArray(data);
+            // } else {
+            //     setSkeleton(true);
+            //     let data = typeof window !== 'undefined' && localStorage.getItem('random_images_data');
+            //     if (data) {
+            //         data = JSON.parse(data);
+            //         const shuffledData = shuffleArray(data);
 
-                    setImages(shuffledData);
-                    const newSlides = shuffledData.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            title: `${photo.caption}`,
-                            description: photo.dimensions
-                        };
-                    });
-                    setSlides(newSlides);
-                    setSkeleton(false);
-                }
-            }
+            //         setImages(shuffledData);
+            //         const newSlides = shuffledData.map((photo) => {
+            //             const width = 1080 * 4;
+            //             const height = 1620 * 4;
+            //             return {
+            //                 src: photo.src,
+            //                 width,
+            //                 height,
+            //                 title: `${photo.caption}`,
+            //                 description: photo.dimensions
+            //             };
+            //         });
+            //         setSlides(newSlides);
+            //         setSkeleton(false);
+            //     }
+            // }
         } catch (error) {
             console.error("Error fetching files:", error);
             setSkeleton(false);
