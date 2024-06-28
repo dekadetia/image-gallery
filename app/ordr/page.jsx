@@ -35,61 +35,61 @@ export default function Order() {
         setSkeleton(true);
 
         try {
-            if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
-                const response = await getAllImagesA_Z();
+            // if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
+            const response = await getAllImagesA_Z();
 
-                if (response.ok) {
-                    const data = await response.json();
-                    const images = data.images;
+            if (response.ok) {
+                const data = await response.json();
+                const images = data.images;
 
-                    localStorage.setItem("alpha_images_data", JSON.stringify(images));
+                // localStorage.setItem("alpha_images_data", JSON.stringify(images));
 
-                    setImages(images);
-                    const newSlides = images.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            title: `${photo.caption}`,
-                            description: photo.dimensions
-                        };
-                    });
+                setImages(images);
+                const newSlides = images.map((photo) => {
+                    const width = 1080 * 4;
+                    const height = 1620 * 4;
+                    return {
+                        src: photo.src,
+                        width,
+                        height,
+                        title: `${photo.caption}`,
+                        description: photo.dimensions
+                    };
+                });
 
-                    setSlides(newSlides);
-                    setSkeleton(false);
-                } else {
-                    console.error("Failed to get files");
-                    setSkeleton(false);
-                }
+                setSlides(newSlides);
+                setSkeleton(false);
             } else {
-                setSkeleton(true);
-                let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
-                if (data) {
-                    data = JSON.parse(data);
-                    setImages(data);
-                    const newSlides = data.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            title: `${photo.caption}`,
-                            description: photo.dimensions
-                        };
-                    });
-                    setSlides(newSlides);
-                    setSkeleton(false);
-                }
+                console.error("Failed to get files");
+                setSkeleton(false);
             }
+            // } else {
+            //     setSkeleton(true);
+            //     let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
+            //     if (data) {
+            //         data = JSON.parse(data);
+            //         setImages(data);
+            //         const newSlides = data.map((photo) => {
+            //             const width = 1080 * 4;
+            //             const height = 1620 * 4;
+            //             return {
+            //                 src: photo.src,
+            //                 width,
+            //                 height,
+            //                 title: `${photo.caption}`,
+            //                 description: photo.dimensions
+            //             };
+            //         });
+            //         setSlides(newSlides);
+            //         setSkeleton(false);
+            //     }
+            // }
         } catch (error) {
             console.error("Error fetching files:", error);
             setSkeleton(false);
         }
     };
-    
+
     const sortImagesByYear = () => {
         // Assuming your image data has a property called 'year'
         const sortedImages = [...Images].sort((a, b) => {

@@ -31,55 +31,55 @@ export default function Index() {
         setSkeleton(true);
 
         try {
-            if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
-                const response = await getAllImagesA_Z();
+            // if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
+            const response = await getAllImagesA_Z();
 
-                if (response.ok) {
-                    const data = await response.json();
-                    const images = data.images;
+            if (response.ok) {
+                const data = await response.json();
+                const images = data.images;
 
-                    localStorage.setItem("alpha_images_data", JSON.stringify(images));
+                // localStorage.setItem("alpha_images_data", JSON.stringify(images));
 
-                    setImages(images);
-                    const newSlides = images.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            title: `${photo.caption}`,
-                            description: photo.dimensions
-                        };
-                    });
+                setImages(images);
+                const newSlides = images.map((photo) => {
+                    const width = 1080 * 4;
+                    const height = 1620 * 4;
+                    return {
+                        src: photo.src,
+                        width,
+                        height,
+                        title: `${photo.caption}`,
+                        description: photo.dimensions
+                    };
+                });
 
-                    setSlides(newSlides);
-                    setSkeleton(false);
-                } else {
-                    console.error("Failed to get files");
-                    setSkeleton(false);
-                }
+                setSlides(newSlides);
+                setSkeleton(false);
             } else {
-                setSkeleton(true);
-                let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
-                if (data) {
-                    data = JSON.parse(data);
-                    setImages(data);
-                    const newSlides = data.map((photo) => {
-                        const width = 1080 * 4;
-                        const height = 1620 * 4;
-                        return {
-                            src: photo.src,
-                            width,
-                            height,
-                            title: `${photo.caption}`,
-                            description: photo.dimensions
-                        };
-                    });
-                    setSlides(newSlides);
-                    setSkeleton(false);
-                }
+                console.error("Failed to get files");
+                setSkeleton(false);
             }
+            // } else {
+            //     setSkeleton(true);
+            //     let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
+            //     if (data) {
+            //         data = JSON.parse(data);
+            //         setImages(data);
+            //         const newSlides = data.map((photo) => {
+            //             const width = 1080 * 4;
+            //             const height = 1620 * 4;
+            //             return {
+            //                 src: photo.src,
+            //                 width,
+            //                 height,
+            //                 title: `${photo.caption}`,
+            //                 description: photo.dimensions
+            //             };
+            //         });
+            //         setSlides(newSlides);
+            //         setSkeleton(false);
+            //     }
+            // }
         } catch (error) {
             console.error("Error fetching files:", error);
             setSkeleton(false);
@@ -164,7 +164,7 @@ export default function Index() {
                         <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
                     </Link>
 
-                    <div className="flex gap-[34.6px] items-center">
+                    <div className="flex gap-[2.225rem] items-center">
                         <BsSortAlphaDown className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" onClick={sortImagesAlphabetically} />
 
                         <Link href={"/indx"}>
