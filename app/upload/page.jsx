@@ -232,7 +232,7 @@ export default function Page() {
         // localStorage.removeItem("images_data");
         // localStorage.removeItem("random_images_data");
         // localStorage.removeItem("alpha_images_data");
-        window.location.reload();
+        // window.location.reload();
       } else {
         console.error("Failed to delete files");
         setLoader(false);
@@ -346,7 +346,7 @@ export default function Page() {
         // localStorage.removeItem("images_data");
         // localStorage.removeItem("random_images_data");
         // localStorage.removeItem("alpha_images_data");
-        window.location.reload();
+        // window.location.reload();
         setLoader(false);
       } else {
         console.error("Failed to update file");
