@@ -84,7 +84,7 @@ export default function Page() {
         // localStorage.removeItem("random_images_data");
         // localStorage.removeItem("alpha_images_data");
         setLoader(false);
-        window.location.reload();
+        // window.location.reload();
       } else {
         console.error("Failed to upload files");
         toast.error("Failed to upload files!", {
@@ -116,6 +116,8 @@ export default function Page() {
       setLoader(false);
     }
 
+    window.location.reload();
+    
     setLoader(false);
     setImages([]);
   };
