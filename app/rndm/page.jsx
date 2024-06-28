@@ -30,7 +30,11 @@ export default function Random() {
 
         try {
             // if (typeof window !== 'undefined' && !localStorage.getItem('random_images_data')) {
+<<<<<<< HEAD
             const response = await getRandomImages();
+=======
+                const response = await getRandomImages();
+>>>>>>> 608c3fd0ce07518e35ff68fd9de6755301dfa604
 
             if (response.ok) {
                 const data = await response.json();
@@ -51,12 +55,21 @@ export default function Random() {
                     };
                 });
 
+<<<<<<< HEAD
                 setSlides(newSlides);
                 setSkeleton(false);
             } else {
                 console.error("Failed to get files");
                 setSkeleton(false);
             }
+=======
+                    setSlides(newSlides);
+                    setSkeleton(false);
+                } else {
+                    console.error("Failed to get files");
+                    setSkeleton(false);
+                }
+>>>>>>> 608c3fd0ce07518e35ff68fd9de6755301dfa604
             // } else {
             //     setSkeleton(true);
             //     let data = typeof window !== 'undefined' && localStorage.getItem('random_images_data');

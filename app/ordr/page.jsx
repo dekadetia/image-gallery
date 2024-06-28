@@ -36,7 +36,7 @@ export default function Order() {
 
         try {
             // if (typeof window !== 'undefined' && !localStorage.getItem('alpha_images_data')) {
-            const response = await getAllImagesA_Z();
+                const response = await getAllImagesA_Z();
 
             if (response.ok) {
                 const data = await response.json();
@@ -57,12 +57,12 @@ export default function Order() {
                     };
                 });
 
-                setSlides(newSlides);
-                setSkeleton(false);
-            } else {
-                console.error("Failed to get files");
-                setSkeleton(false);
-            }
+                    setSlides(newSlides);
+                    setSkeleton(false);
+                } else {
+                    console.error("Failed to get files");
+                    setSkeleton(false);
+                }
             // } else {
             //     setSkeleton(true);
             //     let data = typeof window !== 'undefined' && localStorage.getItem('alpha_images_data');
