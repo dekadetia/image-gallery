@@ -116,7 +116,7 @@ export default function Page() {
       setLoader(false);
     }
 
-    window.location.reload();
+    // window.location.reload();
     
     setLoader(false);
     setImages([]);
