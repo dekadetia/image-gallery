@@ -134,38 +134,38 @@ export default function Page() {
           const data = await response.json();
           const images = data.images;
 
-          localStorage.setItem("images_data", JSON.stringify(images));
-          setFetchedPhotos((prevImages) => [...prevImages, ...images]);
+          // localStorage.setItem("images_data", JSON.stringify(images));
+          setFetchedPhotos(images);
 
           setLoader(false);
 
-          const orderImages = [...images];
-          orderImages.sort((a, b) => {
-            const nameA = a.alphaname.toLowerCase();
-            const nameB = b.alphaname.toLowerCase();
-            return nameA.localeCompare(nameB);
-          });
-          localStorage.setItem(
-            "alpha_images_data",
-            JSON.stringify(orderImages)
-          );
+          // const orderImages = [...images];
+          // orderImages.sort((a, b) => {
+          //   const nameA = a.alphaname.toLowerCase();
+          //   const nameB = b.alphaname.toLowerCase();
+          //   return nameA.localeCompare(nameB);
+          // });
+          // localStorage.setItem(
+          //   "alpha_images_data",
+          //   JSON.stringify(orderImages)
+          // );
 
-          const randomImages = [...images];
-          for (
-            let currentIndex = randomImages.length - 1;
-            currentIndex > 0;
-            currentIndex--
-          ) {
-            const randomIndex = Math.floor(Math.random() * (currentIndex + 1));
-            [randomImages[currentIndex], randomImages[randomIndex]] = [
-              randomImages[randomIndex],
-              randomImages[currentIndex],
-            ];
-          }
-          localStorage.setItem(
-            "random_images_data",
-            JSON.stringify(randomImages)
-          );
+          // const randomImages = [...images];
+          // for (
+          //   let currentIndex = randomImages.length - 1;
+          //   currentIndex > 0;
+          //   currentIndex--
+          // ) {
+          //   const randomIndex = Math.floor(Math.random() * (currentIndex + 1));
+          //   [randomImages[currentIndex], randomImages[randomIndex]] = [
+          //     randomImages[randomIndex],
+          //     randomImages[currentIndex],
+          //   ];
+          // }
+          // localStorage.setItem(
+          //   "random_images_data",
+          //   JSON.stringify(randomImages)
+          // );
         } else {
           console.error("Failed to get files");
           setLoader(false);
