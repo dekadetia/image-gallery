@@ -62,7 +62,7 @@ export default function Page() {
     formData.append("dimensions", dimensions);
 
     try {
-        const response = await fetch("/api/firebase", {
+        const response = await fetch("/api/firebase/create", {
             method: "POST",
             body: formData,
         });
@@ -222,7 +222,7 @@ const deleteImage = async (name) => {
     const form = new FormData();
     form.append("file_name", name);
     try {
-        const response = await fetch("/api/firebase", {
+        const response = await fetch("/api/firebase/delete", {
             method: "DELETE",
             body: form,
         });
@@ -324,7 +324,7 @@ const updateImageData = async () => {
     formData.append("dimensions", dimensions);
 
     try {
-        const response = await fetch("/api/firebase", {
+        const response = await fetch("/api/firebase/update", {
             method: "PUT",
             body: formData,
         });

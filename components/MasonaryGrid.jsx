@@ -9,6 +9,10 @@ import Loader from "./loader/loader";
 import Footer from "./Footer";
 import MoreImageLoader from '../components/MoreImageLoader/index';
 
+import io from 'socket.io-client';
+let socket;
+
+
 export default function MasonaryGrid() {
     const descriptionTextAlign = "start";
     const descriptionMaxLines = 3;
@@ -71,6 +75,33 @@ export default function MasonaryGrid() {
         if (wasCalled.current) return;
         wasCalled.current = true;
         getImages(nextPageToken);
+    }, []);
+
+    useEffect(() => {
+        // Initialize Socket.IO connection when the component mounts
+        socket = io(); // Automatically connects to the server
+
+        socket.on('connect', () => {
+            console.log('Connected to the server with ID:', socket.id);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from the server');
+        });
+
+        socket.on('upload', (data) => {
+            console.log("Recieved from SERVER ::", data);
+
+            setImages((prevImages) => [data, ...prevImages]);
+            setSlides((prevSlides) => [data, ...prevSlides]);
+        })
+
+        // Cleanup: Disconnect when the component is unmounted
+        return () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        };
     }, []);
 
     return (

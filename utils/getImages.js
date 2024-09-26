@@ -1,8 +1,8 @@
-import { GET_ALL_IMAGES_A_Z, GET_RANDOM_IMAGES, GET_ALL_IMAGES } from "../app/api/firebase/route";
+import { GET_ALL_IMAGES_A_Z, GET_RANDOM_IMAGES, GET_ALL_IMAGES } from "../app/api/firebase/fetch/route";
 
 const getImagesAPI = async (pageToken) => {
   const response = await fetch(
-    `/api/firebase${pageToken ? `?pageToken=${pageToken}` : ""}`,
+    `/api/firebase/fetch${pageToken ? `?pageToken=${pageToken}` : ""}`,
     {
       method: "GET",
     }

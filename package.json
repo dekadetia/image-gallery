@@ -4,15 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev_with_socket": "nodemon server.js",
     "build": "next build",
     "start": "next start",
+    "start_with_socket": "NODE_ENV=production node server.js",
     "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
-    "express": "^4.19.2",
+    "axios": "^1.7.7",
+    "express": "^4.21.0",
     "firebase": "^10.11.1",
+    "http": "^0.0.1-security",
     "next": "14.2.3",
+    "nodemon": "^3.1.7",
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.51.4",
@@ -21,7 +26,7 @@
     "react-router-dom": "^6.23.0",
     "react-swipeable": "^7.0.1",
     "react-toastify": "^10.0.5",
-    "socket.io": "^4.7.5",
+    "socket.io": "^4.8.0",
     "socket.io-client": "^4.7.5",
     "yet-another-react-lightbox": "^3.17.5",
     "yup": "^1.4.0"

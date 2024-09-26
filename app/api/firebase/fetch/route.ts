@@ -1,8 +1,9 @@
 import { ref, getDownloadURL, uploadBytesResumable, listAll, deleteObject, getMetadata, getStorage, list, updateMetadata } from 'firebase/storage';
-import { storage } from '../../../firebase/firebase-config';
+import { storage } from '../../../../firebase/firebase-config';
 import { NextResponse } from "next/server";
-// import { io } from 'socket.io-client';
-// const socket = io("https://image-gallery-omega-one.vercel.app");
+import io from 'socket.io-client';
+
+const socket = io("http://localhost:3000");
 
 // To handle a GET request to /api/all-images
 export async function GET_ALL_IMAGES_A_Z(request) {
@@ -92,8 +93,10 @@ export async function GET_ALL_IMAGES(request) {
   const listRef = ref(storage, 'images');
 
   try {
-    const res = await listAll(listRef);
+    //const res = await listAll(listRef);
 
+    const res = await list(listRef, { maxResults: 30 });
+    
     const imagesWithData = await Promise.all(
       res.items.map(async (itemRef) => {
         const downloadURL = await getDownloadURL(itemRef);
@@ -155,6 +158,7 @@ export async function GET(request) {
       })
     );
 
+    socket.emit('images_fetched', 'Sync Process Completed');
     return NextResponse.json({ images: imagesWithData, nextPageToken: res.nextPageToken || null, message: 'successfully fetched' }, { status: 200 });
 
   } catch (error) {
@@ -163,106 +167,7 @@ export async function GET(request) {
   }
 }
 
-// To handle a POST request to /api
-export async function POST(request, response) {
-  const formData = await request.formData();
-  const caption = formData.get('caption');
-  const director = formData.get('director');
-  const photographer = formData.get('photographer');
-  const year = formData.get('year');
-  const alphaname = formData.get('alphaname');
-  const dimensions = formData.get('dimensions');
 
-  formData.forEach(async (data: any, index: any) => {
-    if (index != 'caption') {
-      const file = data;
-      if (!file) {
-        return NextResponse.json({ error: "No files received." }, { status: 400 });
-      }
-      const metadata = {
-        customMetadata: {
-          caption: caption,
-          director: director,
-          photographer: photographer,
-          year: year,
-          alphaname: alphaname,
-          dimensions: dimensions,
-        },
-      };
-      const storageRef = ref(storage, `images/${file.name}`);
-      await uploadBytesResumable(storageRef, file, metadata);
 
-      // const downloadURL = await getDownloadURL(storageRef);
-      // // Emit event
-      // socket.emit('image_uploaded', {
-      //   src: downloadURL,
-      //   name: file.name,
-      //   caption,
-      //   director,
-      //   photographer,
-      //   year,
-      //   alphaname,
-      //   dimensions,
-      // });
-    }
-  });
 
-  return NextResponse.json({ message: 'File uploaded successfully' }, { status: 200 });
-}
 
-// To handle a POST request to /api
-export async function PUT(request, response) {
-  const formData = await request.formData();
-  const filename = formData.get('file');
-  const caption = formData.get('caption');
-  const director = formData.get('director');
-  const photographer = formData.get('photographer');
-  const year = formData.get('year');
-  const alphaname = formData.get('alphaname');
-  const dimensions = formData.get('dimensions');
-
-  const metadata = {
-    customMetadata: {
-      caption: caption,
-      director: director,
-      photographer: photographer,
-      year: year,
-      alphaname: alphaname,
-      dimensions: dimensions,
-    },
-  };
-  const storageRef = ref(storage, `images/${filename}`);
-  await updateMetadata(storageRef, metadata);
-
-  // const downloadURL = await getDownloadURL(storageRef);
-  // // Emit event
-  // socket.emit('image_updated', {
-  //   src: downloadURL,
-  //   name: filename,
-  //   caption,
-  //   director,
-  //   photographer,
-  //   year,
-  //   alphaname,
-  //   dimensions,
-  // });
-
-  return NextResponse.json({ message: 'File uploaded successfully' }, { status: 200 });
-}
-
-// To handle a DELETE request to /api
-export async function DELETE(request) {
-  const formData = await request.formData();
-  const fileName = formData.get('file_name');
-
-  const delRef = ref(storage, `images/${fileName}`);
-
-  try {
-    await deleteObject(delRef);
-    // socket.emit('image_deleted');
-
-    return NextResponse.json({ message: 'succesfully deleted' }, { status: 200 });
-  } catch {
-    return NextResponse.json({ message: 'error deleting file' }, { status: 400 });
-  }
-}
