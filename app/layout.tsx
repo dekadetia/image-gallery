@@ -36,7 +36,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <div className="bacaklfda"></div>
         {children}
         <Script
           strategy="afterInteractive"

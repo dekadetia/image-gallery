@@ -77,7 +77,7 @@ export default function MasonaryGrid() {
         getImages(nextPageToken);
     }, []);
 
-    useEffect(() => {
+    /*useEffect(() => {
         // Initialize Socket.IO connection when the component mounts
         socket = io(); // Automatically connects to the server
 
@@ -102,7 +102,7 @@ export default function MasonaryGrid() {
                 socket.disconnect();
             }
         };
-    }, []);
+    }, []);*/
 
     return (
         <>

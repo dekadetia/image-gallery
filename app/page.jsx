@@ -11,31 +11,30 @@ export default function Page() {
     <>
       {/* Navigation */}
       <RootLayout>
+        <div className="w-full flex justify-center items-center py-9">
+          <div className="w-full grid place-items-center space-y-6">
 
-      <div className="w-full flex justify-center items-center py-9">
-        <div className="w-full grid place-items-center space-y-6">
-
-          <Link href={"/"} >
-            <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
-          </Link>
-
-          <div className="flex gap-8 items-center">
-            <Link href={"/indx"}>
-              <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+            <Link href={"/"} >
+              <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
             </Link>
 
-            <Link href={"/ordr"}>
-              <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
-            </Link>
+            <div className="flex gap-8 items-center">
+              <Link href={"/indx"}>
+                <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+              </Link>
 
-            <Link href={"/rndm"}>
-              <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
-            </Link>
+              <Link href={"/ordr"}>
+                <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
+              </Link>
+
+              <Link href={"/rndm"}>
+                <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/*<MasonaryGrid />*/}
+        <MasonaryGrid />
       </RootLayout>
     </>
   );
