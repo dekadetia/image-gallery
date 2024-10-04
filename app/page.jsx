@@ -1,6 +1,6 @@
 import Link from "next/link";
-
 import MasonaryGrid from "../components/MasonaryGrid";
+import RootLayout from "./layout";
 
 import { IoMdList } from "react-icons/io";
 import { RxCaretSort } from "react-icons/rx";
@@ -10,6 +10,8 @@ export default function Page() {
   return (
     <>
       {/* Navigation */}
+      <RootLayout>
+
       <div className="w-full flex justify-center items-center py-9">
         <div className="w-full grid place-items-center space-y-6">
 
@@ -33,7 +35,8 @@ export default function Page() {
         </div>
       </div>
 
-      <MasonaryGrid />
+      {/*<MasonaryGrid />*/}
+      </RootLayout>
     </>
   );
 }
