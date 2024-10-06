@@ -1,9 +1,6 @@
 import { ref, getDownloadURL, uploadBytesResumable, listAll, deleteObject, getMetadata, getStorage, list, updateMetadata } from 'firebase/storage';
 import { storage } from '../../../../firebase/firebase-config';
 import { NextResponse } from "next/server";
-import io from 'socket.io-client';
-
-const socket = io("http://localhost:3000");
 
 // To handle a GET request to /api/all-images
 export async function GET_ALL_IMAGES_A_Z(request) {
@@ -158,7 +155,6 @@ export async function GET(request) {
       })
     );
 
-    socket.emit('images_fetched', 'Sync Process Completed');
     return NextResponse.json({ images: imagesWithData, nextPageToken: res.nextPageToken || null, message: 'successfully fetched' }, { status: 200 });
 
   } catch (error) {

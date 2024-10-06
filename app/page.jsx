@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link";
 import MasonaryGrid from "../components/MasonaryGrid";
 import RootLayout from "./layout";
@@ -13,9 +15,12 @@ export default function Page() {
       <RootLayout>
         <div className="w-full flex justify-center items-center py-9">
           <div className="w-full grid place-items-center space-y-6">
-
-            <Link href={"/"} >
-              <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
+            <Link href={"/"}>
+              <img
+                src="/assets/logo.svg"
+                className="object-contain w-40"
+                alt=""
+              />
             </Link>
 
             <div className="flex gap-8 items-center">

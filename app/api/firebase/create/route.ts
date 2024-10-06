@@ -1,9 +1,6 @@
 import { ref, getDownloadURL, uploadBytesResumable, listAll, deleteObject, getMetadata, getStorage, list, updateMetadata } from 'firebase/storage';
 import { storage } from '../../../../firebase/firebase-config';
 import { NextResponse } from "next/server";
-import io from 'socket.io-client';
-
-const socket = io("http://localhost:3000");
 
 // To handle a POST request to /api
 export async function POST(request, response) {
@@ -52,7 +49,6 @@ export async function POST(request, response) {
                 dimensions: dimensions,
             }
 
-            socket.emit('upload', file_info);
         }
     });
 
