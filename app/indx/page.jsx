@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
@@ -15,6 +15,7 @@ import { TbClockUp } from "react-icons/tb";
 import { IoMdList } from "react-icons/io";
 import { successToast, errorToast } from "../../utils/toast";
 import RootLayout from "../layout";
+import { AiOutlinePlus } from "react-icons/ai";
 
 export default function Index() {
   const descriptionTextAlign = "end";
@@ -26,15 +27,21 @@ export default function Index() {
   const [slides, setSlides] = useState([]);
   const [skeleton, setSkeleton] = useState(false);
   const [Images, setImages] = useState([]);
+  const wasCalled = useRef(false);
+  const [nextPageToken, setNextPageToken] = useState(null);
 
-  const getImages = async () => {
+  const getImages = async (token) => {
     setSkeleton(true);
 
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
         {
-          method: "GET",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ pageToken: token }),
         }
       );
 
@@ -42,22 +49,11 @@ export default function Index() {
         const data = await response.json();
         const images = data.images;
 
-        setImages(images);
-        const newSlides = images.map((photo) => {
-          const width = 1080 * 4;
-          const height = 1620 * 4;
-          return {
-            src: photo.src,
-            width,
-            height,
-            title: `${photo.caption}`,
-            description: photo.dimensions,
-          };
-        });
+        setNextPageToken(data.nextPageToken);
+        setImages((prevImages) => [...prevImages, ...images]);
 
-        successToast('Detais fetched successfully!');
-        setSlides(newSlides);
         setSkeleton(false);
+        successToast('Detais fetched successfully!');
       } else {
         errorToast('Failed to get files')
         setSkeleton(false);
@@ -139,8 +135,53 @@ export default function Index() {
     );
   };
 
+  const getFile = async (file, index) => {
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-single-image`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+          body: JSON.stringify({ file: file.name })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const newSlides = [
+          {
+            src: data.file.src,
+            width: 1080 * 4,
+            height: 1620 * 4,
+            title: data.file.caption,
+            description: data.file.dimensions,
+          }
+        ];
+
+        setSlides(newSlides);
+        setIndex(index);
+      } else {
+        errorToast('Failed to get file')
+      }
+    } catch (error) {
+      console.error("Error fetching files:", error);
+      errorToast('Failed to get file')
+    }
+  }
+
+  const moreImagesLoadHandler = () => {
+    if (nextPageToken) {
+      getImages(nextPageToken);
+    }
+  };
+
   useEffect(() => {
-    getImages();
+    if (wasCalled.current) return;
+    wasCalled.current = true;
+    getImages(nextPageToken);
   }, []);
 
   return (
@@ -188,7 +229,7 @@ export default function Index() {
               <div
                 className="cursor-pointer text-sm space-x-1"
                 key={i}
-                onClick={() => setIndex(i)}
+                onClick={() => getFile(photo, i)}
               >
                 <h2 className="w-fit inline transition-all duration-200 hover:text-[#def] text-[#9ab]">
                   {photo.caption}
@@ -211,8 +252,19 @@ export default function Index() {
             open={index >= 0}
             close={() => setIndex(-1)}
             captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+            render={{
+              buttonPrev: () => null,
+              buttonNext: () => null,
+            }}
           />
         )}
+      </div>
+
+      <div
+        className="grid place-items-center text-[24px] my-10"
+        onClick={moreImagesLoadHandler}
+      >
+        <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-white hover:bg-gray-500" />
       </div>
 
       {!skeleton && <Footer />}

@@ -9,6 +9,9 @@ import { RxCaretSort } from "react-icons/rx";
 import Loader from "../../components/loader/loader";
 import Footer from "../../components/Footer";
 import RootLayout from "../layout";
+import { AiOutlinePlus } from "react-icons/ai";
+import { IKImage } from 'imagekitio-react';
+
 
 export default function Random() {
   const descriptionTextAlign = "end";
@@ -21,19 +24,28 @@ export default function Random() {
   const [Images, setImages] = useState([]);
   const wasCalled = useRef(false);
 
-  const getImages = async () => {
+  const getImages = async (token) => {
     setSkeleton(true);
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ pageToken: token }),
+        }
       );
 
       if (response.ok) {
         const data = await response.json();
         const images = data.images;
 
-        setImages(images);
+        setNextPageToken(data.nextPageToken);
+        setImages((prevImages) => [...prevImages, ...images]);
+
         const newSlides = images.map((photo) => {
           const width = 1080 * 4;
           const height = 1620 * 4;
@@ -46,7 +58,7 @@ export default function Random() {
           };
         });
 
-        setSlides(newSlides);
+        setSlides((prevSlides) => [...prevSlides, ...newSlides]);
         setSkeleton(false);
       } else {
         console.error("Failed to get files");
@@ -107,10 +119,16 @@ export default function Random() {
     setIndex(-1);
   };
 
+  const moreImagesLoadHandler = () => {
+    if (nextPageToken) {
+      getImages(nextPageToken);
+    }
+  };
+
   useEffect(() => {
     if (wasCalled.current) return;
     wasCalled.current = true;
-    getImages();
+    getImages(nextPageToken);
   }, []);
 
   return (
@@ -146,15 +164,14 @@ export default function Random() {
 
         <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
           {Images.map((photo, i) => (
-            <figure className="relative" key={i}>
-              <img
-                src={photo.src}
-                alt={"images"}
-                className="aspect-[16/9] object-cover cursor-zoom-in"
-                onClick={() => setIndex(i)}
-                loading="lazy"
-              />
-            </figure>
+            <IKImage
+              urlEndpoint={`${process.env.NEXT_PUBLIC_IMAGE_OPTIMIZE_URL}`}
+              src={photo.src}
+              transformation={[{ height: 100, width: 100, quality: 10 }]}
+              lqip={{ active: true, quality: 10 }}
+              onClick={() => setIndex(i)}
+              className="aspect-[16/9] object-cover cursor-zoom-in"
+            />
           ))}
         </div>
 
@@ -171,6 +188,14 @@ export default function Random() {
           />
         )}
       </div>
+
+      <div
+        className="grid place-items-center text-[24px] my-10"
+        onClick={moreImagesLoadHandler}
+      >
+        <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-white hover:bg-gray-500" />
+      </div>
+
       {!skeleton && <Footer />}
     </RootLayout>
   );

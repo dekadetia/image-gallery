@@ -51,7 +51,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <ToastContainer />
 
-        {children}
+        <main suppressHydrationWarning>
+          {children}
+        </main>
 
         <Script
           strategy="afterInteractive"

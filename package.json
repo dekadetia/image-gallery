@@ -16,6 +16,7 @@
     "express": "^4.21.0",
     "firebase": "^10.11.1",
     "http": "^0.0.1-security",
+    "imagekitio-react": "^4.2.0",
     "next": "14.2.3",
     "nodemon": "^3.1.7",
     "react": "^18",
@@ -28,6 +29,7 @@
     "react-toastify": "^10.0.5",
     "socket.io": "^4.8.0",
     "socket.io-client": "^4.7.5",
+    "tinify": "^1.7.1",
     "yet-another-react-lightbox": "^3.17.5",
     "yup": "^1.4.0"
   },
