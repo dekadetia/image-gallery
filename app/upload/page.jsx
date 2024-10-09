@@ -7,6 +7,7 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
+import { AiOutlinePlus } from "react-icons/ai";
 // import socket from "../socket";
 import { errorToast, successToast } from "../../utils/toast";
 
@@ -32,6 +33,7 @@ export default function Page() {
   const [delId, setdelId] = useState();
   const [fetchPhotos, setFetchedPhotos] = useState([]);
   const wasCalled = useRef(false);
+  const [nextPageToken, setNextPageToken] = useState(null);
 
   // initializing socket
   //   useEffect(() => {
@@ -210,19 +212,28 @@ export default function Page() {
     setLoader(false);
   };
 
-  const getImages = async () => {
+  const getImages = async (token) => {
     setLoader(true);
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ pageToken: token }),
+        }
       );
 
       if (response.ok) {
         const data = await response.json();
         const images = data.images;
 
+        setNextPageToken(data.nextPageToken);
         setFetchedPhotos(images);
+
         setLoader(false);
         successToast("Images fetched successfully!");
       } else {
@@ -264,6 +275,12 @@ export default function Page() {
     }
   };
 
+  const moreImagesLoadHandler = () => {
+    if (nextPageToken) {
+      getImages(nextPageToken);
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const userIsLogged = localStorage.getItem("userIsLogged");
@@ -272,7 +289,7 @@ export default function Page() {
 
     if (wasCalled.current) return;
     wasCalled.current = true;
-    getImages();
+    getImages(nextPageToken);
   }, []);
 
   return !userIsLogged ? (
@@ -677,6 +694,13 @@ export default function Page() {
           </div>
         </div>
       )}
+
+      <div
+        className="grid place-items-center text-[24px] my-10"
+        onClick={moreImagesLoadHandler}
+      >
+        <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-white hover:bg-gray-500" />
+      </div>
     </>
   );
 }

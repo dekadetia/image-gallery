@@ -23,6 +23,7 @@ export default function Random() {
   const [skeleton, setSkeleton] = useState(false);
   const [Images, setImages] = useState([]);
   const wasCalled = useRef(false);
+  const [nextPageToken, setNextPageToken] = useState(null);
 
   const getImages = async (token) => {
     setSkeleton(true);
