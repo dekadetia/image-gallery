@@ -1,5 +1,5 @@
 "use client";
-
+import { IKImage } from "imagekitio-react";
 import { useState, useEffect, useRef } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
@@ -10,7 +10,7 @@ import Footer from "./Footer";
 import MoreImageLoader from "../components/MoreImageLoader/index";
 
 import io from "socket.io-client";
-import InfiniteScroll from 'react-infinite-scroll-component';
+import InfiniteScroll from "react-infinite-scroll-component";
 
 import { errorToast, successToast } from "../utils/toast";
 let socket;
@@ -49,8 +49,22 @@ export default function MasonaryGrid() {
           return;
         }
 
-        setNextPageToken(data.nextPageToken);
-        setImages((prevImages) => [...prevImages, ...images]);
+        if (!data.nextPageToken) {
+          console.log("nul found ", data.nextPageToken);
+          setHasMore(false);
+          successToast("All images have been loaded!");
+          setNextPageToken(null);
+          return;
+        } else {
+          setImages((prevImages) => {
+            const existingNames = new Set(prevImages.map((img) => img.name));
+            const newImages = images.filter(
+              (img) => !existingNames.has(img.name)
+            );
+            return [...prevImages, ...newImages];
+          });
+          setNextPageToken(data.nextPageToken);
+        }
 
         const newSlides = images.map((photo) => {
           const width = 1080 * 4;
@@ -120,15 +134,17 @@ export default function MasonaryGrid() {
         >
           <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
             {Images.map((photo, i) => (
-              <figure className="relative" key={i}>
-                <img
+              <div key={i}>
+                <IKImage
+                  alt={photo.name}
+                  urlEndpoint={`${process.env.NEXT_PUBLIC_IMAGE_OPTIMIZE_URL}`}
                   src={photo.src}
-                  alt={"images"}
-                  className="aspect-[16/9] object-cover cursor-zoom-in"
+                  transformation={[{ height: 100, width: 100, quality: 10 }]}
+                  lqip={{ active: true, quality: 10 }}
                   onClick={() => setIndex(i)}
-                  loading="lazy"
+                  className="aspect-[16/9] object-cover cursor-zoom-in"
                 />
-              </figure>
+              </div>
             ))}
           </div>
         </InfiniteScroll>

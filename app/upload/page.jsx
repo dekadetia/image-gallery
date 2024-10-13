@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Loader from "../../components/loader/loader";
+import MoreImageLoader from "../../components/MoreImageLoader/index";
 import "react-toastify/dist/ReactToastify.css";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
+import InfiniteScroll from "react-infinite-scroll-component";
 // import socket from "../socket";
 import { errorToast, successToast } from "../../utils/toast";
 
@@ -26,12 +27,13 @@ export default function Page() {
   const [alphaname, setAlphaname] = useState("");
   const [dimensions, setDimensions] = useState("");
 
-  const [loader, setLoader] = useState(false);
   const [modal, setModal] = useState(false);
   const [editmodal, setEditModal] = useState(false);
   const [delId, setdelId] = useState();
   const [fetchPhotos, setFetchedPhotos] = useState([]);
   const wasCalled = useRef(false);
+  const [nextPageToken, setNextPageToken] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
 
   // initializing socket
   //   useEffect(() => {
@@ -118,17 +120,19 @@ export default function Page() {
   };
 
   const createImage = async (e) => {
-    setLoader(true);
     e.preventDefault();
 
     const formData = new FormData();
     images.forEach((image) => {
       formData.append("file", image);
     });
+
     formData.append("caption", caption);
     formData.append("director", director);
+
     formData.append("photographer", photographer);
     formData.append("year", year);
+
     formData.append("alphaname", alphaname);
     formData.append("dimensions", dimensions);
 
@@ -143,23 +147,18 @@ export default function Page() {
 
       if (response.ok) {
         successToast("Files uploaded successfully!");
-        setLoader(false);
+        window.location.reload();
       } else {
         errorToast("Failed to upload files!");
-        setLoader(false);
       }
     } catch (error) {
       errorToast("Failed to upload files!");
-      setLoader(false);
     }
 
-    setLoader(false);
     setImages([]);
   };
 
   const updateImageData = async () => {
-    setLoader(true);
-
     const formData = new FormData();
     formData.append(`file`, delId);
 
@@ -195,72 +194,84 @@ export default function Page() {
       if (response.ok) {
         setEditModal(false);
         successToast("Files updated successfully!");
-        setLoader(false);
+        window.location.reload();
       } else {
         errorToast("Failed to update file!");
-        setLoader(false);
       }
     } catch (error) {
       setEditModal(false);
       errorToast("Failed to update file!");
-      setLoader(false);
     }
 
     setEditModal(false);
-    setLoader(false);
   };
 
-  const getImages = async () => {
-    setLoader(true);
-
+  const getImages = async (token) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ pageToken: token }),
+        }
       );
 
       if (response.ok) {
         const data = await response.json();
         const images = data.images;
 
-        setFetchedPhotos(images);
-        setLoader(false);
+        if (!data.nextPageToken) {
+          console.log('nul found ',data.nextPageToken )
+          setHasMore(false);
+          successToast("All images have been loaded!");
+          setNextPageToken(null);
+          return;
+        }else{
+          setFetchedPhotos((prevImages) => {
+            const existingNames = new Set(prevImages.map((img) => img.name));
+            const newImages = images.filter(
+              (img) => !existingNames.has(img.name)
+            );
+            return [...prevImages, ...newImages];
+          });
+          setNextPageToken(data.nextPageToken);
+        }
+
         successToast("Images fetched successfully!");
       } else {
         errorToast("Failed to get files");
-        setLoader(false);
       }
     } catch (error) {
       errorToast("Error fetching files");
-      setLoader(false);
     }
   };
 
   const deleteImage = async (name) => {
-    setLoader(true);
     setModal(false);
-
-    const form = new FormData();
-    form.append("file_name", name);
 
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/delete`,
         {
           method: "DELETE",
-          body: form,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ file_name: name }),
         }
       );
 
       if (response.ok) {
         successToast("Files deleted successfully");
-        setLoader(false);
+        window.location.reload();
       } else {
         errorToast("Failed to delete files");
-        setLoader(false);
       }
     } catch (error) {
       errorToast("Error deleting file");
-      setLoader(false);
     }
   };
 
@@ -272,7 +283,7 @@ export default function Page() {
 
     if (wasCalled.current) return;
     wasCalled.current = true;
-    getImages();
+    getImages(nextPageToken);
   }, []);
 
   return !userIsLogged ? (
@@ -316,12 +327,6 @@ export default function Page() {
     </>
   ) : (
     <>
-      {loader && (
-        <div className="h-full flex items-center justify-center bg-black bg-opacity-50 fixed w-full z-10">
-          <Loader />
-        </div>
-      )}
-
       <div className="w-full p-6">
         <form
           onSubmit={createImage}
@@ -414,78 +419,86 @@ export default function Page() {
         <h2 className="w-full text-center text-2xl font-bold mt-6 mb-4">
           Your Uploads
         </h2>
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {fetchPhotos && fetchPhotos.length > 0 ? (
-            fetchPhotos.map((photo, i) => (
-              <div
-                className="relative break-all p-2 border-2 rounded-xl border-white transition-all duration-300 hover:shadow-md hover:shadow-white"
-                key={i}
-              >
-                <p className="text-white font-bold my-2 mt-10">
-                  Name :<span className="font-normal">{photo.name}</span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Caption :<span className="font-normal">{photo.caption}</span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Director :
-                  <span className="font-normal">{photo.director}</span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Photographer :
-                  <span className="font-normal">{photo.photographer}</span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Year :<span className="font-normal">{photo.year}</span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Alphaname :
-                  <span className="font-normal">{photo.alphaname}</span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Image Format :
-                  <span className="font-normal">{photo.contentType}</span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Dimensions :
-                  <span className="font-normal">{photo.dimensions}</span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Size :
-                  <span className="font-normal">
-                    {formatFileSize(photo.size)}
-                  </span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Created at :
-                  <span className="font-normal">
-                    {new Date(photo.created_at).toLocaleString("en-US")}
-                  </span>
-                </p>
-                <p className="text-white font-bold my-2 truncate">
-                  Updated at :
-                  <span className="font-normal">
-                    {new Date(photo.updated_at).toLocaleString("en-US")}
-                  </span>
-                </p>
-                <button
-                  onClick={() => openModal(photo.name)}
-                  className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer"
+
+        <InfiniteScroll
+          dataLength={fetchPhotos.length}
+          next={() => getImages(nextPageToken)}
+          hasMore={hasMore}
+          loader={<MoreImageLoader />}
+          endMessage={<p>You have seen it all!</p>}
+        >
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {fetchPhotos.map((photo, i) => {
+              return (
+                <div
+                  className="relative break-all p-2 border-2 rounded-xl border-white transition-all duration-300 hover:shadow-md hover:shadow-white"
+                  key={i}
                 >
-                  <MdDelete />
-                </button>
-                <button
-                  onClick={() => openEditModal(photo)}
-                  className="absolute top-5 right-14 rounded-full p-1 text-white bg-red-500 cursor-pointer"
-                >
-                  <MdEdit />
-                </button>
-              </div>
-            ))
-          ) : (
-            <div className="h-[60vh] flex items-center justify-center" />
-          )}
-        </div>
+                  <p className="text-white font-bold my-2 mt-10">
+                    Name :<span className="font-normal">{photo.name}</span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Caption :
+                    <span className="font-normal">{photo.caption}</span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Director :
+                    <span className="font-normal">{photo.director}</span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Photographer :
+                    <span className="font-normal">{photo.photographer}</span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Year :<span className="font-normal">{photo.year}</span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Alphaname :
+                    <span className="font-normal">{photo.alphaname}</span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Image Format :
+                    <span className="font-normal">{photo.contentType}</span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Dimensions :
+                    <span className="font-normal">{photo.dimensions}</span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Size :
+                    <span className="font-normal">
+                      {formatFileSize(photo.size)}
+                    </span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Created at :
+                    <span className="font-normal">
+                      {new Date(photo.created_at).toLocaleString("en-US")}
+                    </span>
+                  </p>
+                  <p className="text-white font-bold my-2 truncate">
+                    Updated at :
+                    <span className="font-normal">
+                      {new Date(photo.updated_at).toLocaleString("en-US")}
+                    </span>
+                  </p>
+                  <button
+                    onClick={() => openModal(photo.name)}
+                    className="absolute top-5 right-5 rounded-full p-1 text-white bg-red-500 cursor-pointer"
+                  >
+                    <MdDelete />
+                  </button>
+                  <button
+                    onClick={() => openEditModal(photo)}
+                    className="absolute top-5 right-14 rounded-full p-1 text-white bg-red-500 cursor-pointer"
+                  >
+                    <MdEdit />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </InfiniteScroll>
       </div>
 
       {modal == true && (
