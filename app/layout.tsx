@@ -1,15 +1,14 @@
-"use client"
-
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "yet-another-react-lightbox/styles.css";
 import Script from "next/script";
 import { ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import "react-toastify/dist/ReactToastify.css";
+import { FIREBASE_APP } from "../firebase/firebase-config";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const GA_TRACKING_ID = "G-1Y7WNPDQ0B";
+const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
 
 const metadata = {
   title: "𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒",
@@ -41,15 +40,13 @@ const metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ToastContainer />
+        <main>
+          <ToastContainer />
+        </main>
 
         {children}
 

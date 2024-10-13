@@ -55,16 +55,16 @@ export default function Index() {
           };
         });
 
-        successToast('Detais fetched successfully!');
+        successToast("Detais fetched successfully!");
         setSlides(newSlides);
         setSkeleton(false);
       } else {
-        errorToast('Failed to get files')
+        errorToast("Failed to get files");
         setSkeleton(false);
       }
     } catch (error) {
       console.error("Error fetching files:", error);
-      errorToast('Failed to get files')
+      errorToast("Failed to get files");
       setSkeleton(false);
     }
   };
@@ -145,77 +145,84 @@ export default function Index() {
 
   return (
     <RootLayout>
-      {/* Navigation */}
-      <div className="w-full flex justify-center items-center py-9">
-        <div className="w-full grid place-items-center space-y-[1.65rem]">
-          <Link href={"/"}>
-            <img
-              src="/assets/logo.svg"
-              className="object-contain w-40"
-              alt=""
-            />
-          </Link>
-
-          <div className="flex gap-[2.225rem] items-center">
-            <BsSortAlphaDown
-              className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-              onClick={sortImagesAlphabetically}
-            />
-
-            <Link href={"/indx"}>
-              <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+      <main>
+        {/* Navigation */}
+        <div className="w-full flex justify-center items-center py-9">
+          <div className="w-full grid place-items-center space-y-[1.65rem]">
+            <Link href={"/"}>
+              <img
+                src="/assets/logo.svg"
+                className="object-contain w-40"
+                alt=""
+              />
             </Link>
 
-            {!isSorted ? (
-              <TbClockDown
+            <div className="flex gap-[2.225rem] items-center">
+              <BsSortAlphaDown
                 className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                onClick={sortImagesByYear}
+                onClick={sortImagesAlphabetically}
               />
-            ) : (
-              <TbClockUp
-                className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                onClick={sortImagesOldestFirst}
-              />
-            )}
+
+              <Link href={"/indx"}>
+                <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+              </Link>
+
+              {!isSorted ? (
+                <TbClockDown
+                  className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                  onClick={sortImagesByYear}
+                />
+              ) : (
+                <TbClockUp
+                  className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                  onClick={sortImagesOldestFirst}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="px-4 lg:px-16 pb-10">
-        <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
-          {Images.map((photo, i) => {
-            return (
-              <div
-                className="cursor-pointer text-sm space-x-1"
-                key={i}
-                onClick={() => setIndex(i)}
-              >
-                <h2 className="w-fit inline transition-all duration-200 hover:text-[#def] text-[#9ab]">
-                  {photo.caption}
-                </h2>
-                <p className="inline w-fit text-[#678]">{photo.year}</p>
-              </div>
-            );
-          })}
+        <div className="px-4 lg:px-16 pb-10">
+          <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
+            <InfiniteScroll
+              dataLength={Images.length}
+              next={() => getImages(nextPageToken)}
+              hasMore={hasMore}
+              loader={<Loader />}
+              endMessage={<p>You have seen it all!</p>}
+            >
+              {Images.map((photo, i) => {
+                return (
+                  <div
+                    className="cursor-pointer text-sm space-x-1"
+                    key={i}
+                    onClick={() => setIndex(i)}
+                  >
+                    <h2 className="w-fit inline transition-all duration-200 hover:text-[#def] text-[#9ab]">
+                      {photo.caption}
+                    </h2>
+                    <p className="inline w-fit text-[#678]">{photo.year}</p>
+                  </div>
+                );
+              })}
+            </InfiniteScroll>
+          </div>
+
+          {/* Lightbox Component */}
+          {slides && (
+            <Lightbox
+              plugins={[Captions]}
+              index={index}
+              slides={slides}
+              open={index >= 0}
+              close={() => setIndex(-1)}
+              captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+            />
+          )}
         </div>
 
-        {/* Skeleton */}
-        {skeleton && <Loader />}
-
-        {/* Lightbox Component */}
-        {slides && (
-          <Lightbox
-            plugins={[Captions]}
-            index={index}
-            slides={slides}
-            open={index >= 0}
-            close={() => setIndex(-1)}
-            captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
-          />
-        )}
-      </div>
-
-      {!skeleton && <Footer />}
+        <Footer />
+      </main>
     </RootLayout>
   );
 }

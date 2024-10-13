@@ -10,6 +10,8 @@ import Footer from "./Footer";
 import MoreImageLoader from "../components/MoreImageLoader/index";
 
 import io from "socket.io-client";
+import InfiniteScroll from 'react-infinite-scroll-component';
+
 import { errorToast, successToast } from "../utils/toast";
 let socket;
 
@@ -20,14 +22,12 @@ export default function MasonaryGrid() {
 
   const [index, setIndex] = useState(-1);
   const [slides, setSlides] = useState([]);
-  const [skeleton, setSkeleton] = useState(false);
-  const [moreImageLoader, setLoader] = useState(false);
   const [Images, setImages] = useState([]);
   const [nextPageToken, setNextPageToken] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const wasCalled = useRef(false);
 
   const getImages = async (token) => {
-    token ? setLoader(true) : setSkeleton(true);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-images`,
@@ -43,6 +43,11 @@ export default function MasonaryGrid() {
       if (response.ok) {
         const data = await response.json();
         const images = data.images;
+
+        if (images.length === 0) {
+          setHasMore(false); // Stop fetching if no more data
+          return;
+        }
 
         setNextPageToken(data.nextPageToken);
         setImages((prevImages) => [...prevImages, ...images]);
@@ -60,25 +65,12 @@ export default function MasonaryGrid() {
         });
 
         setSlides((prevSlides) => [...prevSlides, ...newSlides]);
-        setSkeleton(false);
-
-        setLoader(false);
         successToast("Images fetched successfuly!");
       } else {
         errorToast("Failed to get files");
-        setSkeleton(false);
-        setLoader(false);
       }
     } catch (error) {
       errorToast("Error fetching files");
-      setSkeleton(false);
-      setLoader(false);
-    }
-  };
-
-  const moreImagesLoadHandler = () => {
-    if (nextPageToken) {
-      getImages(nextPageToken);
     }
   };
 
@@ -119,35 +111,27 @@ export default function MasonaryGrid() {
     <>
       <div className="px-4 lg:px-16 pb-10">
         {/* Images */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-          {Images.map((photo, i) => (
-            <figure className="relative" key={i}>
-              <img
-                src={photo.src}
-                alt={"images"}
-                className="aspect-[16/9] object-cover cursor-zoom-in"
-                onClick={() => setIndex(i)}
-                loading="lazy"
-              />
-            </figure>
-          ))}
-        </div>
-
-        {/* Skeleton */}
-        {skeleton && <Loader />}
-
-        {/* Loading More Images Icon */}
-        {!skeleton &&
-          (!moreImageLoader ? (
-            <div
-              className="grid place-items-center text-[24px] pt-10 "
-              onClick={moreImagesLoadHandler}
-            >
-              <AiOutlinePlus className="cursor-pointer transition-all duration-300 hover:opacity-80 text-[#CECECF]" />
-            </div>
-          ) : (
-            <MoreImageLoader />
-          ))}
+        <InfiniteScroll
+          dataLength={Images.length}
+          next={() => getImages(nextPageToken)}
+          hasMore={hasMore}
+          loader={<MoreImageLoader />}
+          endMessage={<p>You have seen it all!</p>}
+        >
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+            {Images.map((photo, i) => (
+              <figure className="relative" key={i}>
+                <img
+                  src={photo.src}
+                  alt={"images"}
+                  className="aspect-[16/9] object-cover cursor-zoom-in"
+                  onClick={() => setIndex(i)}
+                  loading="lazy"
+                />
+              </figure>
+            ))}
+          </div>
+        </InfiniteScroll>
 
         {/* Lightbox Component */}
         {slides && (
@@ -162,7 +146,7 @@ export default function MasonaryGrid() {
         )}
       </div>
 
-      {!skeleton && <Footer />}
+      <Footer />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getStorage } from "@firebase/storage";
+import { getAnalytics, logEvent } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -13,4 +14,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const storage = getStorage(app);
+const analytics = getAnalytics(app);
+logEvent(analytics, 'notification_received'); 
+  
+export const FIREBASE_APP = getStorage(app);

@@ -114,7 +114,7 @@ export default function Order() {
 
   const sortImagesAlphabetically = () => {
     const sortedImages = [...Images].sort((a, b) => {
-      const nameA = a.alphaname.toLowerCase(); 
+      const nameA = a.alphaname.toLowerCase();
       const nameB = b.alphaname.toLowerCase();
       return nameA.localeCompare(nameB);
     });
@@ -144,74 +144,76 @@ export default function Order() {
 
   return (
     <RootLayout>
-      {/* Navigation */}
-      <div className="w-full flex justify-center items-center py-9">
-        <div className="w-full grid place-items-center space-y-6">
-          <Link href={"/"}>
-            <img
-              src="/assets/logo.svg"
-              className="object-contain w-40"
-              alt=""
-            />
-          </Link>
-
-          <div className="flex gap-8 items-center">
-            <BsSortAlphaDown
-              className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-              onClick={sortImagesAlphabetically}
-            />
-
-            <Link href={"/ordr"}>
-              <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
+      <main>
+        {/* Navigation */}
+        <div className="w-full flex justify-center items-center py-9">
+          <div className="w-full grid place-items-center space-y-6">
+            <Link href={"/"}>
+              <img
+                src="/assets/logo.svg"
+                className="object-contain w-40"
+                alt=""
+              />
             </Link>
 
-            {!isSorted ? (
-              <TbClockDown
+            <div className="flex gap-8 items-center">
+              <BsSortAlphaDown
                 className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                onClick={sortImagesByYear}
+                onClick={sortImagesAlphabetically}
               />
-            ) : (
-              <TbClockUp
-                className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                onClick={sortImagesOldestFirst}
-              />
-            )}
+
+              <Link href={"/ordr"}>
+                <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
+              </Link>
+
+              {!isSorted ? (
+                <TbClockDown
+                  className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                  onClick={sortImagesByYear}
+                />
+              ) : (
+                <TbClockUp
+                  className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                  onClick={sortImagesOldestFirst}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="px-4 lg:px-16 pb-10">
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-          {Images.map((photo, i) => (
-            <figure className="relative" key={i}>
-              <img
-                src={photo.src}
-                alt={"images"}
-                className="aspect-[16/9] object-cover cursor-zoom-in"
-                onClick={() => setIndex(i)}
-                loading="lazy"
-              />
-            </figure>
-          ))}
+        <div className="px-4 lg:px-16 pb-10">
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+            {Images.map((photo, i) => (
+              <figure className="relative" key={i}>
+                <img
+                  src={photo.src}
+                  alt={"images"}
+                  className="aspect-[16/9] object-cover cursor-zoom-in"
+                  onClick={() => setIndex(i)}
+                  loading="lazy"
+                />
+              </figure>
+            ))}
+          </div>
+
+          {/* Skeleton */}
+          {skeleton && <Loader />}
+
+          {/* Lightbox Component */}
+          {slides && (
+            <Lightbox
+              plugins={[Captions]}
+              index={index}
+              slides={slides}
+              open={index >= 0}
+              close={() => setIndex(-1)}
+              captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+            />
+          )}
         </div>
 
-        {/* Skeleton */}
-        {skeleton && <Loader />}
-
-        {/* Lightbox Component */}
-        {slides && (
-          <Lightbox
-            plugins={[Captions]}
-            index={index}
-            slides={slides}
-            open={index >= 0}
-            close={() => setIndex(-1)}
-            captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
-          />
-        )}
-      </div>
-
-      {!skeleton && <Footer />}
+        {!skeleton && <Footer />}
+      </main>
     </RootLayout>
   );
 }
