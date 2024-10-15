@@ -3,17 +3,13 @@ import { IKImage } from "imagekitio-react";
 import { useState, useEffect, useRef } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Captions from "yet-another-react-lightbox/plugins/captions";
-import { AiOutlinePlus } from "react-icons/ai";
-import { getImagesAPI } from "../utils/getImages";
-import Loader from "./loader/loader";
+
 import Footer from "./Footer";
 import MoreImageLoader from "../components/MoreImageLoader/index";
 
-import io from "socket.io-client";
 import InfiniteScroll from "react-infinite-scroll-component";
 
-import { errorToast, successToast } from "../utils/toast";
-let socket;
+// import { errorToast, successToast } from "../utils/toast";
 
 export default function MasonaryGrid() {
   const descriptionTextAlign = "start";
@@ -52,7 +48,7 @@ export default function MasonaryGrid() {
         if (!data.nextPageToken) {
           console.log("nul found ", data.nextPageToken);
           setHasMore(false);
-          successToast("All images have been loaded!");
+          // successToast("All images have been loaded!");
           setNextPageToken(null);
           return;
         } else {
@@ -79,12 +75,13 @@ export default function MasonaryGrid() {
         });
 
         setSlides((prevSlides) => [...prevSlides, ...newSlides]);
-        successToast("Images fetched successfuly!");
+        // successToast("Images fetched successfuly!");
       } else {
-        errorToast("Failed to get files");
+        // errorToast("Failed to get files");
       }
     } catch (error) {
-      errorToast("Error fetching files");
+      console.log(error);
+      // errorToast("Error fetching files");
     }
   };
 
@@ -92,7 +89,7 @@ export default function MasonaryGrid() {
     if (wasCalled.current) return;
     wasCalled.current = true;
     getImages(nextPageToken);
-  }, []);
+  });
 
   /*useEffect(() => {
         // Initialize Socket.IO connection when the component mounts

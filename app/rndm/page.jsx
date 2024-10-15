@@ -9,7 +9,7 @@ import { RxCaretSort } from "react-icons/rx";
 import Footer from "../../components/Footer";
 import RootLayout from "../layout";
 import { IKImage } from "imagekitio-react";
-import { errorToast, successToast } from "../../utils/toast";
+// import { errorToast, successToast } from "../../utils/toast";
 
 export default function Random() {
   const descriptionTextAlign = "end";
@@ -52,13 +52,13 @@ export default function Random() {
         });
 
         setSlides((prevSlides) => [...prevSlides, ...newSlides]);
-        successToast("Images fetched successfuly!");
+        // successToast("Images fetched successfuly!");
       } else {
         console.error("Failed to get files");
         errorToast("Failed to get files");
       }
     } catch (error) {
-      errorToast("Failed to get files");
+      // errorToast("Failed to get files");
     }
   };
 
@@ -116,7 +116,7 @@ export default function Random() {
     if (wasCalled.current) return;
     wasCalled.current = true;
     getImages();
-  }, []);
+  });
 
   return (
     <RootLayout>
@@ -152,6 +152,7 @@ export default function Random() {
         <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
           {Images.map((photo, i) => (
             <IKImage
+              key={i}
               urlEndpoint={`${process.env.NEXT_PUBLIC_IMAGE_OPTIMIZE_URL}`}
               src={photo.src}
               transformation={[{ height: 100, width: 100, quality: 10 }]}

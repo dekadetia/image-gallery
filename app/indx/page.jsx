@@ -14,7 +14,7 @@ import { BsSortAlphaDown } from "react-icons/bs";
 import { TbClockDown } from "react-icons/tb";
 import { TbClockUp } from "react-icons/tb";
 import { IoMdList } from "react-icons/io";
-import { successToast, errorToast } from "../../utils/toast";
+// import { successToast, errorToast } from "../../utils/toast";
 import RootLayout from "../layout";
 
 
@@ -52,7 +52,7 @@ export default function Index() {
         if (!data.nextPageToken) {
           console.log('nul found ',data.nextPageToken )
           setHasMore(false);
-          successToast("All images have been loaded!");
+          // successToast("All images have been loaded!");
           setNextPageToken(null);
           return;
         }else{
@@ -66,7 +66,7 @@ export default function Index() {
           setNextPageToken(data.nextPageToken);
         }
 
-        successToast("Detais fetched successfully!");
+        // successToast("Detais fetched successfully!");
         if (images.length === 0) {
           setHasMore(false);
           return;
@@ -76,7 +76,7 @@ export default function Index() {
       }
     } catch (error) {
       console.error("Error fetching files:", error);
-      errorToast("Failed to get files");
+      // errorToast("Failed to get files");
     }
   };
 
@@ -153,7 +153,7 @@ export default function Index() {
     if (wasCalled.current) return;
     wasCalled.current = true;
     getImages(nextPageToken);
-  }, []);
+  });
 
   return (
     <RootLayout>
