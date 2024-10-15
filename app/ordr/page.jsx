@@ -150,7 +150,7 @@ export default function Order() {
     wasCalled.current = true;
     getImages(nextPageToken);
     setSorted(true);
-  }, []);
+  });
 
   return (
     <RootLayout>
@@ -201,6 +201,7 @@ export default function Order() {
           <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
             {Images.map((photo, i) => (
               <IKImage
+                key={i}
                 urlEndpoint={`${process.env.NEXT_PUBLIC_IMAGE_OPTIMIZE_URL}`}
                 src={photo.src}
                 transformation={[{ height: 100, width: 100, quality: 10 }]}

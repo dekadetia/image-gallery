@@ -284,7 +284,7 @@ export default function Page() {
     if (wasCalled.current) return;
     wasCalled.current = true;
     getImages(nextPageToken);
-  }, []);
+  });
 
   return !userIsLogged ? (
     <>

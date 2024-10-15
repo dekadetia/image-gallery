@@ -12,7 +12,7 @@ import { BsSortAlphaDown } from "react-icons/bs";
 import { TbClockDown } from "react-icons/tb";
 import { TbClockUp } from "react-icons/tb";
 import { IoMdList } from "react-icons/io";
-import { successToast, errorToast } from "../../utils/toast";
+// import { successToast, errorToast } from "../../utils/toast";
 import RootLayout from "../layout";
 import MoreImageLoader from "../../components/MoreImageLoader";
 
@@ -49,7 +49,7 @@ export default function Index() {
       }
     } catch (error) {
       console.error("Error fetching files:", error);
-      errorToast("Failed to get files");
+      // errorToast("Failed to get files");
     }
 
     setLoader(false);
