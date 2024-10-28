@@ -127,12 +127,18 @@ export default function MasonaryGrid() {
           next={() => getImages(nextPageToken)}
           hasMore={hasMore}
           loader={<MoreImageLoader />}
-          endMessage={<p>You have seen it all!</p>}
+          endMessage={<p className="text-center py-4 font-bold">You have seen it all!</p>}
         >
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+          <div className="w-full flex flex-wrap gap-[30px] items-center justify-center">
             {Images.map((photo, i) => (
               <div key={i}>
-                <IKImage
+                <img 
+                  alt={photo.name}
+                  src={photo.src}
+                  onClick={() => setIndex(i)}
+                  className="w-[150px] h-[150px] object-cover cursor-zoom-in"
+                />
+                {/* <IKImage
                   alt={photo.name}
                   urlEndpoint={`${process.env.NEXT_PUBLIC_IMAGE_OPTIMIZE_URL}`}
                   src={photo.src}
@@ -140,7 +146,7 @@ export default function MasonaryGrid() {
                   lqip={{ active: true, quality: 10 }}
                   onClick={() => setIndex(i)}
                   className="aspect-[16/9] object-cover cursor-zoom-in"
-                />
+                /> */}
               </div>
             ))}
           </div>

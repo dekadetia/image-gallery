@@ -149,7 +149,20 @@ export default function Random() {
           </div>
         </div>
 
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+        <div className="w-full flex flex-wrap gap-[30px] items-center justify-center">
+          {Images.map((photo, i) => (
+            <div key={i}>
+              <img
+                alt={photo.name}
+                src={photo.src}
+                onClick={() => setIndex(i)}
+                className="w-[150px] h-[150px] object-cover cursor-zoom-in"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
           {Images.map((photo, i) => (
             <IKImage
               key={i}
@@ -161,7 +174,7 @@ export default function Random() {
               className="aspect-[16/9] object-cover cursor-zoom-in"
             />
           ))}
-        </div>
+        </div> */}
 
         {slides && (
           <Lightbox
