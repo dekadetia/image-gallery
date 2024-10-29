@@ -32,7 +32,7 @@ export default function MasonaryGrid() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ pageToken: token }),
+          body: JSON.stringify({ lastVisibleDocId: token }),
         }
       );
 
@@ -134,19 +134,10 @@ export default function MasonaryGrid() {
               <div key={i}>
                 <img 
                   alt={photo.name}
-                  src={photo.src}
+                  src={photo.thumbnail}
                   onClick={() => setIndex(i)}
                   className="w-[150px] h-[150px] object-cover cursor-zoom-in"
                 />
-                {/* <IKImage
-                  alt={photo.name}
-                  urlEndpoint={`${process.env.NEXT_PUBLIC_IMAGE_OPTIMIZE_URL}`}
-                  src={photo.src}
-                  transformation={[{ height: 100, width: 100, quality: 10 }]}
-                  lqip={{ active: true, quality: 10 }}
-                  onClick={() => setIndex(i)}
-                  className="aspect-[16/9] object-cover cursor-zoom-in"
-                /> */}
               </div>
             ))}
           </div>
