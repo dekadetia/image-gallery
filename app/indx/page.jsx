@@ -15,6 +15,7 @@ import { IoMdList } from "react-icons/io";
 // import { successToast, errorToast } from "../../utils/toast";
 import RootLayout from "../layout";
 import MoreImageLoader from "../../components/MoreImageLoader";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 export default function Index() {
   const descriptionTextAlign = "end";
@@ -27,14 +28,27 @@ export default function Index() {
   const [Images, setImages] = useState([]);
   const [loader, setLoader] = useState(false);
   const wasCalled = useRef(false);
+  const [nextPageToken, setNextPageToken] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  const getImages = async () => {
+  const getImages = async (token) => {
     setLoader(true);
     try {
+      // const response = await fetch(
+      //   `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
+      //   {
+      //     method: "GET",
+      //   }
+      // );
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
         {
-          method: "GET",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ lastVisibleDocId: token }),
         }
       );
 
@@ -42,7 +56,27 @@ export default function Index() {
         const data = await response.json();
         const images = data.images;
 
+        if (images.length === 0) {
+          setHasMore(false); // Stop fetching if no more data
+          return;
+        }
+
+        setNextPageToken(data.nextPageToken);
         setImages(images);
+
+        const newSlides = images.map((photo) => {
+          const width = 1080 * 4;
+          const height = 1620 * 4;
+          return {
+            src: photo.src,
+            width,
+            height,
+            title: `${photo.caption}`,
+            description: photo.dimensions,
+          };
+        });
+
+        setSlides((prevSlides) => [...prevSlides, ...newSlides]);
         successToast("Detais fetched successfully!");
       } else {
         errorToast("Failed to get files");
@@ -127,7 +161,7 @@ export default function Index() {
   useEffect(() => {
     if (wasCalled.current) return;
     wasCalled.current = true;
-    getImages();
+    getImages(nextPageToken);
   }, []);
 
   return (
@@ -170,22 +204,30 @@ export default function Index() {
 
       <div className="px-4 lg:px-16 pb-10">
         {loader && <MoreImageLoader />}
-        <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
-          {Images.map((photo, i) => {
-            return (
-              <div
-                className="cursor-pointer text-sm space-x-1"
-                key={i}
-                onClick={() => getFile(photo, i)}
-              >
-                <h2 className="w-fit inline transition-all duration-200 hover:text-[#def] text-[#9ab]">
-                  {photo.caption}
-                </h2>
-                <p className="inline w-fit text-[#678]">{photo.year}</p>
-              </div>
-            );
-          })}
-        </div>
+        <InfiniteScroll
+          dataLength={Images.length}
+          next={() => getImages(nextPageToken)}
+          hasMore={hasMore}
+          loader={<MoreImageLoader />}
+          endMessage={<p>You have seen it all!</p>}
+        >
+          <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
+            {Images.map((photo, i) => {
+              return (
+                <div
+                  className="cursor-pointer text-sm space-x-1"
+                  key={i}
+                  onClick={() => setIndex(i)}
+                >
+                  <h2 className="w-fit inline transition-all duration-200 hover:text-[#def] text-[#9ab]">
+                    {photo.caption}
+                  </h2>
+                  <p className="inline w-fit text-[#678]">{photo.year}</p>
+                </div>
+              );
+            })}
+          </div>
+        </InfiniteScroll>
 
         {/* Lightbox Component */}
         {slides && (
