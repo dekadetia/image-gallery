@@ -16,6 +16,7 @@ import { IoMdList } from "react-icons/io";
 import RootLayout from "../layout";
 import MoreImageLoader from "../../components/MoreImageLoader";
 import InfiniteScroll from "react-infinite-scroll-component";
+import Loader from "../../components/loader/loader";
 
 export default function Index() {
   const descriptionTextAlign = "end";
@@ -33,7 +34,6 @@ export default function Index() {
 
   const getImages = async (token) => {
     try {
-      __loader(true);
       // const response = await fetch(
       //   `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
       //   {
@@ -81,13 +81,12 @@ export default function Index() {
       } else {
         errorToast("Failed to get files");
       }
-
-      __loader(false);
     } catch (error) {
       console.error("Error fetching files:", error);
-      __loader(false);
       // errorToast("Failed to get files");
     }
+
+    __loader(false);
   };
 
   const sortImagesByYear = async () => {
@@ -227,6 +226,8 @@ export default function Index() {
   useEffect(() => {
     if (wasCalled.current) return;
     wasCalled.current = true;
+
+    __loader(true);
     getImages(nextPageToken);
   }, []);
 
@@ -294,7 +295,7 @@ export default function Index() {
               })}
             </div>
           ) : (
-            <MoreImageLoader />
+            <Loader />
           )}
         {/* </InfiniteScroll> */}
 

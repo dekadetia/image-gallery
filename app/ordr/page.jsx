@@ -13,6 +13,7 @@ import MoreImageLoader from "../../components/MoreImageLoader/index";
 import { TbClockUp } from "react-icons/tb";
 import RootLayout from "../layout";
 import InfiniteScroll from "react-infinite-scroll-component";
+import Loader from "../../components/loader/loader";
 
 export default function Order() {
   const descriptionTextAlign = "end";
@@ -71,6 +72,7 @@ export default function Order() {
     } catch (error) {
       console.error("Error fetching files:", error);
     }
+    __loader(false)
   };
 
   const sortImagesByYear = async () => {
@@ -183,9 +185,11 @@ export default function Order() {
   useEffect(() => {
     if (wasCalled.current) return;
     wasCalled.current = true;
+    
+    __loader(true);
     getImages(nextPageToken);
+
     setSorted(true);
-    __loader(false);
   });
 
   return (
@@ -262,7 +266,7 @@ export default function Order() {
           )}
         </div>
       ) : (
-        <MoreImageLoader />
+        <Loader />
       )}
 
       <Footer />

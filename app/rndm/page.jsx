@@ -10,6 +10,7 @@ import Footer from "../../components/Footer";
 import RootLayout from "../layout";
 import { IKImage } from "imagekitio-react";
 import MoreImageLoader from "../../components/MoreImageLoader";
+import Loader from "../../components/loader/loader";
 // import { errorToast, successToast } from "../../utils/toast";
 
 export default function Random() {
@@ -167,7 +168,7 @@ export default function Random() {
           </div>
         </div>
 
-        {loader && <MoreImageLoader />}
+        {loader && <Loader />}
 
         <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
           {Images.map((photo, i) => (
@@ -184,8 +185,7 @@ export default function Random() {
                 src={photo.src}
                 onClick={() => setIndex(i)}
                 // onLoad={() => handleImageLoad(i)}
-                className={`aspect-[16/9] cursor-zoom-in transition-opacity duration-500 
-                  `}
+                className="aspect-[16/9] cursor-zoom-in object-cover"
                 // ${loaded[i] ? "opacity-100" : "opacity-0"}
                 loading="lazy"
               />
@@ -193,19 +193,6 @@ export default function Random() {
           ))}
         </div>
 
-        {/* <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-          {Images.map((photo, i) => (
-            <IKImage
-              key={i}
-              urlEndpoint={`${process.env.NEXT_PUBLIC_IMAGE_OPTIMIZE_URL}`}
-              src={photo.src}
-              transformation={[{ height: 100, width: 100, quality: 10 }]}
-              lqip={{ active: true, quality: 10 }}
-              onClick={() => setIndex(i)}
-              className="aspect-[16/9] object-cover cursor-zoom-in"
-            />
-          ))}
-        </div> */}
         {slides && (
           <Lightbox
             plugins={[Captions]}

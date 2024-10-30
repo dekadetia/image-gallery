@@ -11,6 +11,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 // import socket from "../socket";
 import { errorToast, successToast } from "../../utils/toast";
 import Link from "next/link";
+import Loader from "../../components/loader/loader";
 
 const schema = Yup.object().shape({
   username: Yup.string().required("Username is required"),
@@ -557,6 +558,7 @@ export default function Page() {
             <table className="w-full border-collapse border-2 border-gray-700 text-white table-auto divide-x divide-y divide-white">
               <thead>
                 <tr className="border-b-2 border-gray-700 bg-gray-700 text-left">
+                  <th className="p-4">Actions</th>
                   <th className="p-4">Name</th>
                   <th className="p-4">Caption</th>
                   <th className="p-4">Director</th>
@@ -568,7 +570,6 @@ export default function Page() {
                   <th className="p-4">Size</th>
                   <th className="p-4">Created At</th>
                   <th className="p-4">Updated At</th>
-                  <th className="p-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -644,6 +645,22 @@ export default function Page() {
                       key={i}
                       className="border-b-2 border-gray-700 transition-all hover:bg-gray-800 even:bg-gray-800"
                     >
+                      <td className="py-2 px-4">
+                        <div className="h-full flex gap-4 justify-center">
+                          <button
+                            onClick={() => openModal(photo.name)}
+                            className="rounded-full p-1 bg-red-500 text-white"
+                          >
+                            <MdDelete className="text-xl" />
+                          </button>
+                          <button
+                            onClick={() => openEditModal(photo)}
+                            className="rounded-full p-1 bg-red-500 text-white"
+                          >
+                            <MdEdit className="text-xl" />
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-2 px-4 break-words">{photo.name}</td>
                       <td className="py-2 px-4 truncate">{photo.caption}</td>
                       <td className="py-2 px-4 truncate">{photo.director}</td>
@@ -665,22 +682,6 @@ export default function Page() {
                       <td className="py-2 px-4">
                         {new Date(photo.updated_at).toLocaleString("en-US")}
                       </td>
-                      <td className="py-2 px-4">
-                        <div className="h-full flex gap-4 justify-center">
-                          <button
-                            onClick={() => openModal(photo.name)}
-                            className="rounded-full p-1 bg-red-500 text-white"
-                          >
-                            <MdDelete className="text-xl" />
-                          </button>
-                          <button
-                            onClick={() => openEditModal(photo)}
-                            className="rounded-full p-1 bg-red-500 text-white"
-                          >
-                            <MdEdit className="text-xl" />
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   );
                 })}
@@ -688,7 +689,7 @@ export default function Page() {
             </table>
 
             {
-              loader && <MoreImageLoader/>
+              loader && <Loader/>
             }
           </div>
         {/* </InfiniteScroll> */}
