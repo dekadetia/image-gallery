@@ -129,14 +129,14 @@ export default function MasonaryGrid() {
           loader={<MoreImageLoader />}
           endMessage={<p className="text-center py-4 font-bold">You have seen it all!</p>}
         >
-          <div className="w-full flex flex-wrap gap-[30px] items-center justify-center">
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
             {Images.map((photo, i) => (
               <div key={i}>
                 <img 
                   alt={photo.name}
-                  src={photo.thumbnail}
+                  src={photo.src}
                   onClick={() => setIndex(i)}
-                  className="w-[150px] h-[150px] object-cover cursor-zoom-in"
+                  className="aspect-[16/9] object-cover cursor-zoom-in"
                 />
               </div>
             ))}

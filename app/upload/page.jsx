@@ -37,6 +37,7 @@ export default function Page() {
   const [hasMore, setHasMore] = useState(true);
 
   const [toggleForm, __toggleForm] = useState(false);
+  const [loader, __loader] = useState(false);
   const [backupArray, __backupArray] = useState([]);
 
   // initializing socket
@@ -211,6 +212,7 @@ export default function Page() {
   };
 
   const getImages = async (token) => {
+    __loader(true);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`,
@@ -249,8 +251,11 @@ export default function Page() {
       } else {
         errorToast("Failed to get files");
       }
+
+      __loader(false);
     } catch (error) {
       errorToast("Error fetching files");
+      __loader(false);
     }
   };
 
@@ -531,7 +536,7 @@ export default function Page() {
           </>
         )}
 
-        <InfiniteScroll
+        {/* <InfiniteScroll
           className=" [&::-webkit-scrollbar]:w-2
           [&::-webkit-scrollbar-track]:bg-transparent
           [&::-webkit-scrollbar-thumb]:bg-gray-700
@@ -541,12 +546,12 @@ export default function Page() {
           next={() => getImages(nextPageToken)}
           hasMore={hasMore}
           loader={<MoreImageLoader />}
-          // endMessage={
-          //   <p className="text-center bg-gray-700 text-white font-bold py-2 my-4">
-          //     You have seen it all!
-          //   </p>
-          // }
-        >
+          endMessage={
+            <p className="text-center bg-gray-700 text-white font-bold py-2 my-4">
+              You have seen it all!
+            </p>
+          }
+        > */}
           {/* <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"> */}
           <div className="w-full">
             <table className="w-full border-collapse border-2 border-gray-700 text-white table-auto divide-x divide-y divide-white">
@@ -681,8 +686,12 @@ export default function Page() {
                 })}
               </tbody>
             </table>
+
+            {
+              loader && <MoreImageLoader/>
+            }
           </div>
-        </InfiniteScroll>
+        {/* </InfiniteScroll> */}
       </div>
       {modal == true && (
         <div className="overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full h-screen  flex bg-black bg-opacity-50">

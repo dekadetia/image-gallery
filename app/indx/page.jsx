@@ -26,13 +26,12 @@ export default function Index() {
   const [index, setIndex] = useState(-1);
   const [slides, setSlides] = useState([]);
   const [Images, setImages] = useState([]);
-  const [loader, setLoader] = useState(false);
+  const [loader, __loader] = useState(false);
   const wasCalled = useRef(false);
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
 
   const getImages = async (token) => {
-    setLoader(true);
     try {
       // const response = await fetch(
       //   `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
@@ -85,39 +84,102 @@ export default function Index() {
       console.error("Error fetching files:", error);
       // errorToast("Failed to get files");
     }
-
-    setLoader(false);
   };
 
-  const sortImagesByYear = () => {
-    const sortedImages = [...Images].sort((a, b) => {
-      const yearA = parseInt(a.year);
-      const yearB = parseInt(b.year);
-      return yearB - yearA; // descending order Sort (newest first)
-    });
-    setSorted(true);
-    setImages(sortedImages);
+  const sortImagesByYear = async () => {
+    try {
+      __loader(true); // Show loader
+
+      // Wrap sorting in a Promise to simulate async behavior
+      const sortedImages = await new Promise((resolve) => {
+        const sorted = [...Images].sort((a, b) => {
+          const yearA = parseInt(a.year);
+          const yearB = parseInt(b.year);
+          return yearB - yearA; // Sort descending by year
+        });
+        resolve(sorted);
+      });
+
+      setSorted(true); // Mark as sorted
+      setImages(sortedImages); // Update state with sorted images
+
+      // Update slides with sorted images
+      setSlides(
+        sortedImages.map((photo) => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+        }))
+      );
+    } catch (error) {
+      console.error("Error sorting images:", error);
+    } finally {
+      setTimeout(() => {
+        __loader(false);
+      }, 1500);
+    }
   };
 
-  const sortImagesOldestFirst = () => {
-    const sortedImages = [...Images].sort((a, b) => {
-      const yearA = parseInt(a.year);
-      const yearB = parseInt(b.year);
-      return yearA - yearB; // ascending order Sort (oldest first)
-    });
+  const sortImagesOldestFirst = async () => {
+    try {
+      __loader(true); // Show loader
 
-    setSorted(false);
-    setImages(sortedImages);
+      // Wrap sorting in a Promise to simulate async behavior
+      const sortedImages = await new Promise((resolve) => {
+        const sorted = [...Images].sort((a, b) => {
+          const yearA = parseInt(a.year);
+          const yearB = parseInt(b.year);
+          return yearA - yearB; // Sort in ascending order by year
+        });
+        resolve(sorted);
+      });
+
+      setSorted(false); // Mark as unsorted or sorted in oldest-first order
+      setImages(sortedImages); // Update state with sorted images
+    } catch (error) {
+      console.error("Error sorting images:", error); // Handle errors gracefully
+    } finally {
+      setTimeout(() => {
+        __loader(false);
+      }, 1500);
+    }
   };
 
-  const sortImagesAlphabetically = () => {
-    const sortedImages = [...Images].sort((a, b) => {
-      const nameA = a.alphaname.toLowerCase(); // Convert to lowercase for case-insensitive sorting
-      const nameB = b.alphaname.toLowerCase();
-      return nameA.localeCompare(nameB); // Sort alphabetically (A to Z)
-    });
+  const sortImagesAlphabetically = async () => {
+    try {
+      __loader(true); // Show loader
 
-    setImages(sortedImages);
+      // Wrap sorting in a Promise to simulate async behavior
+      const sortedImages = await new Promise((resolve) => {
+        const sorted = [...Images].sort((a, b) => {
+          const nameA = a.alphaname.toLowerCase();
+          const nameB = b.alphaname.toLowerCase();
+          return nameA.localeCompare(nameB); // Sort alphabetically
+        });
+        resolve(sorted);
+      });
+
+      setImages(sortedImages); // Update state with sorted images
+
+      // Update slides with sorted images
+      setSlides(
+        sortedImages.map((photo) => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+        }))
+      );
+    } catch (error) {
+      console.error("Error sorting images:", error); // Handle errors gracefully
+    } finally {
+      setTimeout(() => {
+        __loader(false);
+      }, 1500);
+    }
   };
 
   const getFile = async (file, index) => {
@@ -203,31 +265,34 @@ export default function Index() {
       </div>
 
       <div className="px-4 lg:px-16 pb-10">
-        {loader && <MoreImageLoader />}
-        <InfiniteScroll
+        {/* <InfiniteScroll
           dataLength={Images.length}
           next={() => getImages(nextPageToken)}
           hasMore={hasMore}
           loader={<MoreImageLoader />}
           endMessage={<p>You have seen it all!</p>}
-        >
-          <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
-            {Images.map((photo, i) => {
-              return (
-                <div
-                  className="cursor-pointer text-sm space-x-1"
-                  key={i}
-                  onClick={() => setIndex(i)}
-                >
-                  <h2 className="w-fit inline transition-all duration-200 hover:text-[#def] text-[#9ab]">
-                    {photo.caption}
-                  </h2>
-                  <p className="inline w-fit text-[#678]">{photo.year}</p>
-                </div>
-              );
-            })}
-          </div>
-        </InfiniteScroll>
+        > */}
+          {!loader ? (
+            <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
+              {Images.map((photo, i) => {
+                return (
+                  <div
+                    className="cursor-pointer text-sm space-x-1"
+                    key={i}
+                    onClick={() => setIndex(i)}
+                  >
+                    <h2 className="w-fit inline transition-all duration-200 hover:text-[#def] text-[#9ab]">
+                      {photo.caption}
+                    </h2>
+                    <p className="inline w-fit text-[#678]">{photo.year}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <MoreImageLoader />
+          )}
+        {/* </InfiniteScroll> */}
 
         {/* Lightbox Component */}
         {slides && (

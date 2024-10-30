@@ -9,6 +9,7 @@ import { RxCaretSort } from "react-icons/rx";
 import Footer from "../../components/Footer";
 import RootLayout from "../layout";
 import { IKImage } from "imagekitio-react";
+import MoreImageLoader from "../../components/MoreImageLoader";
 // import { errorToast, successToast } from "../../utils/toast";
 
 export default function Random() {
@@ -19,9 +20,21 @@ export default function Random() {
   const [index, setIndex] = useState(-1);
   const [slides, setSlides] = useState([]);
   const [Images, setImages] = useState([]);
+  const [loader, __loader] = useState(false);
+  const [loaded, setLoaded] = useState([]); // Track load state of each image
   const wasCalled = useRef(false);
 
+  // const handleImageLoad = (index) => {
+  //   const newLoaded = [...loaded];
+  //   newLoaded[index] = true; // Mark image as loaded
+  //   console.log(newLoaded);
+
+  //   setLoaded(newLoaded);
+  // };
+
   const getImages = async () => {
+    __loader((t) => true);
+    setImages((i) => []);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
@@ -37,7 +50,8 @@ export default function Random() {
         const data = await response.json();
         const images = data.images;
 
-        setImages((prevImages) => [...prevImages, ...images]);
+        setImages((prevImages) => [...images]);
+        setLoaded(Array(images.length).fill(false));
 
         const newSlides = images.map((photo) => {
           const width = 1080 * 4;
@@ -51,14 +65,17 @@ export default function Random() {
           };
         });
 
-        setSlides((prevSlides) => [...prevSlides, ...newSlides]);
+        setSlides((prevSlides) => [...newSlides]);
+        __loader((t) => false);
         // successToast("Images fetched successfuly!");
       } else {
         console.error("Failed to get files");
         errorToast("Failed to get files");
+        __loader((t) => false);
       }
     } catch (error) {
       // errorToast("Failed to get files");
+      __loader((t) => false);
     }
   };
 
@@ -142,21 +159,35 @@ export default function Random() {
               </Link>
 
               <IoMdShuffle
-                onClick={randomizeSequence}
+                // onClick={randomizeSequence}
+                onClick={getImages}
                 className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
               />
             </div>
           </div>
         </div>
 
-        <div className="w-full flex flex-wrap gap-[30px] items-center justify-center">
+        {loader && <MoreImageLoader />}
+
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
           {Images.map((photo, i) => (
-            <div key={i}>
+            <div key={i} className="relative">
+              {/* {!loaded[i] && (
+                <span className="text-white font-bold h-[330px] bg-gray-700 animate-pulse flex items-center justify-center">
+                  Loading...
+                </span>
+              )} */}
+
               <img
                 alt={photo.name}
+                data-src={photo.src}
                 src={photo.src}
                 onClick={() => setIndex(i)}
-                className="w-[150px] h-[150px] object-cover cursor-zoom-in"
+                // onLoad={() => handleImageLoad(i)}
+                className={`aspect-[16/9] cursor-zoom-in transition-opacity duration-500 
+                  `}
+                // ${loaded[i] ? "opacity-100" : "opacity-0"}
+                loading="lazy"
               />
             </div>
           ))}
@@ -175,7 +206,6 @@ export default function Random() {
             />
           ))}
         </div> */}
-
         {slides && (
           <Lightbox
             plugins={[Captions]}

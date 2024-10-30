@@ -26,6 +26,7 @@ export default function Order() {
   const wasCalled = useRef(false);
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
+  const [loader, __loader] = useState(true);
 
   const getImages = async (token) => {
     try {
@@ -72,77 +73,111 @@ export default function Order() {
     }
   };
 
-  const sortImagesByYear = () => {
-    const sortedImages = [...Images].sort((a, b) => {
-      const yearA = parseInt(a.year);
-      const yearB = parseInt(b.year);
-      return yearB - yearA;
-    });
+  const sortImagesByYear = async () => {
+    try {
+      __loader(true); // Show loader
 
-    setSorted(true);
-    setImages(sortedImages);
+      // Wrap sorting in a Promise to simulate async behavior
+      const sortedImages = await new Promise((resolve) => {
+        const sorted = [...Images].sort((a, b) => {
+          const yearA = parseInt(a.year);
+          const yearB = parseInt(b.year);
+          return yearB - yearA; // Sort descending by year
+        });
+        resolve(sorted);
+      });
 
-    setSlides(
-      sortedImages.map((photo) => {
-        const width = 1080 * 4;
-        const height = 1620 * 4;
-        return {
+      setSorted(true); // Mark as sorted
+      setImages(sortedImages); // Update state with sorted images
+
+      // Update slides with sorted images
+      setSlides(
+        sortedImages.map((photo) => ({
           src: photo.src,
-          width,
-          height,
-          title: `${photo.caption}`,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
           description: photo.dimensions,
-        };
-      })
-    );
+        }))
+      );
+    } catch (error) {
+      console.error("Error sorting images:", error);
+    } finally {
+      setTimeout(() => {
+        __loader(false);
+      }, 3000);
+    }
   };
 
-  const sortImagesOldestFirst = () => {
-    const sortedImages = [...Images].sort((a, b) => {
-      const yearA = parseInt(a.year);
-      const yearB = parseInt(b.year);
-      return yearA - yearB;
-    });
+  const sortImagesOldestFirst = async () => {
+    try {
+      __loader(true); // Show loader
 
-    setSorted(false);
-    setImages(sortedImages);
+      // Wrap sorting inside a Promise to simulate async behavior
+      const sortedImages = await new Promise((resolve) => {
+        const sorted = [...Images].sort((a, b) => {
+          const yearA = parseInt(a.year);
+          const yearB = parseInt(b.year);
+          return yearA - yearB; // Sort in ascending order by year
+        });
+        resolve(sorted);
+      });
 
-    setSlides(
-      sortedImages.map((photo) => {
-        const width = 1080 * 4;
-        const height = 1620 * 4;
-        return {
+      setSorted(false); // Mark as unsorted or sorted in oldest-first order
+      setImages(sortedImages); // Update state with sorted images
+
+      // Update slides with the sorted images
+      setSlides(
+        sortedImages.map((photo) => ({
           src: photo.src,
-          width,
-          height,
-          title: `${photo.caption}`,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
           description: photo.dimensions,
-        };
-      })
-    );
+        }))
+      );
+    } catch (error) {
+      console.error("Error sorting images:", error); // Handle errors gracefully
+    } finally {
+      setTimeout(() => {
+        __loader(false);
+      }, 3000);
+    }
   };
 
-  const sortImagesAlphabetically = () => {
-    const sortedImages = [...Images].sort((a, b) => {
-      const nameA = a.alphaname.toLowerCase();
-      const nameB = b.alphaname.toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+  const sortImagesAlphabetically = async () => {
+    try {
+      __loader(true); // Show loader
 
-    setImages(sortedImages);
-    setSlides(
-      sortedImages.map((photo) => {
-        const width = 1080 * 4;
-        const height = 1620 * 4;
-        return {
+      // Wrap sorting in a Promise to simulate async behavior
+      const sortedImages = await new Promise((resolve) => {
+        const sorted = [...Images].sort((a, b) => {
+          const nameA = a.alphaname.toLowerCase();
+          const nameB = b.alphaname.toLowerCase();
+          return nameA.localeCompare(nameB); // Sort alphabetically
+        });
+        resolve(sorted);
+      });
+
+      setImages(sortedImages); // Update state with sorted images
+
+      // Update slides with sorted images
+      setSlides(
+        sortedImages.map((photo) => ({
           src: photo.src,
-          width,
-          height,
-          title: `${photo.caption}`,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
           description: photo.dimensions,
-        };
-      })
-    );
+        }))
+      );
+    } catch (error) {
+      console.error("Error sorting images:", error); // Handle errors gracefully
+    } finally {
+      setTimeout(() => {
+        __loader(false);
+      }, 3000);
+    }
   };
 
   useEffect(() => {
@@ -150,6 +185,7 @@ export default function Order() {
     wasCalled.current = true;
     getImages(nextPageToken);
     setSorted(true);
+    __loader(false);
   });
 
   return (
@@ -190,53 +226,44 @@ export default function Order() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-16 pb-10">
-        <InfiniteScroll
-          dataLength={Images.length}
-          next={() => getImages(nextPageToken)}
-          hasMore={hasMore}
-          loader={<MoreImageLoader />}
-          endMessage={<p>You have seen it all!</p>}
-        >
-          {/* <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-            {Images.map((photo, i) => (
-              <IKImage
-                key={i}
-                urlEndpoint={`${process.env.NEXT_PUBLIC_IMAGE_OPTIMIZE_URL}`}
-                src={photo.src}
-                transformation={[{ height: 100, width: 100, quality: 10 }]}
-                lqip={{ active: true, quality: 10 }}
-                onClick={() => setIndex(i)}
-                className="aspect-[16/9] object-cover cursor-zoom-in"
-              />
-            ))}
-          </div> */}
-          <div className="w-full flex flex-wrap gap-[30px] items-center justify-center">
-            {Images.map((photo, i) => (
-              <div key={i}>
-                <img
-                  alt={photo.name}
-                  src={photo.thumbnail}
-                  onClick={() => setIndex(i)}
-                  className="w-[150px] h-[150px] object-cover cursor-zoom-in"
-                />
-              </div>
-            ))}
-          </div>
-        </InfiniteScroll>
+      {!loader ? (
+        <div className="px-4 lg:px-16 pb-10">
+          <InfiniteScroll
+            dataLength={Images.length}
+            next={() => getImages(nextPageToken)}
+            hasMore={hasMore}
+            loader={<MoreImageLoader />}
+            // endMessage={<p>You have seen it all!</p>}
+          >
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+              {Images.map((photo, i) => (
+                <div key={i}>
+                  <img
+                    alt={photo.name}
+                    src={photo.src}
+                    onClick={() => setIndex(i)}
+                    className="aspect-[16/9] object-cover cursor-zoom-in"
+                  />
+                </div>
+              ))}
+            </div>
+          </InfiniteScroll>
 
-        {/* Lightbox Component */}
-        {slides && (
-          <Lightbox
-            plugins={[Captions]}
-            index={index}
-            slides={slides}
-            open={index >= 0}
-            close={() => setIndex(-1)}
-            captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
-          />
-        )}
-      </div>
+          {/* Lightbox Component */}
+          {slides && (
+            <Lightbox
+              plugins={[Captions]}
+              index={index}
+              slides={slides}
+              open={index >= 0}
+              close={() => setIndex(-1)}
+              captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+            />
+          )}
+        </div>
+      ) : (
+        <MoreImageLoader />
+      )}
 
       <Footer />
     </RootLayout>
