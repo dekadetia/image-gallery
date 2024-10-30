@@ -33,6 +33,7 @@ export default function Index() {
 
   const getImages = async (token) => {
     try {
+      __loader(true);
       // const response = await fetch(
       //   `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
       //   {
@@ -80,8 +81,11 @@ export default function Index() {
       } else {
         errorToast("Failed to get files");
       }
+
+      __loader(false);
     } catch (error) {
       console.error("Error fetching files:", error);
+      __loader(false);
       // errorToast("Failed to get files");
     }
   };
