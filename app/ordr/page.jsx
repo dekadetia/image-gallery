@@ -38,7 +38,12 @@ export default function Order() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ lastVisibleDocId: token }),
+          body: JSON.stringify({
+            order_by_key: "alphaname",
+            order_by_value: "asc",
+            size_limit: 99,
+            lastVisibleDocId: token,
+          }),
         }
       );
 
@@ -72,120 +77,68 @@ export default function Order() {
     } catch (error) {
       console.error("Error fetching files:", error);
     }
-    __loader(false)
+    __loader(false);
   };
 
-  const sortImagesByYear = async () => {
+  const sortImages = async (order_key, order_value) => {
     try {
-      __loader(true); // Show loader
+      __loader(true);
+      const size = Images.length;
 
-      // Wrap sorting in a Promise to simulate async behavior
-      const sortedImages = await new Promise((resolve) => {
-        const sorted = [...Images].sort((a, b) => {
-          const yearA = parseInt(a.year);
-          const yearB = parseInt(b.year);
-          return yearB - yearA; // Sort descending by year
-        });
-        resolve(sorted);
-      });
-
-      setSorted(true); // Mark as sorted
-      setImages(sortedImages); // Update state with sorted images
-
-      // Update slides with sorted images
-      setSlides(
-        sortedImages.map((photo) => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-        }))
+      setSorted(!isSorted);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            order_by_key: order_key,
+            order_by_value: order_value,
+            size_limit: size,
+            lastVisibleDocId: null,
+          }),
+        }
       );
-    } catch (error) {
-      console.error("Error sorting images:", error);
-    } finally {
-      setTimeout(() => {
-        __loader(false);
-      }, 3000);
-    }
-  };
 
-  const sortImagesOldestFirst = async () => {
-    try {
-      __loader(true); // Show loader
+      if (response.ok) {
+        const data = await response.json();
+        const images = data.images;
 
-      // Wrap sorting inside a Promise to simulate async behavior
-      const sortedImages = await new Promise((resolve) => {
-        const sorted = [...Images].sort((a, b) => {
-          const yearA = parseInt(a.year);
-          const yearB = parseInt(b.year);
-          return yearA - yearB; // Sort in ascending order by year
+        if (images.length === 0) {
+          setHasMore(false); // Stop fetching if no more data
+          return;
+        }
+
+        setNextPageToken(data.nextPageToken);
+        setImages((prevImages) => [...images]);
+        const newSlides = images.map((photo) => {
+          const width = 1080 * 4;
+          const height = 1620 * 4;
+          return {
+            src: photo.src,
+            width,
+            height,
+            title: `${photo.caption}`,
+            description: photo.dimensions,
+          };
         });
-        resolve(sorted);
-      });
 
-      setSorted(false); // Mark as unsorted or sorted in oldest-first order
-      setImages(sortedImages); // Update state with sorted images
-
-      // Update slides with the sorted images
-      setSlides(
-        sortedImages.map((photo) => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-        }))
-      );
+        setSlides((prevSlides) => [...newSlides]);
+      } else {
+        console.error("Failed to get files");
+      }
     } catch (error) {
-      console.error("Error sorting images:", error); // Handle errors gracefully
-    } finally {
-      setTimeout(() => {
-        __loader(false);
-      }, 3000);
+      console.error("Error fetching files:", error);
     }
-  };
-
-  const sortImagesAlphabetically = async () => {
-    try {
-      __loader(true); // Show loader
-
-      // Wrap sorting in a Promise to simulate async behavior
-      const sortedImages = await new Promise((resolve) => {
-        const sorted = [...Images].sort((a, b) => {
-          const nameA = a.alphaname.toLowerCase();
-          const nameB = b.alphaname.toLowerCase();
-          return nameA.localeCompare(nameB); // Sort alphabetically
-        });
-        resolve(sorted);
-      });
-
-      setImages(sortedImages); // Update state with sorted images
-
-      // Update slides with sorted images
-      setSlides(
-        sortedImages.map((photo) => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-        }))
-      );
-    } catch (error) {
-      console.error("Error sorting images:", error); // Handle errors gracefully
-    } finally {
-      setTimeout(() => {
-        __loader(false);
-      }, 3000);
-    }
+    __loader(false);
   };
 
   useEffect(() => {
     if (wasCalled.current) return;
     wasCalled.current = true;
-    
+
     __loader(true);
     getImages(nextPageToken);
 
@@ -208,7 +161,7 @@ export default function Order() {
           <div className="flex gap-8 items-center">
             <BsSortAlphaDown
               className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-              onClick={sortImagesAlphabetically}
+              onClick={() => sortImages("alphaname", "asc")}
             />
 
             <Link href={"/ordr"}>
@@ -218,12 +171,12 @@ export default function Order() {
             {!isSorted ? (
               <TbClockDown
                 className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                onClick={sortImagesByYear}
+                onClick={() => sortImages("year", "desc")}
               />
             ) : (
               <TbClockUp
                 className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                onClick={sortImagesOldestFirst}
+                onClick={() => sortImages("year", "asc")}
               />
             )}
           </div>
