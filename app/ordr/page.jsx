@@ -28,8 +28,10 @@ export default function Order() {
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loader, __loader] = useState(true);
+  const [check, __check] = useState(false);
 
   const getImages = async (token) => {
+    __check(false);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`,
@@ -80,8 +82,20 @@ export default function Order() {
     __loader(false);
   };
 
-  const sortImages = async (order_key, order_value) => {
+  const sortImages = async (
+    order_key,
+    order_value,
+    order_key_2,
+    order_value_2
+  ) => {
     try {
+
+      if(order_key == "alphaname"){
+        __check(false);
+      }else{
+        __check(true);
+      }
+      
       __loader(true);
       const size = Images.length;
 
@@ -96,8 +110,9 @@ export default function Order() {
           body: JSON.stringify({
             order_by_key: order_key,
             order_by_value: order_value,
+            order_by_key_2: order_key_2,
+            order_by_value_2: order_value_2,
             size_limit: size,
-            lastVisibleDocId: null,
           }),
         }
       );
@@ -106,13 +121,7 @@ export default function Order() {
         const data = await response.json();
         const images = data.images;
 
-        if (images.length === 0) {
-          setHasMore(false); // Stop fetching if no more data
-          return;
-        }
-
-        setNextPageToken(data.nextPageToken);
-        setImages((prevImages) => [...images]);
+        setImages(() => [...images]);
         const newSlides = images.map((photo) => {
           const width = 1080 * 4;
           const height = 1620 * 4;
@@ -125,7 +134,7 @@ export default function Order() {
           };
         });
 
-        setSlides((prevSlides) => [...newSlides]);
+        setSlides(() => [...newSlides]);
       } else {
         console.error("Failed to get files");
       }
@@ -171,7 +180,7 @@ export default function Order() {
             {!isSorted ? (
               <TbClockDown
                 className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                onClick={() => sortImages("year", "desc")}
+                onClick={() => sortImages("year", "desc", "alphaname", "asc")}
               />
             ) : (
               <TbClockUp
@@ -185,13 +194,7 @@ export default function Order() {
 
       {!loader ? (
         <div className="px-4 lg:px-16 pb-10">
-          <InfiniteScroll
-            dataLength={Images.length}
-            next={() => getImages(nextPageToken)}
-            hasMore={hasMore}
-            loader={<MoreImageLoader />}
-            // endMessage={<p>You have seen it all!</p>}
-          >
+          {check ? (
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
                 <div key={i}>
@@ -204,7 +207,27 @@ export default function Order() {
                 </div>
               ))}
             </div>
-          </InfiniteScroll>
+          ) : (
+            <InfiniteScroll
+              dataLength={Images.length}
+              next={() => getImages(nextPageToken)}
+              hasMore={hasMore}
+              loader={<MoreImageLoader />}
+            >
+              <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+                {Images.map((photo, i) => (
+                  <div key={i}>
+                    <img
+                      alt={photo.name}
+                      src={photo.src}
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                    />
+                  </div>
+                ))}
+              </div>
+            </InfiniteScroll>
+          )}
 
           {/* Lightbox Component */}
           {slides && (
