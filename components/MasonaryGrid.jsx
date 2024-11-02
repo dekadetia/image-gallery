@@ -24,7 +24,7 @@ export default function MasonaryGrid() {
   const [nextPageToken, setNextPageToken] = useState(null);
 
   const [hasMore, setHasMore] = useState(true);
-  const [loader, __loader] = useState(false);
+  const [loader, __loader] = useState(true);
 
   const wasCalled = useRef(false);
 
@@ -143,7 +143,7 @@ export default function MasonaryGrid() {
         </div>
       )}
 
-      <Footer />
+      {!loader && <Footer />}
     </>
   );
 }

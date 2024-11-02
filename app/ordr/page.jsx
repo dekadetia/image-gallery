@@ -245,7 +245,7 @@ export default function Order() {
         <Loader />
       )}
 
-      <Footer />
+      {!loader && <Footer />}
     </RootLayout>
   );
 }

@@ -21,7 +21,7 @@ export default function Random() {
   const [index, setIndex] = useState(-1);
   const [slides, setSlides] = useState([]);
   const [Images, setImages] = useState([]);
-  const [loader, __loader] = useState(false);
+  const [loader, __loader] = useState(true);
   const [loaded, setLoaded] = useState([]); // Track load state of each image
   const wasCalled = useRef(false);
 
@@ -205,7 +205,7 @@ export default function Random() {
         )}
       </div>
 
-      <Footer />
+      {!loader && <Footer />}
     </RootLayout>
   );
 }

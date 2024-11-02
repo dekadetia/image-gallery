@@ -27,7 +27,7 @@ export default function Index() {
   const [index, setIndex] = useState(-1);
   const [slides, setSlides] = useState([]);
   const [Images, setImages] = useState([]);
-  const [loader, __loader] = useState(false);
+  const [loader, __loader] = useState(true);
   const wasCalled = useRef(false);
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
@@ -314,7 +314,7 @@ export default function Index() {
         )}
       </div>
 
-      <Footer />
+      {!loader && <Footer />}
     </RootLayout>
   );
 }
