@@ -5,13 +5,15 @@ import Script from "next/script";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FIREBASE_APP } from "../firebase/firebase-config";
+import type { Metadata } from "next";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
 const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
 
-const metadata = {
-  title: "𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒",
+const metadata: Metadata = {
+  title: `𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`,
   description: "A screenshot diary",
   icons: {
     apple: [
@@ -43,6 +45,11 @@ const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* favicon */}
+        <link rel="icon" href="/assets/favicon-32x32.png" />
+        <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
+      </head>
       <body className={inter.className}>
         <main>
           <ToastContainer />
