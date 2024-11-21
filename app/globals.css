@@ -244,7 +244,7 @@ html {
 img.yarl__slide_image {
     max-width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
     width: 100% !important;
     max-height: 100% !important;
 }
