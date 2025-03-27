@@ -176,8 +176,8 @@ export default function Random () {
                   <img
                     alt={photo.name}
                     src={photo.src}
-                    onClick={() => setIndex(i)}
-                    className='aspect-[16/9] object-cover cursor-zoom-in'
+                    // onClick={() => setIndex(i)}
+                    className='aspect-[16/9] object-cover select-none'
                   />
                 </div>
               ))}
