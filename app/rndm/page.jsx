@@ -12,23 +12,30 @@ import MoreImageLoader from '../../components/MoreImageLoader'
 import Loader from '../../components/loader/loader'
 import InfiniteScroll from 'react-infinite-scroll-component'
 
-export default function Random () {
+export default function Random() {
   const descriptionTextAlign = 'end'
   const descriptionMaxLines = 3
   const isOpen = true
 
   const [index, setIndex] = useState(-1)
-  const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
   const [loader, __loader] = useState(true)
   const wasCalled = useRef(false)
+  const seenImageIds = useRef(new Set()) // ✅ Track loaded image IDs
+
+  const slides = Images.map(photo => ({
+    src: photo.src,
+    width: 1080 * 4,
+    height: 1620 * 4,
+    title: `${photo.caption}`,
+    description: photo.dimensions
+  }))
 
   const getImages = async load => {
-    if (load != 'load more') {
-      __loader(t => true)
+    if (load !== 'load more') {
+      __loader(true)
     }
 
-    // setImages(i => [])
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
@@ -44,27 +51,12 @@ export default function Random () {
         const data = await response.json()
         const images = data.images
 
-        let uniqueImages = []
-        setImages(prevImages => {
-          uniqueImages = images.filter(
-            image => !prevImages.some(prevImage => prevImage.id === image.id)
-          )
-          return [...prevImages, ...uniqueImages]
-        })
+        const uniqueImages = images.filter(
+          img => !seenImageIds.current.has(img.id)
+        )
+        uniqueImages.forEach(img => seenImageIds.current.add(img.id))
 
-        const newSlides = uniqueImages.map(photo => {
-          const width = 1080 * 4
-          const height = 1620 * 4
-          return {
-            src: photo.src,
-            width,
-            height,
-            title: `${photo.caption}`,
-            description: photo.dimensions
-          }
-        })
-
-        setSlides(prevSlides => [...prevSlides, ...newSlides])
+        setImages(prev => [...prev, ...uniqueImages])
       } else {
         console.error('Failed to get files')
         errorToast('Failed to get files')
@@ -72,13 +64,14 @@ export default function Random () {
     } catch (error) {
       console.log(error)
     } finally {
-      __loader(t => false)
+      __loader(false)
     }
   }
 
-  const getRandmImages = async load => {
-    __loader(t => true)
-    setImages(i => [])
+  const getRandmImages = async () => {
+    __loader(true)
+    setImages([])
+    seenImageIds.current = new Set()
 
     try {
       const response = await fetch(
@@ -95,20 +88,8 @@ export default function Random () {
         const data = await response.json()
         const images = data.images
 
-        setImages([...images])
-        const newSlides = images.map(photo => {
-          const width = 1080 * 4
-          const height = 1620 * 4
-          return {
-            src: photo.src,
-            width,
-            height,
-            title: `${photo.caption}`,
-            description: photo.dimensions
-          }
-        })
-
-        setSlides([...newSlides])
+        images.forEach(img => seenImageIds.current.add(img.id))
+        setImages(images)
       } else {
         console.error('Failed to get files')
         errorToast('Failed to get files')
@@ -116,7 +97,7 @@ export default function Random () {
     } catch (error) {
       console.log(error)
     } finally {
-      __loader(t => false)
+      __loader(false)
     }
   }
 
@@ -128,7 +109,12 @@ export default function Random () {
     if (wasCalled.current) return
     wasCalled.current = true
     getImages()
-  })
+  }, []) // ✅ Ensure it runs only once
+
+  const handleImageClick = (imageId) => {
+    const idx = Images.findIndex(img => img.id === imageId)
+    if (idx !== -1) setIndex(idx)
+  }
 
   return (
     <RootLayout>
@@ -145,8 +131,9 @@ export default function Random () {
             </Link>
 
             <div className='flex gap-8 items-center'>
-              <Link href={'/indx'}>
-                <IoMdList className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl' />
+              <Link href={'/fade'}>
+                {/* <IoMdList className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl' /> */}
+                <img src="/assets/crossfade.svg" className='w-[1.4rem] object-contain' alt="" />
               </Link>
 
               <Link href={'/ordr'}>
@@ -171,13 +158,14 @@ export default function Random () {
             loader={<MoreImageLoader />}
           >
             <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
-              {Images.map((photo, i) => (
-                <div key={i}>
+              {Images.map(photo => (
+                <div key={photo.id}>
                   <img
                     alt={photo.name}
                     src={photo.src}
-                    onClick={() => setIndex(i)}
+                    onClick={() => handleImageClick(photo.id)} // ✅ Use ID instead of index
                     className='aspect-[16/9] object-cover cursor-zoom-in'
+                    decoding='async'
                   />
                 </div>
               ))}
