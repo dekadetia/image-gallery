@@ -11,7 +11,7 @@ import { IoMdShuffle } from "react-icons/io";
 export default function Page() {
   return (
     <>
-      {/* Navigation */}
+      {/* Navigation Bar Layout */}
       <RootLayout>
         <div className="w-full flex justify-center items-center py-9">
           <div className="w-full grid place-items-center space-y-6">
