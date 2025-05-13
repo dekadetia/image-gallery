@@ -136,7 +136,7 @@ function ImageWithFade({ image }) {
                     initial={{ opacity: 1 }}
                     animate={{ opacity: 0 }}
                     transition={{ duration: 2 }}
-                    className="absolute top-0 left-0 w-full h-full aspect-[16/9] object-cover"
+                    className="absolute top-0 left-0  aspect-[16/9] object-cover"
                     alt={previousImage.caption || ''}
                 />
             )}
@@ -149,7 +149,7 @@ function ImageWithFade({ image }) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 2 }}
-                    className="absolute top-0 left-0 w-full h-full aspect-[16/9] object-cover"
+                    className="absolute top-0 left-0 aspect-[16/9] object-cover"
                     alt={currentImage.caption || ''}
                 />
             )}
