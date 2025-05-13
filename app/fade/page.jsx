@@ -98,7 +98,7 @@ export default function FadeGallery() {
                     <Loader />
                 ) : (<div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
                     {slots.map((image, idx) => (
-                        <div key={idx} className='w-full min-h-[26vh] sm:min-h-[50vh] md:min-h-[30vh] lg:min-h-[37vh] relative overflow-hidden'>
+                        <div key={idx} className='w-full h-[26vh] sm:h-[50vh] md:h-[30vh] lg:h-[37vh] relative overflow-hidden'>
                             <ImageWithFade image={image} />
                         </div>
                     ))}
@@ -136,7 +136,7 @@ function ImageWithFade({ image }) {
                     initial={{ opacity: 1 }}
                     animate={{ opacity: 0 }}
                     transition={{ duration: 2 }}
-                    className="absolute top-0 left-0  aspect-[16/9] object-cover"
+                    className="absolute top-0 left-0 h-full aspect-[16/9] object-cover"
                     alt={previousImage.caption || ''}
                 />
             )}
@@ -149,7 +149,7 @@ function ImageWithFade({ image }) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 2 }}
-                    className="absolute top-0 left-0 aspect-[16/9] object-cover"
+                    className="absolute top-0 left-0 h-full aspect-[16/9] object-cover"
                     alt={currentImage.caption || ''}
                 />
             )}
