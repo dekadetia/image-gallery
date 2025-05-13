@@ -132,8 +132,7 @@ export default function Random() {
 
             <div className='flex gap-8 items-center'>
               <Link href={'/fade'}>
-                {/* <IoMdList className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl' /> */}
-                <img src="/assets/crossfade.svg" className='w-[1.4rem] object-contain' alt="" />
+                <img src="/assets/crossfade.svg" className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105' alt="" />
               </Link>
 
               <Link href={'/ordr'}>

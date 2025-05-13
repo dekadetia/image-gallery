@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { RxCaretSort } from 'react-icons/rx'
 import { IoMdShuffle } from 'react-icons/io'
 import Loader from '../../components/loader/loader'
+import Footer from '../../components/Footer'
 
 export default function FadeGallery() {
     const [slots, setSlots] = useState(Array(9).fill(null))
@@ -67,26 +68,27 @@ export default function FadeGallery() {
                 {/* Navigation */}
                 <div className='w-full flex justify-center items-center py-9'>
                     <div className='w-full grid place-items-center space-y-6'>
-                        <img
-                            src='/assets/logo.svg'
-                            className='object-contain w-40'
-                            alt=''
-                        />
+                        <Link href={'/'}>
+                            <img
+                                src='/assets/logo.svg'
+                                className='object-contain w-40'
+                                alt=''
+                            />
+                        </Link>
 
                         <div className='flex gap-8 items-center'>
-                            <Link href={'/fade'}>
-                                {/* <IoMdList className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl' /> */}
-                                <img src="/assets/crossfade.svg" className='w-[1.4rem] object-contain' alt="" />
-                            </Link>
+
+                            <img src="/assets/crossfade.svg" className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 cursor-pointer' alt="" />
 
                             <Link href={'/ordr'}>
                                 <RxCaretSort className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
                             </Link>
+                            <Link href={'/rndm'}>
+                                <IoMdShuffle
+                                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
+                                />
+                            </Link>
 
-                            <IoMdShuffle
-                                // onClick={getRandmImages}
-                                className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
-                            />
                         </div>
                     </div>
                 </div>
@@ -95,20 +97,22 @@ export default function FadeGallery() {
                     <Loader />
                 ) : (<div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
                     {slots.map((image, idx) => (
-                        <div key={idx} className='w-full h-[33vh] relative overflow-hidden rounded-md'>
+                        <div key={idx} className='w-full h-[33vh] relative overflow-hidden'>
                             <ImageWithFade image={image} />
                         </div>
                     ))}
                 </div>
                 )}
-            </div >
+            </div>
+            {!loader && <Footer />}
+
         </RootLayout>
     )
 }
 
 function ImageWithFade({ image }) {
     const [currentImage, setCurrentImage] = useState(image)
-    const [visible, setVisible] = useState(!!image)
+    const [previousImage, setPreviousImage] = useState(null)
 
     useEffect(() => {
         if (!image || image.id === currentImage?.id) return
@@ -116,27 +120,38 @@ function ImageWithFade({ image }) {
         const img = new Image()
         img.src = image.src
         img.onload = () => {
+            setPreviousImage(currentImage)
             setCurrentImage(image)
-            setVisible(true)
         }
     }, [image])
 
     return (
         <div className="relative w-full h-full">
-            <AnimatePresence mode="wait">
-                {visible && currentImage && (
-                    <motion.img
-                        key={currentImage.id}
-                        src={currentImage.src}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 1 }}
-                        className="absolute top-0 left-0 w-full h-full object-cover rounded-md"
-                        alt={currentImage.caption || ''}
-                    />
-                )}
-            </AnimatePresence>
+            {/* Outgoing image */}
+            {previousImage && (
+                <motion.img
+                    key={previousImage.id}
+                    src={previousImage.src}
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 0 }}
+                    transition={{ duration: 1 }}
+                    className="absolute top-0 left-0 w-full h-full aspect-[16/9] object-cover"
+                    alt={previousImage.caption || ''}
+                />
+            )}
+
+            {/* Incoming image */}
+            {currentImage && (
+                <motion.img
+                    key={currentImage.id}
+                    src={currentImage.src}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 1 }}
+                    className="absolute top-0 left-0 w-full h-full aspect-[16/9] object-cover"
+                    alt={currentImage.caption || ''}
+                />
+            )}
         </div>
     )
 }
