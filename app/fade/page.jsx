@@ -42,21 +42,22 @@ export default function FadeGallery() {
 
         intervalRef.current = setInterval(() => {
             setSlots(prev => {
-                const updatedSlots = [...prev]
-
                 if (poolRef.current.length === 0) {
                     fetchImages()
-                    return updatedSlots
+                    return prev
                 }
 
                 const randomIndex = Math.floor(Math.random() * 9)
                 const nextImage = poolRef.current.shift()
-                if (nextImage) {
-                    updatedSlots[randomIndex] = nextImage
-                }
+                if (!nextImage) return prev
 
-                return updatedSlots
-            })
+                // Avoid accidental redraws: shallow compare slot before replacing
+                if (prev[randomIndex]?.id === nextImage.id) return prev
+
+                const newSlots = [...prev]
+                newSlots[randomIndex] = nextImage
+                return newSlots
+              })
         }, 5000)
 
         return () => clearInterval(intervalRef.current)
@@ -134,7 +135,7 @@ function ImageWithFade({ image }) {
                     src={previousImage.src}
                     initial={{ opacity: 1 }}
                     animate={{ opacity: 0 }}
-                    transition={{ duration: 1 }}
+                    transition={{ duration: 2 }}
                     className="absolute top-0 left-0 w-full h-full aspect-[16/9] object-cover"
                     alt={previousImage.caption || ''}
                 />
@@ -147,7 +148,7 @@ function ImageWithFade({ image }) {
                     src={currentImage.src}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 1 }}
+                    transition={{ duration: 2 }}
                     className="absolute top-0 left-0 w-full h-full aspect-[16/9] object-cover"
                     alt={currentImage.caption || ''}
                 />
