@@ -98,7 +98,7 @@ export default function FadeGallery() {
                     <Loader />
                 ) : (<div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
                     {slots.map((image, idx) => (
-                        <div key={idx} className='w-full h-[24vh] sm:h-[45vh] md:h-[30vh] lg:h-[37vh] relative overflow-hidden'>
+                        <div key={idx} className='w-full h-[25vh] sm:h-[46vh] md:h-[31vh] lg:h-[37vh] relative overflow-hidden'>
                             <ImageWithFade image={image} />
                         </div>
                     ))}
