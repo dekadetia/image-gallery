@@ -9,18 +9,23 @@ import { IoMdShuffle } from 'react-icons/io'
 import Loader from '../../components/loader/loader'
 import Footer from '../../components/Footer'
 
-export default function FadeGallery() {
-    const [loader, __loader] = useState(true)
+import clsx from "clsx";
+import { twMerge } from "tailwind-merge";
 
-    useEffect(() => {
-        // Wait a moment to render 9 boxes
-        const delay = setTimeout(() => __loader(false), 1000)
-        return () => clearTimeout(delay)
-    }, [])
+function cn(...inputs) {
+    return twMerge(clsx(inputs));
+}
+
+export default function FadeGallery() {
+    const [loadedCount, setLoadedCount] = useState(0)
+
+    const handleSlotReady = () => {
+        setLoadedCount(prev => prev + 1)
+    }
 
     return (
-        <RootLayout>
-            <div className='px-4 lg:px-16 pb-10'>
+        <div>
+            <div className={'px-4 lg:px-16 pb-10'}>
                 {/* Navigation */}
                 <div className='w-full flex justify-center items-center py-9'>
                     <div className='w-full grid place-items-center space-y-6'>
@@ -36,7 +41,7 @@ export default function FadeGallery() {
                             <img
                                 src='/assets/crossfade.svg'
                                 className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 cursor-pointer'
-                                alt=''
+                                alt='Crossfade'
                             />
 
                             <Link href={'/ordr'}>
@@ -49,29 +54,37 @@ export default function FadeGallery() {
                     </div>
                 </div>
 
-                {loader ? (
-                    <Loader />
-                ) : (
-                    <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
+                <div className='relative overflow'>
+                    {/* Loader overlay */}
+                    {loadedCount < 1 && (
+                        <div className='fixed h-screen top-0 left-0 w-full bg-transparent grid place-items-center'>
+                            <Loader />
+                        </div>
+                    )}
+                    <div className={cn('w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center',
+                        loadedCount < 1 && 'hidden'
+                    )}>
                         {Array(9)
                             .fill(0)
                             .map((_, idx) => (
-                                <div key={idx} className='w-full aspect-[16/9] relative overflow-hidden'>
-                                    <ImageFadeBox />
+                                <div key={idx} className='w-full relative overflow-hidden aspect-[16/9]'>
+                                    <ImageFadeBox onFirstLoad={handleSlotReady} />
                                 </div>
                             ))}
                     </div>
-                )}
+                </div>
             </div>
-            {!loader && <Footer />}
-        </RootLayout>
+
+            {loadedCount === 1 && <Footer />}
+        </div>
     )
 }
 
-function ImageFadeBox() {
+function ImageFadeBox({ onFirstLoad }) {
     const [currentImage, setCurrentImage] = useState(null)
     const [previousImage, setPreviousImage] = useState(null)
     const intervalRef = useRef(null)
+    const hasLoadedOnce = useRef(false)
 
     const fetchOneImage = async () => {
         try {
@@ -85,6 +98,11 @@ function ImageFadeBox() {
             preload.onload = () => {
                 setPreviousImage(currentImage)
                 setCurrentImage(img)
+
+                if (!hasLoadedOnce.current) {
+                    hasLoadedOnce.current = true
+                    onFirstLoad()
+                }
             }
         } catch (err) {
             console.error('Error fetching one image:', err)
@@ -124,4 +142,3 @@ function ImageFadeBox() {
         </div>
     )
 }
-  
