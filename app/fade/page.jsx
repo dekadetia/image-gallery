@@ -25,9 +25,15 @@ export default function FadeGallery() {
             const data = await res.json()
             const images = data.images
 
-            if (images.length >= 9) {
-                setSlots(images.slice(0, 9))
-                poolRef.current = images.slice(9)
+            if (images.length) {
+                poolRef.current.push(...images)
+
+                // If first time and slots are empty
+                if (slots.every(slot => slot === null) && poolRef.current.length >= 9) {
+                    const newSlots = poolRef.current.splice(0, 9)
+                    setSlots(newSlots)
+                }
+                  
             }
         } catch (err) {
             console.error('Failed to fetch fade images:', err)
@@ -49,10 +55,7 @@ export default function FadeGallery() {
 
                 const randomIndex = Math.floor(Math.random() * 9)
                 const nextImage = poolRef.current.shift()
-                if (!nextImage) return prev
-
-                // Avoid redundant update
-                if (prev[randomIndex]?.id === nextImage.id) return prev
+                if (!nextImage || prev[randomIndex]?.id === nextImage.id) return prev
 
                 const newSlots = [...prev]
                 newSlots[randomIndex] = nextImage
@@ -73,7 +76,7 @@ export default function FadeGallery() {
                             <img
                                 src='/assets/logo.svg'
                                 className='object-contain w-40'
-                                alt=''
+                                alt='Logo'
                             />
                         </Link>
 
@@ -81,7 +84,7 @@ export default function FadeGallery() {
                             <img
                                 src="/assets/crossfade.svg"
                                 className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 cursor-pointer'
-                                alt=""
+                                alt="Crossfade"
                             />
                             <Link href={'/ordr'}>
                                 <RxCaretSort className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
@@ -97,11 +100,11 @@ export default function FadeGallery() {
                     <Loader />
                 ) : (
                     <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
-                        {slots.map((image, idx) => (
-                            <div key={idx} className='w-full aspect-[16/9] relative overflow-hidden'>
-                                <ImageWithFade image={image} />
-                            </div>
-                        ))}
+                            {slots.map((image, idx) => (
+                                <div key={idx} className='w-full aspect-[16/9] relative overflow-hidden'>
+                                    <FadeSlot image={image} />
+                                </div>
+                            ))}
                     </div>
                 )}
             </div>
@@ -111,23 +114,25 @@ export default function FadeGallery() {
     )
 }
 
-function ImageWithFade({ image }) {
+
+function FadeSlot({ image }) {
     const [currentImage, setCurrentImage] = useState(image)
     const [previousImage, setPreviousImage] = useState(null)
 
     useEffect(() => {
         if (!image || image.id === currentImage?.id) return
 
-        const img = new Image()
-        img.src = image.src
-        img.onload = () => {
+        const preload = new Image()
+        preload.src = image.src
+        preload.onload = () => {
             setPreviousImage(currentImage)
             setCurrentImage(image)
         }
-    }, [image])
+    }, [image?.id])
 
     return (
-        <div className="relative w-full h-full">
+        <div className='relative w-full h-full'>
+            {/* Previous image fading out */}
             {previousImage && (
                 <motion.img
                     key={previousImage.id}
@@ -135,10 +140,12 @@ function ImageWithFade({ image }) {
                     initial={{ opacity: 1 }}
                     animate={{ opacity: 0 }}
                     transition={{ duration: 2, ease: 'easeInOut' }}
-                    className="absolute top-0 left-0 h-full aspect-[16/9] object-cover"
-                    alt={previousImage.caption || ''}
+                    className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
+                    alt=''
                 />
             )}
+
+            {/* Current image fading in */}
             {currentImage && (
                 <motion.img
                     key={currentImage.id}
@@ -146,10 +153,11 @@ function ImageWithFade({ image }) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 2, ease: 'easeInOut' }}
-                    className="absolute top-0 left-0 h-full aspect-[16/9] object-cover"
-                    alt={currentImage.caption || ''}
+                    className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
+                    alt=''
                 />
             )}
         </div>
     )
 }
+  
