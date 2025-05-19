@@ -14,6 +14,12 @@ import { RxCross1 } from "react-icons/rx";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import RootLayout from "../layout";
 import Loader from "../../components/loader/loader";
+import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
 
 export default function Index() {
   const descriptionTextAlign = "end";
@@ -56,13 +62,20 @@ export default function Index() {
         setNextPageToken(data.nextPageToken);
         setImages(images);
 
-        const newSlides = images.map((photo) => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-        }));
+        const newSlides = images.map((photo) => {
+          const width = 1080 * 4;
+          const height = 1620 * 4;
+          return {
+            src: photo.src,
+            width,
+            height,
+            title: `${photo.caption}`,
+            description: photo.dimensions,
+            director: photo.director || null,
+            // director: "Christopher Nolan",
+            year: photo.year
+          };
+        });
 
         setSlides((prevSlides) => [...prevSlides, ...newSlides]);
       }
@@ -211,6 +224,7 @@ export default function Index() {
                 <div onClick={() => setSearchOpen(true)}>
                   <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
                 </div>
+
                 {!isSorted ? (
                   <TbClockDown
                     className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
@@ -228,8 +242,6 @@ export default function Index() {
       </div>
 
       {/* ✅ Search Bar */}
-
-
       <div className="px-4 lg:px-16 pb-10">
         {!loader ? (
           <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
@@ -252,12 +264,31 @@ export default function Index() {
 
         {slides && (
           <Lightbox
-            plugins={[Captions]}
             index={index}
             slides={slides}
             open={index >= 0}
             close={() => setIndex(-1)}
-            captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+            // plugins={[Captions]}
+            // captions={{ isOpen: true, descriptionTextAlign: 'start' }}
+            render={{
+              slideFooter: ({ slide }) => (
+                <div className="w-full text-left text-sm space-y-1 lg:pt-2 pb-4 text-white px-0 pt-0 lg:px-12">
+                  {slide.title && (
+                    <div className="yarl__slide_title">{slide.title}</div>
+                  )}
+                  <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                    {slide.director && (
+                      <div className="yarl__slide_description">
+                        <span className="font-medium">{slide.director}</span>
+                      </div>
+                    )}
+                    {slide.description && (
+                      <div className="yarl__slide_description">{slide.description}</div>
+                    )}
+                  </div>
+                </div>
+              )
+            }}
           />
         )}
       </div>

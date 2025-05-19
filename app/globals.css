@@ -96,8 +96,15 @@ html {
 .yarl__slide {
     padding: 3rem 0 !important;
     padding-top: 4rem !important;
-    /* padding-top: 7rem !important; */
+
+    @media (max-width:991px) {
+        padding: 0 1rem !important;
+        padding-top: 7rem !important;
+
+    }
 }
+
+
 
 
 
@@ -244,4 +251,8 @@ img.yarl__slide_image {
     object-fit: contain !important;
     width: 100% !important;
     max-height: 100% !important;
+
+    @media (max-width:991px) {
+        height: auto !important;
+    }
 }

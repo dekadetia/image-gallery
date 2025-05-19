@@ -15,7 +15,13 @@ import RootLayout from '../layout'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import Loader from '../../components/loader/loader'
 import { FaMagnifyingGlass } from "react-icons/fa6";
-import { FaSearch } from "react-icons/fa";
+import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
+
 
 export default function Order() {
   const descriptionTextAlign = 'end'
@@ -78,17 +84,20 @@ export default function Order() {
 
         setNextPageToken(data.nextPageToken)
         setImages(prevImages => [...prevImages, ...images])
-        const newSlides = images.map(photo => {
-          const width = 1080 * 4
-          const height = 1620 * 4
+        const newSlides = images.map((photo) => {
+          const width = 1080 * 4;
+          const height = 1620 * 4;
           return {
             src: photo.src,
             width,
             height,
             title: `${photo.caption}`,
-            description: photo.dimensions
-          }
-        })
+            description: photo.dimensions,
+            director: photo.director || null,
+            // director: "Christopher Nolan",
+            year: photo.year
+          };
+        });
 
         setSlides(prevSlides => [...prevSlides, ...newSlides])
       } else {
@@ -327,7 +336,7 @@ export default function Order() {
               </div>
               // Closed Search && showing navigation panel
             ) :
-              <div className='flex gap-8 items-center py-1.5'>
+              <div className='flex gap-[2.225rem] items-center py-1.5'>
                 <BsSortAlphaDown
                   className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
                   onClick={() => {
@@ -396,12 +405,31 @@ export default function Order() {
           {/* Lightbox Component */}
           {slides && (
             <Lightbox
-              plugins={[Captions]}
               index={index}
               slides={slides}
               open={index >= 0}
               close={() => setIndex(-1)}
-              captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+              // plugins={[Captions]}
+              // captions={{ isOpen: true, descriptionTextAlign: 'start' }}
+              render={{
+                slideFooter: ({ slide }) => (
+                  <div className="w-full text-left text-sm space-y-1 lg:pt-2 pb-4 text-white px-0 pt-0 lg:px-12">
+                    {slide.title && (
+                      <div className="yarl__slide_title">{slide.title}</div>
+                    )}
+                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                      {slide.director && (
+                        <div className="yarl__slide_description">
+                          <span className="font-medium">{slide.director}</span>
+                        </div>
+                      )}
+                      {slide.description && (
+                        <div className="yarl__slide_description">{slide.description}</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }}
             />
           )}
         </div>

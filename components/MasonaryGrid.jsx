@@ -127,8 +127,8 @@ export default function MasonaryGrid() {
                   />
 
                   {/* Mouse Over Overlay */}
-                  <div className="absolute top-0 left-0 w-full h-full grid place-items-center transition-all duration-200 group-hover:opacity-100 opacity-0 bg-black/30 pointer-events-none">
-                    {photo.caption} {photo.year}
+                  <div className="absolute top-0 left-0 w-full h-full grid place-items-center transition-all duration-200 group-hover:opacity-100 opacity-0 bg-black/80  pointer-events-none">
+                    <h2 className="text-sm text-[#678] w-2/3 text-left">{photo.caption} {photo.year}</h2>
                   </div>
                 </div>
               ))}
@@ -156,7 +156,7 @@ export default function MasonaryGrid() {
               // captions={{ isOpen: true, descriptionTextAlign: 'start' }}
               render={{
                 slideFooter: ({ slide }) => (
-                  <div className="w-full text-left text-sm space-y-1 pt-2 pb-4 text-white px-12">
+                  <div className="w-full text-left text-sm space-y-1 lg:pt-2 pb-4 text-white px-0 pt-0 lg:px-12">
                     {slide.title && (
                       <div className="yarl__slide_title">{slide.title}</div>
                     )}
@@ -174,7 +174,6 @@ export default function MasonaryGrid() {
                 )
               }}
             />
-
           )}
         </div>
       )}
