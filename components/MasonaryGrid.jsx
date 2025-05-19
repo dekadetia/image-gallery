@@ -10,8 +10,6 @@ import MoreImageLoader from "../components/MoreImageLoader/index";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Loader from "./loader/loader";
 
-// import { errorToast, successToast } from "../utils/toast";
-
 export default function MasonaryGrid() {
   const descriptionTextAlign = "start";
   const descriptionMaxLines = 3;
@@ -53,8 +51,6 @@ export default function MasonaryGrid() {
         if (!data.nextPageToken) {
           setHasMore(false);
           setNextPageToken(null);
-
-          // successToast("All images have been loaded!");
           return;
         } else {
           setImages((prevImages) => {
@@ -76,6 +72,8 @@ export default function MasonaryGrid() {
             height,
             title: `${photo.caption}`,
             description: photo.dimensions,
+            director: photo.director || null,
+            // director: "Christopher Nolan",
             year: photo.year
           };
         });
@@ -133,14 +131,44 @@ export default function MasonaryGrid() {
 
           {/* Lightbox Component */}
           {slides && (
+            // <Lightbox
+            //   plugins={[Captions]}
+            //   index={index}
+            //   slides={slides}
+            //   open={index >= 0}
+            //   close={() => setIndex(-1)}
+            //   captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+            // />
+
+
             <Lightbox
-              plugins={[Captions]}
               index={index}
               slides={slides}
               open={index >= 0}
               close={() => setIndex(-1)}
-              captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+              // plugins={[Captions]}
+              // captions={{ isOpen: true, descriptionTextAlign: 'start' }}
+              render={{
+                slideFooter: ({ slide }) => (
+                  <div className="w-full text-left text-sm space-y-1 pt-2 pb-4 text-white px-8">
+                    {slide.title && (
+                      <div className="yarl__slide_title">{slide.title}</div>
+                    )}
+                    <div className="!space-y-0">
+                      {slide.director && (
+                        <div className="yarl__slide_description">
+                          Directed by: <span className="font-medium">{slide.director}</span>
+                        </div>
+                      )}
+                      {slide.description && (
+                        <div className="yarl__slide_description">{slide.description}</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }}
             />
+
           )}
         </div>
       )}
