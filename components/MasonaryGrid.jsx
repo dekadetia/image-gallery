@@ -114,7 +114,7 @@ export default function MasonaryGrid() {
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
-                <div key={i} className="relative group">
+                <div key={i} className="relative group overflow-hidden">
                   <img
                     alt={photo.name}
                     src={photo.src}
