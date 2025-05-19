@@ -3,7 +3,7 @@
 import { IKImage } from 'imagekitio-react'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { RxCaretSort } from 'react-icons/rx'
+import { RxCaretSort, RxCross1 } from 'react-icons/rx'
 import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown } from 'react-icons/tb'
 import Lightbox from 'yet-another-react-lightbox'
@@ -14,8 +14,10 @@ import { TbClockUp } from 'react-icons/tb'
 import RootLayout from '../layout'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import Loader from '../../components/loader/loader'
+import { FaMagnifyingGlass } from "react-icons/fa6";
+import { FaSearch } from "react-icons/fa";
 
-export default function Order () {
+export default function Order() {
   const descriptionTextAlign = 'end'
   const descriptionMaxLines = 3
   const isOpen = true
@@ -35,6 +37,12 @@ export default function Order () {
   const [order_value, __order_value] = useState(null)
   const [order_key_2, __order_key_2] = useState(null)
   const [order_value_2, __order_value_2] = useState(null)
+
+  // Searching
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('');
+  const debounceRef = useRef(null);
+
 
   const getImages = async token => {
     __order_key(null)
@@ -181,12 +189,12 @@ export default function Order () {
         nextPageToken
       )
     } //else if (order_key == 'year' && order_value == 'asc') {
-      else if (
-        order_key == 'year' &&
-        order_value == 'asc' &&
-        order_key_2 == 'alphaname' &&
-        order_value_2 == 'asc'
-      ) {
+    else if (
+      order_key == 'year' &&
+      order_value == 'asc' &&
+      order_key_2 == 'alphaname' &&
+      order_value_2 == 'asc'
+    ) {
       //sortImages(order_key, order_value, null, null, 99, nextPageToken)
       sortImages(
         order_key,
@@ -221,6 +229,72 @@ export default function Order () {
     setSorted(true)
   })
 
+  // Searching UseEffect
+  // 🔁 Debounced search on searchQuery
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      const query = searchQuery.trim().toLowerCase();
+
+      if (!query) {
+        // If search is cleared, reload sorted/paginated data
+        clearValues().then(() => {
+          getImages(null);
+        });
+        return;
+      }
+
+      // Local filter first
+      const local = Images.filter(img =>
+        Object.values(img)
+          .filter(v => typeof v === 'string' || typeof v === 'number')
+          .some(v => v.toString().toLowerCase().includes(query))
+      );
+
+      if (local.length > 0) {
+        setImages(local);
+        const newSlides = local.map(photo => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+        }));
+        setSlides(newSlides);
+        return;
+      }
+
+      // If no local match, query backend
+      try {
+        __loader(true);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ queryText: query })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setImages(data.results);
+
+          const newSlides = data.results.map(photo => ({
+            src: photo.src,
+            width: 1080 * 4,
+            height: 1620 * 4,
+            title: photo.caption,
+            description: photo.dimensions
+          }));
+          setSlides(newSlides);
+        }
+      } catch (err) {
+        console.error("Remote search failed:", err);
+      } finally {
+        __loader(false);
+      }
+    }, 300);
+  }, [searchQuery]);
+
   return (
     <RootLayout>
       {/* Navigation */}
@@ -234,46 +308,66 @@ export default function Order () {
             />
           </Link>
 
-          <div className='flex gap-8 items-center'>
-            <BsSortAlphaDown
-              className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
-              onClick={() => {
-                const len = Images?.length
-                clearValues().then(res => {
-                  __loader(true);
-                  sortImages('alphaname', 'asc', null, null, len, null)
-                })
-              }}
-            />
+          {
+            searchOpen ? (
+              // Showing Search Input
+              <div className="w-[80%] lg:w-1/2 flex justify-center mt-2 mb-6 px-4" >
+                <div className="relative w-full max-w-md">
+                  <input
+                    type="text"
+                    placeholder="Search by name, year, or caption..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-1.5 pr-10 py-2 border-b border-b-white focus:outline-none text-sm bg-transparent"
+                  />
+                  <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
+                    <RxCross1 className="absolute right-3 top-2.5 text-white" />
+                  </div>
+                </div>
+              </div>
+              // Closed Search && showing navigation panel
+            ) :
+              <div className='flex gap-8 items-center'>
+                <BsSortAlphaDown
+                  className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
+                  onClick={() => {
+                    const len = Images?.length
+                    clearValues().then(res => {
+                      __loader(true);
+                      sortImages('alphaname', 'asc', null, null, len, null)
+                    })
+                  }}
+                />
 
-            <Link href={'/ordr'}>
-              <RxCaretSort className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
-            </Link>
+                <div onClick={() => setSearchOpen(true)}>
+                  <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+                </div>
 
-            {!isSorted ? (
-              <TbClockDown
-                className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
-                onClick={() => {
-                  const len = Images?.length
-                  clearValues().then(res => {
-                    __loader(true);
-                    sortImages('year', 'desc', 'alphaname', 'asc', len, null)
-                  })
-                }}
-              />
-            ) : (
-              <TbClockUp
-                className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
-                onClick={() => {
-                  const len = Images?.length
-                  clearValues().then(res => {
-                    __loader(true);
-                    sortImages('year', 'asc', 'alphaname', 'asc', len, null)
-                  })
-                }}
-              />
-            )}
-          </div>
+                {!isSorted ? (
+                  <TbClockDown
+                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
+                    onClick={() => {
+                      const len = Images?.length
+                      clearValues().then(res => {
+                        __loader(true);
+                        sortImages('year', 'desc', 'alphaname', 'asc', len, null)
+                      })
+                    }}
+                  />
+                ) : (
+                  <TbClockUp
+                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
+                    onClick={() => {
+                      const len = Images?.length
+                      clearValues().then(res => {
+                        __loader(true);
+                        sortImages('year', 'asc', 'alphaname', 'asc', len, null)
+                      })
+                    }}
+                  />
+                )}
+              </div>
+          }
         </div>
       </div>
 

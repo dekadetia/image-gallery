@@ -44,7 +44,7 @@ export default function MasonaryGrid() {
       if (response.ok) {
         const data = await response.json();
         const images = data.images;
-
+        console.log(images)
         if (images.length === 0) {
           setHasMore(false); // Stop fetching if no more data
           return;
@@ -76,14 +76,11 @@ export default function MasonaryGrid() {
             height,
             title: `${photo.caption}`,
             description: photo.dimensions,
+            year: photo.year
           };
         });
 
         setSlides((prevSlides) => [...prevSlides, ...newSlides]);
-
-        // successToast("Images fetched successfuly!");
-      } else {
-        // errorToast("Failed to get files");
       }
     } catch (error) {
       console.log(error);
@@ -113,17 +110,22 @@ export default function MasonaryGrid() {
             next={() => getImages(nextPageToken)}
             hasMore={hasMore}
             loader={<MoreImageLoader />}
-            // endMessage={<p className="text-center py-4 font-bold">You have seen it all!</p>}
+          // endMessage={<p className="text-center py-4 font-bold">You have seen it all!</p>}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
-                <div key={i}>
+                <div key={i} className="relative group">
                   <img
                     alt={photo.name}
                     src={photo.src}
                     onClick={() => setIndex(i)}
                     className="aspect-[16/9] object-cover cursor-zoom-in"
                   />
+
+                  {/* Mouse Over Overlay */}
+                  <div className="absolute top-0 left-0 w-full h-full grid place-items-center transition-all duration-200 group-hover:opacity-100 opacity-0 bg-black/30 pointer-events-none">
+                    {photo.caption} {photo.year}
+                  </div>
                 </div>
               ))}
             </div>
