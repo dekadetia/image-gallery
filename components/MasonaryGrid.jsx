@@ -9,6 +9,12 @@ import MoreImageLoader from "../components/MoreImageLoader/index";
 
 import InfiniteScroll from "react-infinite-scroll-component";
 import Loader from "./loader/loader";
+import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
 
 export default function MasonaryGrid() {
   const descriptionTextAlign = "start";
@@ -150,14 +156,14 @@ export default function MasonaryGrid() {
               // captions={{ isOpen: true, descriptionTextAlign: 'start' }}
               render={{
                 slideFooter: ({ slide }) => (
-                  <div className="w-full text-left text-sm space-y-1 pt-2 pb-4 text-white px-8">
+                  <div className="w-full text-left text-sm space-y-1 pt-2 pb-4 text-white px-12">
                     {slide.title && (
                       <div className="yarl__slide_title">{slide.title}</div>
                     )}
-                    <div className="!space-y-0">
+                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
                       {slide.director && (
                         <div className="yarl__slide_description">
-                          Directed by: <span className="font-medium">{slide.director}</span>
+                          <span className="font-medium">{slide.director}</span>
                         </div>
                       )}
                       {slide.description && (

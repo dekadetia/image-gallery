@@ -190,7 +190,7 @@ export default function Index() {
                 <div className="relative w-full max-w-md">
                   <input
                     type="text"
-                    placeholder="Search by name, year, or caption..."
+                    placeholder=""
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-1.5 pr-10 py-2 border-b border-b-white focus:outline-none text-sm bg-transparent"
@@ -202,7 +202,7 @@ export default function Index() {
               </div>
               // Closed Search && showing navigation panel
             ) :
-              <div className="flex gap-[2.225rem] items-center">
+              <div className="flex gap-[2.225rem] items-center py-1.5">
                 <BsSortAlphaDown
                   className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
                   onClick={sortImagesAlphabetically}
