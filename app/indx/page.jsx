@@ -267,7 +267,7 @@ export default function Index() {
             render={{
               slideFooter: ({ slide }) => (
                 <div className="w-full text-left text-sm space-y-1 lg:pt-[.25rem] lg:mb-[.75rem] pb-4 text-white px-0 pt-0 lg:pl-[1.5rem] lg:pr-[3rem]">
-                  {slide.title && (
+                  {slide.title && (                    
                     <div className="yarl__slide_title">{slide.title}</div>
                   )}
                   <div className={cn("!space-y-0", slide.director && "!mb-5")}>
