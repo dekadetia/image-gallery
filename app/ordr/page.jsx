@@ -299,7 +299,7 @@ export default function Order() {
   return (
     <RootLayout>
       {/* Navigation */}
-      <div className='w-full flex justify-center items-center py-9'>
+      <div className='w-full flex justify-center items-center pt-9 pb-[1.69rem]'>
         <div className='w-full grid place-items-center space-y-6'>
           <Link href={'/'}>
             <img
