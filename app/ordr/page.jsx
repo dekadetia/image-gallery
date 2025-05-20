@@ -1,13 +1,11 @@
 'use client'
 
-import { IKImage } from 'imagekitio-react'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { RxCaretSort, RxCross1 } from 'react-icons/rx'
+import { RxCross1 } from 'react-icons/rx'
 import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown } from 'react-icons/tb'
 import Lightbox from 'yet-another-react-lightbox'
-import Captions from 'yet-another-react-lightbox/plugins/captions'
 import Footer from '../../components/Footer'
 import MoreImageLoader from '../../components/MoreImageLoader/index'
 import { TbClockUp } from 'react-icons/tb'
@@ -22,12 +20,7 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-
 export default function Order() {
-  const descriptionTextAlign = 'end'
-  const descriptionMaxLines = 3
-  const isOpen = true
-
   const [isSorted, setSorted] = useState(false)
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
@@ -94,7 +87,6 @@ export default function Order() {
             title: `${photo.caption}`,
             description: photo.dimensions,
             director: photo.director || null,
-            // director: "Christopher Nolan",
             year: photo.year
           };
         });
@@ -316,67 +308,68 @@ export default function Order() {
               alt=''
             />
           </Link>
-
-          {
-            searchOpen ? (
-              // Showing Search Input
-              <div className="w-[80%] lg:w-1/2 flex justify-center mt-2 mb-6 px-4" >
-                <div className="relative w-full max-w-md">
-                  <input
-                    type="text"
-                    placeholder=""
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-1.5 pr-10 py-2 border-b border-b-white focus:outline-none text-sm bg-transparent"
-                  />
-                  <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
-                    <RxCross1 className="absolute right-3 top-2.5 text-white" />
+          <div className="h-12 overflow-hidden w-full grid place-items-center">
+            {
+              searchOpen ? (
+                // Showing Search Input
+                <div className="w-full lg:w-[32.25%] flex justify-center mt-2 mb-6 px-4" >
+                  <div className="relative w-full">
+                    <input
+                      type="text"
+                      placeholder=""
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
+                    />
+                    <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
+                      <RxCross1 className="absolute right-3 top-2.5 text-white" />
+                    </div>
                   </div>
                 </div>
-              </div>
-              // Closed Search && showing navigation panel
-            ) :
-              <div className='flex gap-[2.225rem] items-center py-1.5'>
-                <BsSortAlphaDown
-                  className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
-                  onClick={() => {
-                    const len = Images?.length
-                    clearValues().then(res => {
-                      __loader(true);
-                      sortImages('alphaname', 'asc', null, null, len, null)
-                    })
-                  }}
-                />
+                // Closed Search && showing navigation panel
+              ) :
+                <div className='flex gap-[2.225rem] items-center py-1.5'>
+                  <BsSortAlphaDown
+                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
+                    onClick={() => {
+                      const len = Images?.length
+                      clearValues().then(res => {
+                        __loader(true);
+                        sortImages('alphaname', 'asc', null, null, len, null)
+                      })
+                    }}
+                  />
 
-                <div onClick={() => setSearchOpen(true)}>
-                  <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+                  <div onClick={() => setSearchOpen(true)}>
+                    <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+                  </div>
+
+                  {!isSorted ? (
+                    <TbClockDown
+                      className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
+                      onClick={() => {
+                        const len = Images?.length
+                        clearValues().then(res => {
+                          __loader(true);
+                          sortImages('year', 'desc', 'alphaname', 'asc', len, null)
+                        })
+                      }}
+                    />
+                  ) : (
+                    <TbClockUp
+                      className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
+                      onClick={() => {
+                        const len = Images?.length
+                        clearValues().then(res => {
+                          __loader(true);
+                          sortImages('year', 'asc', 'alphaname', 'asc', len, null)
+                        })
+                      }}
+                    />
+                  )}
                 </div>
-
-                {!isSorted ? (
-                  <TbClockDown
-                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
-                    onClick={() => {
-                      const len = Images?.length
-                      clearValues().then(res => {
-                        __loader(true);
-                        sortImages('year', 'desc', 'alphaname', 'asc', len, null)
-                      })
-                    }}
-                  />
-                ) : (
-                  <TbClockUp
-                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
-                    onClick={() => {
-                      const len = Images?.length
-                      clearValues().then(res => {
-                        __loader(true);
-                        sortImages('year', 'asc', 'alphaname', 'asc', len, null)
-                      })
-                    }}
-                  />
-                )}
-              </div>
-          }
+            }
+          </div>
         </div>
       </div>
 
@@ -409,8 +402,6 @@ export default function Order() {
               slides={slides}
               open={index >= 0}
               close={() => setIndex(-1)}
-              // plugins={[Captions]}
-              // captions={{ isOpen: true, descriptionTextAlign: 'start' }}
               render={{
                 slideFooter: ({ slide }) => (
                   <div className="w-full text-left text-sm space-y-1 lg:pt-2 pb-4 text-white px-0 pt-0 lg:px-12">
@@ -419,7 +410,7 @@ export default function Order() {
                     )}
                     <div className={cn("!space-y-0", slide.director && "!mb-5")}>
                       {slide.director && (
-                        <div className="yarl__slide_description">
+                        <div className="yarl__slide_description !text-[#99AABB]">
                           <span className="font-medium">{slide.director}</span>
                         </div>
                       )}

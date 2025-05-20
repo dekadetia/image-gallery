@@ -1,8 +1,6 @@
 "use client";
-import { IKImage } from "imagekitio-react";
 import { useState, useEffect, useRef } from "react";
 import Lightbox from "yet-another-react-lightbox";
-import Captions from "yet-another-react-lightbox/plugins/captions";
 
 import Footer from "./Footer";
 import MoreImageLoader from "../components/MoreImageLoader/index";
@@ -17,10 +15,6 @@ export function cn(...inputs) {
 }
 
 export default function MasonaryGrid() {
-  const descriptionTextAlign = "start";
-  const descriptionMaxLines = 3;
-  const isOpen = true;
-
   const [index, setIndex] = useState(-1);
   const [slides, setSlides] = useState([]);
 
@@ -79,7 +73,6 @@ export default function MasonaryGrid() {
             title: `${photo.caption}`,
             description: photo.dimensions,
             director: photo.director || null,
-            // director: "Christopher Nolan",
             year: photo.year
           };
         });
@@ -114,22 +107,16 @@ export default function MasonaryGrid() {
             next={() => getImages(nextPageToken)}
             hasMore={hasMore}
             loader={<MoreImageLoader />}
-          // endMessage={<p className="text-center py-4 font-bold">You have seen it all!</p>}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
-                <div key={i} className="relative group overflow-hidden">
+                <div key={i}>
                   <img
                     alt={photo.name}
                     src={photo.src}
                     onClick={() => setIndex(i)}
                     className="aspect-[16/9] object-cover cursor-zoom-in"
                   />
-
-                  {/* Mouse Over Overlay */}
-                  <div className="absolute top-0 left-0 w-full h-full grid place-items-center transition-all duration-200 group-hover:opacity-100 opacity-0 bg-black/80  pointer-events-none">
-                    <h2 className="text-sm text-[#678] w-2/3 text-left">{photo.caption} {photo.year}</h2>
-                  </div>
                 </div>
               ))}
             </div>
@@ -137,23 +124,11 @@ export default function MasonaryGrid() {
 
           {/* Lightbox Component */}
           {slides && (
-            // <Lightbox
-            //   plugins={[Captions]}
-            //   index={index}
-            //   slides={slides}
-            //   open={index >= 0}
-            //   close={() => setIndex(-1)}
-            //   captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
-            // />
-
-
             <Lightbox
               index={index}
               slides={slides}
               open={index >= 0}
               close={() => setIndex(-1)}
-              // plugins={[Captions]}
-              // captions={{ isOpen: true, descriptionTextAlign: 'start' }}
               render={{
                 slideFooter: ({ slide }) => (
                   <div className="w-full text-left text-sm space-y-1 lg:pt-2 pb-4 text-white px-0 pt-0 lg:px-12">
@@ -162,7 +137,7 @@ export default function MasonaryGrid() {
                     )}
                     <div className={cn("!space-y-0", slide.director && "!mb-5")}>
                       {slide.director && (
-                        <div className="yarl__slide_description">
+                        <div className="yarl__slide_description !text-[#99AABB]">
                           <span className="font-medium">{slide.director}</span>
                         </div>
                       )}

@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Lightbox from 'yet-another-react-lightbox'
-import Captions from 'yet-another-react-lightbox/plugins/captions'
 import Link from 'next/link'
-import { IoMdList, IoMdShuffle } from 'react-icons/io'
+import { IoMdShuffle } from 'react-icons/io'
 import { RxCaretSort } from 'react-icons/rx'
 import Footer from '../../components/Footer'
 import RootLayout from '../layout'
@@ -12,11 +11,14 @@ import MoreImageLoader from '../../components/MoreImageLoader'
 import Loader from '../../components/loader/loader'
 import InfiniteScroll from 'react-infinite-scroll-component'
 
-export default function Random() {
-  const descriptionTextAlign = 'end'
-  const descriptionMaxLines = 3
-  const isOpen = true
+import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
+
+export default function Random() {
   const [index, setIndex] = useState(-1)
   const [Images, setImages] = useState([])
   const [loader, __loader] = useState(true)
@@ -28,7 +30,9 @@ export default function Random() {
     width: 1080 * 4,
     height: 1620 * 4,
     title: `${photo.caption}`,
-    description: photo.dimensions
+    description: photo.dimensions,
+    director: photo.director || null,
+    year: photo.year
   }))
 
   const getImages = async load => {
@@ -174,12 +178,29 @@ export default function Random() {
 
         {slides && (
           <Lightbox
-            plugins={[Captions]}
             index={index}
             slides={slides}
             open={index >= 0}
-            close={handleCloseLightbox}
-            captions={{ isOpen, descriptionTextAlign, descriptionMaxLines }}
+            close={() => setIndex(-1)}
+            render={{
+              slideFooter: ({ slide }) => (
+                <div className="w-full text-left text-sm space-y-1 lg:pt-2 pb-4 text-white px-0 pt-0 lg:px-12">
+                  {slide.title && (
+                    <div className="yarl__slide_title">{slide.title}</div>
+                  )}
+                  <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                    {slide.director && (
+                      <div className="yarl__slide_description !text-[#99AABB]">
+                        <span className="font-medium">{slide.director}</span>
+                      </div>
+                    )}
+                    {slide.description && (
+                      <div className="yarl__slide_description">{slide.description}</div>
+                    )}
+                  </div>
+                </div>
+              )
+            }}
           />
         )}
       </div>
