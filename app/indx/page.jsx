@@ -210,7 +210,7 @@ export default function Index() {
                 </div>
                 // Closed Search && showing navigation panel
               ) :
-                <div className="flex gap-[2.3rem] items-center">
+                <div className="flex gap-[2.3rem] items-center -mt-[2px]">
                   <BsSortAlphaDown
                     className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
                     onClick={sortImagesAlphabetically}
