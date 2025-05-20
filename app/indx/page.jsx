@@ -210,7 +210,7 @@ export default function Index() {
                 </div>
                 // Closed Search && showing navigation panel
               ) :
-                <div className="flex gap-[2.5rem] items-center py-1.5">
+                <div className="flex gap-[2.3rem] items-center">
                   <BsSortAlphaDown
                     className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
                     onClick={sortImagesAlphabetically}
@@ -266,7 +266,7 @@ export default function Index() {
             close={() => setIndex(-1)}
             render={{
               slideFooter: ({ slide }) => (
-                <div className="w-full text-left text-sm space-y-1 lg:pt-2 pb-4 text-white px-0 pt-0 lg:px-12">
+                <div className="w-full text-left text-sm space-y-1 lg:pt-[.25rem] lg:mb-[.75rem] pb-4 text-white px-0 pt-0 lg:pl-[1.5rem] lg:pr-[3rem]">
                   {slide.title && (
                     <div className="yarl__slide_title">{slide.title}</div>
                   )}
