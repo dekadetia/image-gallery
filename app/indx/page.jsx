@@ -186,11 +186,11 @@ export default function Index() {
   return (
     <RootLayout>
       <div className="w-full flex justify-center items-center py-9">
-        <div className="w-full grid place-items-center space-y-[1.65rem]">
+        <div className="w-full grid place-items-center">
           <Link href={"/"}>
             <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
           </Link>
-          <div className="h-12 overflow-hidden w-full grid place-items-center">
+          <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
             {
               searchOpen ? (
                 // Showing Search Input
@@ -210,7 +210,7 @@ export default function Index() {
                 </div>
                 // Closed Search && showing navigation panel
               ) :
-                <div className="flex gap-[2.225rem] items-center py-1.5">
+                <div className="flex gap-[2.5rem] items-center py-1.5">
                   <BsSortAlphaDown
                     className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
                     onClick={sortImagesAlphabetically}

@@ -308,7 +308,7 @@ export default function Order() {
               alt=''
             />
           </Link>
-          <div className="h-12 overflow-hidden w-full grid place-items-center">
+          <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
             {
               searchOpen ? (
                 // Showing Search Input
@@ -328,7 +328,7 @@ export default function Order() {
                 </div>
                 // Closed Search && showing navigation panel
               ) :
-                <div className='flex gap-[2.225rem] items-center py-1.5'>
+                <div className='flex gap-[2.5rem] items-center py-1.5'>
                   <BsSortAlphaDown
                     className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
                     onClick={() => {
