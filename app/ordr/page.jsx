@@ -317,6 +317,7 @@ export default function Order() {
       {!loader ? (
         <div className="px-4 lg:px-16 pb-10 relative top-[.5px]">
           <InfiniteScroll
+            className='mt-[-2px]'
             dataLength={Images.length}
             next={loadMoreByCondition}
             hasMore={hasMore}
