@@ -259,7 +259,7 @@ export default function Order() {
 
           <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
             {searchOpen ? (
-              <div className="w-full lg:w-[32.25%] flex justify-center mt-2 mb-6 px-4">
+              <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
                 <div className="relative w-full">
                   <input
                     type="text"
