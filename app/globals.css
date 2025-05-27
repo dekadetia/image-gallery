@@ -94,8 +94,7 @@ html {
 }
 
 .yarl__slide {
-    padding: 3rem 0 !important;
-    padding-top: 4rem !important;
+    padding: 3.5rem 0 3rem !important;
 
     @media (max-width:991px) {
         padding: 0 1rem !important;
@@ -246,13 +245,15 @@ html {
 }
 
 img.yarl__slide_image {
-    max-width: 100% !important;
+    max-width: 96% !important;
     height: 100% !important;
     object-fit: contain !important;
     width: 100% !important;
-    max-height: 100% !important;
+    max-height: 96% !important;
+    height: auto !important;
+}
 
-    @media (max-width:991px) {
-        height: auto !important;
-    }
+.yarl__navigation_next,
+.yarl__navigation_prev {
+    display: none !important;
 }
