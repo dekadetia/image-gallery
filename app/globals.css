@@ -257,3 +257,8 @@ img.yarl__slide_image {
 .yarl__navigation_prev {
     display: none !important;
 }
+
+.yarl__icon {
+    height: var(--yarl__icon_size, 9999px) !important;
+    width: var(--yarl__icon_size, 9999px) !important;
+}
