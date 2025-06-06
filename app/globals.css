@@ -257,9 +257,6 @@ html {
 }
 
 @media (max-width: 767px) {
-    .yarl-slide-content {
-        width: 100% !important;
-    }
 
     img.yarl__slide_image {
         max-width: 100% !important;
@@ -268,6 +265,12 @@ html {
         width: 100% !important;
         max-height: 96% !important;
         height: auto !important
+    }
+}
+
+@media (max-width: 1023px) {
+    .yarl-slide-content {
+        width: 100% !important;
     }
 }
 
