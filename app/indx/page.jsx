@@ -171,7 +171,8 @@ export default function Index() {
     return (
       photo.caption?.toLowerCase().includes(query) ||
       photo.alphaname?.toLowerCase().includes(query) ||
-      photo.year?.toString().includes(query)
+      photo.year?.toString().includes(query) ||
+      photo.director?.toString().includes(query) 
     );
   });
 
