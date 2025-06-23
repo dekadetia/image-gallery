@@ -56,6 +56,7 @@ export default function Index() {
         }
 
         setNextPageToken(data.nextPageToken);
+        console.log(images)
         setImages(images);
 
         const newSlides = images.map((photo) => {
@@ -167,12 +168,12 @@ export default function Index() {
 
   // ✅ Filtered images based on search input
   const filteredImages = Images.filter((photo) => {
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
     return (
       photo.caption?.toLowerCase().includes(query) ||
       photo.alphaname?.toLowerCase().includes(query) ||
       photo.year?.toString().includes(query) ||
-      photo.director?.toString().includes(query) 
+      photo.director?.toLowerCase().toString().includes(query) 
     );
   });
 
