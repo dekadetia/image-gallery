@@ -285,7 +285,3 @@ html {
         height: auto !important
     }
 }
-
-[title="Close"]::after {
-  content: none !important;
-}
