@@ -286,6 +286,6 @@ html {
     }
 }
 
-[title="Close"] {
-  pointer-events: none;
+[title="Close"]::after {
+  content: none !important;
 }
