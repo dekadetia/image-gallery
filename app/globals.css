@@ -285,6 +285,3 @@ html {
         height: auto !important
     }
 }
-.yarl__button[title]:hover::after {
-  content: none !important;
-}
