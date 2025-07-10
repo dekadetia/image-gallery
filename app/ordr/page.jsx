@@ -8,6 +8,7 @@ import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
 import Footer from '../../components/Footer'
+import Fuse from 'fuse.js';
 import MoreImageLoader from '../../components/MoreImageLoader'
 import RootLayout from '../layout'
 import InfiniteScroll from 'react-infinite-scroll-component'
@@ -196,16 +197,14 @@ export default function Order() {
       }
 
       // ✅ Local search only caption, director, year
-      const local = Images.filter(img => {
-        const caption = img.caption?.toLowerCase() || ''
-        const director = img.director?.toLowerCase() || ''
-        const year = img.year?.toString().toLowerCase() || ''
-        return (
-          caption.includes(query) ||
-          director.includes(query) ||
-          year.includes(query)
-        )
-      })
+const fuse = new Fuse(Images, {
+  keys: ['caption', 'director', 'year'],
+  threshold: 0.3,
+  distance: 200,
+  includeScore: true
+});
+
+const local = fuse.search(query).map(result => result.item);
 
       if (local.length > 0) {
         setImages(local)
