@@ -181,45 +181,9 @@ const fuse = new Fuse(Images, {
   includeScore: true     // optional: relevance scores
 });
 
-// ✅ Detect numeric-like query (e.g. "1.33", "1.33:1", "4:3")
-const isNumericQuery = /^[\d.:x]+$/.test(searchQuery.trim());
-
-// ✅ Adjust threshold + distance for numeric queries
-const adjustedThreshold = isNumericQuery ? 0.01 : 0.3; // tighter for numbers
-const adjustedDistance = isNumericQuery ? 5 : 200;     // less spread for numbers
-
-// ✅ Update Fuse options dynamically
-fuse.setOptions({
-  ...fuse.options,
-  threshold: adjustedThreshold,
-  distance: adjustedDistance
-});
-
-// ✅ Detect numeric-like query
-const isNumericQuery = /^[\d.:x]+$/.test(searchQuery.trim());
-
-// ✅ Create a Fuse instance with adjusted options
-const dynamicFuse = new Fuse(Images, {
-  keys: [
-    'caption',
-    'alphaname',
-    'year',
-    'director',
-    {
-      name: 'dimensions',
-      getFn: (obj) => obj.dimensions?.slice(0, 6) || ''
-    }
-  ],
-  threshold: isNumericQuery ? 0.01 : 0.3, // tighter for numbers
-  distance: isNumericQuery ? 5 : 200,     // less spread for numbers
-  includeScore: true
-});
-
-// 🔥 Perform search
 const filteredImages = searchQuery
-  ? dynamicFuse.search(searchQuery).map(result => result.item)
+  ? fuse.search(searchQuery).map(result => result.item)
   : Images;
-
 
 
   useEffect(() => {
