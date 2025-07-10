@@ -15,7 +15,6 @@ import RootLayout from "../layout";
 import Loader from "../../components/loader/loader";
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { useMemo } from 'react';
 
 
 export function cn(...inputs) {
@@ -169,15 +168,17 @@ export default function Index() {
   };
 
   // ✅ Filtered images based on search input
-const fuse = useMemo(() => new Fuse(Images, {
-  keys: ['caption', 'alphaname', 'year', 'director'], // searchable fields
-  threshold: 0.3,                                      // adjust fuzziness
-  includeScore: true                                   // optional: relevance scores
-}), [Images]);
+const fuse = new Fuse(Images, {
+  keys: ['caption', 'alphaname', 'year', 'director'],
+  threshold: 0.3,        // your chosen fuzziness level
+  distance: 200,         // allows letters farther apart
+  includeScore: true     // optional: relevance scores
+});
 
 const filteredImages = searchQuery
   ? fuse.search(searchQuery).map(result => result.item)
   : Images;
+
 
   useEffect(() => {
     if (wasCalled.current) return;
