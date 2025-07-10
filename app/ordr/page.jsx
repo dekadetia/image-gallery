@@ -21,6 +21,7 @@ export function cn(...inputs) {
 }
 
 export default function Order() {
+  const searchInputRef = useRef(null);
   const [isSorted, setSorted] = useState(false)
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
@@ -195,7 +196,14 @@ export default function Order() {
         clearValues().then(() => getImages(null))
         return
       }
-
+      
+// 🔥 Auto-focus search input when searchOpen becomes true
+useEffect(() => {
+  if (searchOpen && searchInputRef.current) {
+    searchInputRef.current.focus();
+  }
+}, [searchOpen]);
+      
       // ✅ Local search only caption, director, year
 const fuse = new Fuse(Images, {
   keys: ['caption', 'director', 'year'],
@@ -260,13 +268,23 @@ const local = fuse.search(query).map(result => result.item);
             {searchOpen ? (
               <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
                 <div className="relative w-full">
-                  <input
-                    type="text"
-                    placeholder=""
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
-                  />
+<input
+  ref={searchInputRef} // 👈 gives us programmatic focus access
+  type="text"
+  placeholder=""
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  onKeyDown={(e) => {
+    // ⎋ Close search box on Escape key
+    if (e.key === 'Escape') {
+      searchInputRef.current.blur(); // optional: removes focus
+      setSearchOpen(false);          // closes the search box
+      setSearchQuery('');            // optional: clears search text
+    }
+  }}
+  className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
+/>
+
                   <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
                     <RxCross1 className="absolute right-3 top-2.5 text-white" />
                   </div>
