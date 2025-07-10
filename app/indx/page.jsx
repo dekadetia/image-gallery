@@ -171,7 +171,7 @@ export default function Index() {
 
 const fuse = useMemo(() => new Fuse(Images, {
   keys: ['caption', 'alphaname', 'year', 'director'], // searchable fields
-  threshold: 0.3,                                      // adjust fuzziness
+  threshold: 0.6,                                      // adjust fuzziness
   includeScore: true                                   // optional: relevance scores
 }), [Images]);
 
