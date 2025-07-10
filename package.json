@@ -17,6 +17,7 @@
     "express": "^4.21.0",
     "firebase": "^10.11.1",
     "framer-motion": "^12.9.2",
+    "fuse.js": "6.6.2",
     "http": "^0.0.1-security",
     "imagekitio-react": "^4.2.0",
     "next": "14.2.3",
