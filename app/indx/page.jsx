@@ -167,15 +167,17 @@ export default function Index() {
   };
 
   // ✅ Filtered images based on search input
-  const filteredImages = Images.filter((photo) => {
-    const query = searchQuery.toLowerCase().trim();
-    return (
-      photo.caption?.toLowerCase().includes(query) ||
-      photo.alphaname?.toLowerCase().includes(query) ||
-      photo.year?.toString().includes(query) ||
-      photo.director?.toLowerCase().toString().includes(query) 
-    );
-  });
+  import Fuse from 'fuse.js';
+
+const fuse = useMemo(() => new Fuse(Images, {
+  keys: ['caption', 'alphaname', 'year', 'director'], // searchable fields
+  threshold: 0.3,                                      // adjust fuzziness
+  includeScore: true                                   // optional: relevance scores
+}), [Images]);
+
+const filteredImages = searchQuery
+  ? fuse.search(searchQuery).map(result => result.item)
+  : Images;
 
   useEffect(() => {
     if (wasCalled.current) return;
