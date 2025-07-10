@@ -15,6 +15,8 @@ import RootLayout from "../layout";
 import Loader from "../../components/loader/loader";
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { useMemo } from 'react';
+
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs))
