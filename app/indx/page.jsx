@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import Lightbox from "yet-another-react-lightbox";
 
 import Footer from "../../components/Footer";
-
+import Fuse from 'fuse.js';
 import { BsSortAlphaDown } from "react-icons/bs";
 import { TbClockDown, TbClockUp } from "react-icons/tb";
 import { RxCross1 } from "react-icons/rx";
@@ -167,8 +167,6 @@ export default function Index() {
   };
 
   // ✅ Filtered images based on search input
-  import Fuse from 'fuse.js';
-
 const fuse = useMemo(() => new Fuse(Images, {
   keys: ['caption', 'alphaname', 'year', 'director'], // searchable fields
   threshold: 0.6,                                      // adjust fuzziness
