@@ -185,6 +185,17 @@ export default function Order() {
     setSorted(true)
   }, [])
 
+// 🔥 Auto-focus search input when searchOpen becomes true
+useEffect(() => {
+  if (searchOpen && searchInputRef.current) {
+    // Delay focus until after React has fully rendered the input
+    setTimeout(() => {
+      searchInputRef.current.focus();
+    }, 0);
+  }
+}, [searchOpen]);
+
+
   // ✅ Debounced search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -196,13 +207,6 @@ export default function Order() {
         clearValues().then(() => getImages(null))
         return
       }
-      
-// 🔥 Auto-focus search input when searchOpen becomes true
-useEffect(() => {
-  if (searchOpen && searchInputRef.current) {
-    searchInputRef.current.focus();
-  }
-}, [searchOpen]);
       
       // ✅ Local search only caption, director, year
 const fuse = new Fuse(Images, {
