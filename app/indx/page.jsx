@@ -170,7 +170,7 @@ export default function Index() {
 
   // ✅ Filtered images based on search input
 const fuse = new Fuse(Images, {
-  keys: ['caption', 'alphaname', 'year', 'director'
+  keys: ['caption', 'alphaname', 'year', 'director',
             {
       name: 'dimensions',
       getFn: (obj) => obj.dimensions?.slice(0, 6) || ''
