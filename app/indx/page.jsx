@@ -195,9 +195,29 @@ fuse.setOptions({
   distance: adjustedDistance
 });
 
+// ✅ Detect numeric-like query
+const isNumericQuery = /^[\d.:x]+$/.test(searchQuery.trim());
+
+// ✅ Create a Fuse instance with adjusted options
+const dynamicFuse = new Fuse(Images, {
+  keys: [
+    'caption',
+    'alphaname',
+    'year',
+    'director',
+    {
+      name: 'dimensions',
+      getFn: (obj) => obj.dimensions?.slice(0, 6) || ''
+    }
+  ],
+  threshold: isNumericQuery ? 0.01 : 0.3, // tighter for numbers
+  distance: isNumericQuery ? 5 : 200,     // less spread for numbers
+  includeScore: true
+});
+
 // 🔥 Perform search
 const filteredImages = searchQuery
-  ? fuse.search(searchQuery).map(result => result.item)
+  ? dynamicFuse.search(searchQuery).map(result => result.item)
   : Images;
 
 
