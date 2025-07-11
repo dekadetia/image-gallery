@@ -168,57 +168,22 @@ export default function Index() {
     }
   };
 
-const rawQuery = searchQuery.trim();
-const isQuoted = /^".+"$/.test(rawQuery);
-const query = isQuoted ? rawQuery.slice(1, -1).trim().toLowerCase() : rawQuery.toLowerCase();
+const fuse = new Fuse(Images, {
+  keys: ['caption', 'alphaname', 'year', 'director',
+    {
+      name: 'dimensions',
+      getFn: (obj) => obj.dimensions?.slice(0, 6) || ''
+    }
+  ],
+  threshold: 0.3,        // your chosen fuzziness level
+  distance: 200,         // allows letters farther apart
+  includeScore: true     // optional: relevance scores
+});
 
-// Detect query types
-const isAspectRatio = /^\d+(\.\d+)?(:1)?$/.test(query); // e.g., "1.33" or "1.33:1"
-const isExactYear = /^\d{4}$/.test(query);              // e.g., "1933"
-const isDecade = /^\d{3}$/.test(query)                  // e.g., "193"
-               || /^\d{3}x$/.test(query)                // e.g., "193x"
-               || /^\d{4}s$/.test(query);               // e.g., "1930s"
+const filteredImages = searchQuery
+  ? fuse.search(searchQuery).map(result => result.item)
+  : Images;
 
-let filteredImages;
-
-if (isAspectRatio) {
-  // Strict match on dimensions
-  filteredImages = Images.filter(img =>
-    img.dimensions?.slice(0, 6).toLowerCase() === query
-  );
-
-} else if (isExactYear) {
-  // Exact match on year
-  filteredImages = Images.filter(img =>
-    String(img.year) === query
-  );
-
-} else if (isDecade) {
-  // Decade match (193, 193x, 1930s → 1930–1939)
-  const decadePrefix = query.slice(0, 3);
-  filteredImages = Images.filter(img =>
-    String(img.year).startsWith(decadePrefix)
-  );
-
-} else if (searchQuery) {
-  // General fuzzy search for text
-  const fuse = new Fuse(Images, {
-    keys: [
-      { name: 'caption', weight: 0.3 },
-      { name: 'alphaname', weight: 0.3 },
-      { name: 'year', weight: 0.1 },
-      { name: 'director', weight: 0.5 }
-    ],
-    threshold: isQuoted ? 0.2 : 0.4, // tighter for quoted but not strict
-    distance: 200,
-    includeScore: true
-  });
-  filteredImages = fuse.search(query).map(r => r.item);
-
-} else {
-  // No search query
-  filteredImages = Images;
-}
 
 
 
