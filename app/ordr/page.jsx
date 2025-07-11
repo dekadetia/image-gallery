@@ -150,7 +150,9 @@ export default function Order() {
           width: 1080 * 4,
           height: 1620 * 4,
           title: photo.caption,
-          description: photo.dimensions
+          description: photo.dimensions,
+          director: photo.director || null
+
         }))
 
         setSlides(prevSlides => {
