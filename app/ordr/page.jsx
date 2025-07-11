@@ -8,7 +8,7 @@ import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
 import Footer from '../../components/Footer'
-import Fuse from 'fuse.js';
+import Fuse from 'fuse.js'
 import MoreImageLoader from '../../components/MoreImageLoader'
 import RootLayout from '../layout'
 import InfiniteScroll from 'react-infinite-scroll-component'
@@ -21,11 +21,12 @@ export function cn(...inputs) {
 }
 
 export default function Order() {
-  const searchInputRef = useRef(null);
+  const searchInputRef = useRef(null)
   const [isSorted, setSorted] = useState(false)
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
+  const [ImagesBackup, setImagesBackup] = useState([]) // 🆕 Backup for full dataset
   const wasCalled = useRef(false)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
@@ -65,11 +66,9 @@ export default function Order() {
 
         setNextPageToken(data.nextPageToken)
 
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id))
-          const uniqueImages = images.filter(img => !existingIds.has(img.id))
-          return [...prevImages, ...uniqueImages]
-        })
+        const mergedImages = [...Images, ...images.filter(img => !Images.some(i => i.id === img.id))]
+        setImages(mergedImages)
+        setImagesBackup(mergedImages) // 🆕 Cache full dataset
 
         const newSlides = images.map(photo => ({
           src: photo.src,
@@ -126,11 +125,9 @@ export default function Order() {
 
         setNextPageToken(data.nextPageToken)
 
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id))
-          const uniqueImages = images.filter(img => !existingIds.has(img.id))
-          return [...prevImages, ...uniqueImages]
-        })
+        const mergedImages = [...Images, ...images.filter(img => !Images.some(i => i.id === img.id))]
+        setImages(mergedImages)
+        setImagesBackup(mergedImages) // 🆕 Cache full dataset
 
         const newSlides = images.map(photo => ({
           src: photo.src,
@@ -185,78 +182,66 @@ export default function Order() {
     setSorted(true)
   }, [])
 
-// 🔥 Auto-focus search input when searchOpen becomes true
-useEffect(() => {
-  if (searchOpen && searchInputRef.current) {
-    // Delay focus until after React has fully rendered the input
-    setTimeout(() => {
-      searchInputRef.current.focus();
-    }, 0);
-  }
-}, [searchOpen]);
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current.focus()
+      }, 0)
+    }
+  }, [searchOpen])
 
-
-  // ✅ Debounced search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
     debounceRef.current = setTimeout(async () => {
       const query = searchQuery.trim().toLowerCase()
-
       if (!query) {
         clearValues().then(() => getImages(null))
         return
       }
-      
-     // 🔥 Hybrid search: Fuse for captions/alphaname + autocomplete for director/dimensions + strict year filters
-const queryParts = query.split(/\s+/);
 
-let local;
+      const queryParts = query.split(/\s+/)
+      let local
 
-// 🎯 Strict year search (skip Fuse/autocomplete if 4-digit or decade)
-if (/^\d{4}$/.test(query)) {
-  // Exact 4-digit year (e.g., 1933)
-  local = Images.filter(img => String(img.year) === query);
-} else if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
-  // Decade queries (e.g., 193, 193x, 1930s → 1930–1939)
-  const decadePrefix = query.slice(0, 3);
-  local = Images.filter(img =>
-    String(img.year).startsWith(decadePrefix)
-  );
-} else {
-  // ✅ Fuse for captions and alphaname
-  const fuse = new Fuse(Images, {
-    keys: [
-      { name: 'caption', weight: 0.6 },
-      { name: 'alphaname', weight: 0.4 }
-    ],
-    threshold: 0.4,
-    distance: 200,
-    includeScore: true
-  });
-  const fuseResults = fuse.search(query).map(r => r.item);
+      if (/^\d{4}$/.test(query)) {
+        // 🎯 Exact year (e.g., 1933)
+        local = ImagesBackup.filter(img => String(img.year) === query)
+      } else if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
+        // 🎯 Decade search (e.g., 193, 193x, 1930s)
+        const decadePrefix = query.slice(0, 3)
+        local = ImagesBackup.filter(img =>
+          String(img.year).startsWith(decadePrefix)
+        )
+      } else {
+        const fuse = new Fuse(ImagesBackup, {
+          keys: [
+            { name: 'caption', weight: 0.6 },
+            { name: 'alphaname', weight: 0.4 }
+          ],
+          threshold: 0.4,
+          distance: 200,
+          includeScore: true
+        })
+        const fuseResults = fuse.search(query).map(r => r.item)
 
-  // ✅ Autocomplete for director and dimensions
-  const autocompleteResults = Images.filter(img => {
-    const dir = img.director?.toLowerCase() || '';
-    const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
+        const autocompleteResults = ImagesBackup.filter(img => {
+          const dir = img.director?.toLowerCase() || ''
+          const dim = img.dimensions?.slice(0, 6).toLowerCase() || ''
 
-    return queryParts.every(part =>
-      dir.split(/\s+/).some(word => word.startsWith(part)) ||
-      dim.startsWith(part)
-    );
-  });
+          return queryParts.every(part =>
+            dir.split(/\s+/).some(word => word.startsWith(part)) ||
+            dim.startsWith(part)
+          )
+        })
 
-  // ✅ Combine and deduplicate
-  const seen = new Set();
-  local = [...fuseResults, ...autocompleteResults].filter(img => {
-    const key = img.src;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
+        const seen = new Set()
+        local = [...fuseResults, ...autocompleteResults].filter(img => {
+          const key = img.src
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+      }
 
       if (local.length > 0) {
         setImages(local)
@@ -272,7 +257,7 @@ if (/^\d{4}$/.test(query)) {
         return
       }
 
-      // ✅ Backend fallback
+      // 🆘 Backend fallback
       try {
         __loader(true)
         const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
@@ -312,23 +297,21 @@ if (/^\d{4}$/.test(query)) {
             {searchOpen ? (
               <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
                 <div className="relative w-full">
-<input
-  ref={searchInputRef} // 👈 gives us programmatic focus access
-  type="text"
-  placeholder=""
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
-  onKeyDown={(e) => {
-    // ⎋ Close search box on Escape key
-    if (e.key === 'Escape') {
-      searchInputRef.current.blur(); // optional: removes focus
-      setSearchOpen(false);          // closes the search box
-      setSearchQuery('');            // optional: clears search text
-    }
-  }}
-  className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
-/>
-
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder=""
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        searchInputRef.current.blur()
+                        setSearchOpen(false)
+                        setSearchQuery('')
+                      }
+                    }}
+                    className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
+                  />
                   <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
                     <RxCross1 className="absolute right-3 top-2.5 text-white" />
                   </div>
@@ -378,13 +361,11 @@ if (/^\d{4}$/.test(query)) {
       {!loader ? (
         <div className="px-4 lg:px-16 pb-10 relative top-[.5px]">
           <InfiniteScroll
-            className='mt-[-2px]'
+            className="mt-[-2px]"
             dataLength={Images.length}
             next={loadMoreByCondition}
             hasMore={hasMore}
-            loader={
-              !searchQuery.trim() && hasMore ? <MoreImageLoader /> : null
-            }
+            loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
@@ -412,7 +393,7 @@ if (/^\d{4}$/.test(query)) {
                     {slide.title && (
                       <div className="yarl__slide_title">{slide.title}</div>
                     )}
-                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                    <div className={cn('!space-y-0', slide.director && '!mb-5')}>
                       {slide.director && (
                         <div className="yarl__slide_description !text-[#99AABB]">
                           <span className="font-medium">{slide.director}</span>
