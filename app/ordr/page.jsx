@@ -26,6 +26,7 @@ export default function Order() {
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
+  const [FullImages, setFullImages] = useState([]) // ✅ All images preloaded
   const wasCalled = useRef(false)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
@@ -91,6 +92,18 @@ export default function Order() {
       console.error('Error fetching files:', error)
     }
     __loader(false)
+  }
+
+  const getAllImagesNoLimit = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images-no-limit`)
+      const data = await res.json()
+      if (data.success) {
+        setFullImages(data.images) // ✅ Preload all images
+      }
+    } catch (error) {
+      console.error('Error preloading all images:', error)
+    }
   }
 
   const sortImages = async (order_key, order_value, order_key_2, order_value_2, size, token) => {
@@ -181,116 +194,81 @@ export default function Order() {
     if (wasCalled.current) return
     wasCalled.current = true
     __loader(true)
+    getAllImagesNoLimit() // ✅ Preload all images
     getImages(nextPageToken)
     setSorted(true)
   }, [])
 
-// 🔥 Auto-focus search input when searchOpen becomes true
-useEffect(() => {
-  if (searchOpen && searchInputRef.current) {
-    // Delay focus until after React has fully rendered the input
-    setTimeout(() => {
-      searchInputRef.current.focus();
-    }, 0);
-  }
-}, [searchOpen]);
-
-
-// ✅ Debounced search
-useEffect(() => {
-  if (debounceRef.current) clearTimeout(debounceRef.current)
-
-  debounceRef.current = setTimeout(async () => {
-    const query = searchQuery.trim().toLowerCase()
-
-    if (!query) {
-      clearValues().then(() => getImages(null))
-      return
+  // 🔥 Auto-focus search input when searchOpen becomes true
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current.focus();
+      }, 0);
     }
+  }, [searchOpen]);
 
-    // 🎯 Strict year and decade matching first
-    let local
-    if (/^\d{4}$/.test(query)) {
-      // Exact 4-digit year (e.g., 1933)
-      local = Images.filter(img => String(img.year) === query)
-    } else if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
-      // Decade queries (e.g., 193, 193x, 1930s → 1930–1939)
-      const decadePrefix = query.slice(0, 3)
-      local = Images.filter(img => String(img.year).startsWith(decadePrefix))
-    } else {
-      // ✅ Fuse for captions and alphaname
-      const fuse = new Fuse(Images, {
-        keys: [
-          { name: 'caption', weight: 0.6 },
-          { name: 'alphaname', weight: 0.4 }
-        ],
-        threshold: 0.4,
+  // ✅ Debounced search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    debounceRef.current = setTimeout(async () => {
+      const query = searchQuery.trim().toLowerCase()
+
+      if (!query) {
+        clearValues().then(() => getImages(null))
+        return
+      }
+
+      const fuse = new Fuse(FullImages, { // ✅ Use FullImages for Fuse
+        keys: ['caption', 'director', 'year'],
+        threshold: 0.3,
         distance: 200,
         includeScore: true
       })
-      const fuseResults = fuse.search(query).map(r => r.item)
 
-      // ✅ Autocomplete for director and dimensions
-      const queryParts = query.split(/\s+/)
-      const autocompleteResults = Images.filter(img => {
-        const dir = img.director?.toLowerCase() || ''
-        const dim = img.dimensions?.slice(0, 6).toLowerCase() || ''
-        return queryParts.every(part =>
-          dir.split(/\s+/).some(word => word.startsWith(part)) ||
-          dim.startsWith(part)
-        )
-      })
+      const local = fuse.search(query).map(result => result.item)
 
-      // ✅ Combine Fuse + autocomplete and deduplicate
-      const seen = new Set()
-      local = [...fuseResults, ...autocompleteResults].filter(img => {
-        const key = img.src
-        if (seen.has(key)) return false
-        seen.add(key)
-        return true
-      })
-    }
+      if (local.length > 0) {
+        setImages(local)
+        setSlides(local.map(photo => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+          director: photo.director || null,
+          year: photo.year || null
+        })))
+        return
+      }
 
-    if (local.length > 0) {
-      setImages(local)
-      setSlides(local.map(photo => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-        director: photo.director || null,
-        year: photo.year || null
-      })))
-      return
-    }
-
-    // ✅ Backend fallback if local search fails
-    try {
-      __loader(true)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queryText: query })
-      })
-      const data = await res.json()
-      setImages(data.results)
-      setSlides(data.results.map(photo => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-        director: photo.director || null,
-        year: photo.year || null
-      })))
-    } catch (err) {
-      console.error('Remote search failed:', err)
-    } finally {
-      __loader(false)
-    }
-  }, 300)
-}, [searchQuery])
+      // ✅ Backend fallback
+      try {
+        __loader(true)
+        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queryText: query })
+        })
+        const data = await res.json()
+        setImages(data.results)
+        setSlides(data.results.map(photo => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+          director: photo.director || null,
+          year: photo.year || null
+        })))
+      } catch (err) {
+        console.error('Remote search failed:', err)
+      } finally {
+        __loader(false)
+      }
+    }, 300)
+  }, [searchQuery])
 
   return (
     <RootLayout>
@@ -300,28 +278,25 @@ useEffect(() => {
           <Link href={'/'}>
             <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
           </Link>
-
           <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
             {searchOpen ? (
               <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
                 <div className="relative w-full">
-<input
-  ref={searchInputRef} // 👈 gives us programmatic focus access
-  type="text"
-  placeholder=""
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
-  onKeyDown={(e) => {
-    // ⎋ Close search box on Escape key
-    if (e.key === 'Escape') {
-      searchInputRef.current.blur(); // optional: removes focus
-      setSearchOpen(false);          // closes the search box
-      setSearchQuery('');            // optional: clears search text
-    }
-  }}
-  className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
-/>
-
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder=""
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        searchInputRef.current.blur()
+                        setSearchOpen(false)
+                        setSearchQuery('')
+                      }
+                    }}
+                    className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
+                  />
                   <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
                     <RxCross1 className="absolute right-3 top-2.5 text-white" />
                   </div>
