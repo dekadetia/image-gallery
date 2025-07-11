@@ -168,22 +168,62 @@ export default function Index() {
     }
   };
 
-  // ✅ Filtered images based on search input
-const fuse = new Fuse(Images, {
-  keys: ['caption', 'alphaname', 'year', 'director',
-            {
-      name: 'dimensions',
-      getFn: (obj) => obj.dimensions?.slice(0, 6) || ''
-    }
-        ],
-  threshold: 0.3,        // your chosen fuzziness level
-  distance: 200,         // allows letters farther apart
-  includeScore: true     // optional: relevance scores
-});
+// 🔥 Smarter dynamic search logic
+const query = searchQuery.trim().toLowerCase();
 
-const filteredImages = searchQuery
-  ? fuse.search(searchQuery).map(result => result.item)
-  : Images;
+// Detect query types
+const isAspectRatio = /^\d+(\.\d+)?(:1)?$/.test(query); // "1.33" or "1.33:1"
+const isExactYear = /^\d{4}$/.test(query);              // "1933"
+const isDecade = /^\d{3}$/.test(query)                  // "193"
+               || /^\d{3}x$/.test(query)                // "193x"
+               || /^\d{4}s$/.test(query);               // "1930s"
+
+// Configure search keys & strictness
+let searchKeys, threshold, distance;
+
+// Aspect Ratio
+if (isAspectRatio) {
+  searchKeys = [{
+    name: 'dimensions',
+    getFn: (obj) => obj.dimensions?.slice(0, 6) || ''
+  }];
+  threshold = 0.01; // strict
+  distance = 5;
+}
+
+// Exact Year
+else if (isExactYear) {
+  searchKeys = ['year'];
+  threshold = 0.01; // strict
+  distance = 5;
+}
+
+// General Text Search
+else {
+  searchKeys = [
+    { name: 'caption', weight: 0.3 },
+    { name: 'alphaname', weight: 0.3 },
+    { name: 'year', weight: 0.1 },
+    { name: 'director', weight: 0.5 } // forgiving director matching
+  ];
+  threshold = 0.4;  // slightly fuzzier
+  distance = 200;
+}
+
+// Decade Shortcut (no Fuse needed)
+const decadePrefix = query.slice(0, 3);
+const filteredImages = (isDecade)
+  ? Images.filter(img =>
+      String(img.year).startsWith(decadePrefix)
+    )
+  : (searchQuery
+      ? new Fuse(Images, {
+          keys: searchKeys,
+          threshold,
+          distance,
+          includeScore: true
+        }).search(searchQuery).map(r => r.item)
+      : Images);
 
 
   useEffect(() => {
