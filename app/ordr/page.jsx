@@ -208,15 +208,55 @@ useEffect(() => {
         return
       }
       
-      // ✅ Local search only caption, director, year
-const fuse = new Fuse(Images, {
-  keys: ['caption', 'director', 'year'],
-  threshold: 0.3,
-  distance: 200,
-  includeScore: true
-});
+     // 🔥 Hybrid search: Fuse for captions/alphaname + autocomplete for director/dimensions + strict year filters
+const queryParts = query.split(/\s+/);
 
-const local = fuse.search(query).map(result => result.item);
+let local;
+
+// 🎯 Strict year search (skip Fuse/autocomplete if 4-digit or decade)
+if (/^\d{4}$/.test(query)) {
+  // Exact 4-digit year (e.g., 1933)
+  local = Images.filter(img => String(img.year) === query);
+} else if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
+  // Decade queries (e.g., 193, 193x, 1930s → 1930–1939)
+  const decadePrefix = query.slice(0, 3);
+  local = Images.filter(img =>
+    String(img.year).startsWith(decadePrefix)
+  );
+} else {
+  // ✅ Fuse for captions and alphaname
+  const fuse = new Fuse(Images, {
+    keys: [
+      { name: 'caption', weight: 0.6 },
+      { name: 'alphaname', weight: 0.4 }
+    ],
+    threshold: 0.4,
+    distance: 200,
+    includeScore: true
+  });
+  const fuseResults = fuse.search(query).map(r => r.item);
+
+  // ✅ Autocomplete for director and dimensions
+  const autocompleteResults = Images.filter(img => {
+    const dir = img.director?.toLowerCase() || '';
+    const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
+
+    return queryParts.every(part =>
+      dir.split(/\s+/).some(word => word.startsWith(part)) ||
+      dim.startsWith(part)
+    );
+  });
+
+  // ✅ Combine and deduplicate
+  const seen = new Set();
+  local = [...fuseResults, ...autocompleteResults].filter(img => {
+    const key = img.src;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 
       if (local.length > 0) {
         setImages(local)
