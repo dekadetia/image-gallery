@@ -168,7 +168,7 @@ export default function Index() {
     }
   };
 
-// 🔥 Smarter dynamic search logic with strict quotes working
+// 🔥 Smarter dynamic search logic with quotes fixed and integers safe
 const rawQuery = searchQuery.trim();
 const isQuoted = /^".+"$/.test(rawQuery);
 const query = isQuoted ? rawQuery.slice(1, -1).trim().toLowerCase() : rawQuery.toLowerCase();
@@ -196,7 +196,7 @@ if (isAspectRatio) {
   filteredImages = fuse.search(query).map(r => r.item);
 
 } else if (isExactYear) {
-  // Exact match on year (normalize to string)
+  // Exact match on year (normalize year field to string)
   filteredImages = Images.filter(img =>
     String(img.year).trim() === query
   );
@@ -217,27 +217,20 @@ if (isAspectRatio) {
       { name: 'year', weight: 0.1 },
       { name: 'director', weight: 0.5 }
     ],
-    threshold: 0.4,
-    distance: 200,
+    threshold: isQuoted ? 0.2 : 0.4, // 🔥 tighter for quoted text but not too strict
+    distance: isQuoted ? 50 : 200,
     includeScore: true
   };
 
-  // If quoted, use extended search exact operator
-  if (isQuoted) {
-    fuseOptions.useExtendedSearch = true;
-    filteredImages = new Fuse(Images, fuseOptions)
-      .search(`="${query}"`) // 🔥 Exact match operator
-      .map(r => r.item);
-  } else {
-    filteredImages = new Fuse(Images, fuseOptions)
-      .search(query)
-      .map(r => r.item);
-  }
+  const fuse = new Fuse(Images, fuseOptions);
+
+  filteredImages = fuse.search(query).map(r => r.item);
 
 } else {
   // No search query
   filteredImages = Images;
 }
+
 
 
   useEffect(() => {
