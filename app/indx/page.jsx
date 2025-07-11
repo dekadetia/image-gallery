@@ -168,7 +168,7 @@ export default function Index() {
     }
   };
 
-// 🔥 Hybrid search: Fuse for captions/alphaname + autocomplete for director/year/dimensions
+// 🔥 Hybrid search: Fuse for captions/alphaname + autocomplete for director/dimensions + strict year filters
 const rawQuery = searchQuery.trim().toLowerCase();
 const queryParts = rawQuery.split(/\s+/);
 
@@ -177,7 +177,7 @@ let filteredImages;
 if (!rawQuery) {
   filteredImages = Images;
 } else {
-  // Fuse for caption + alphaname
+  // ✅ Fuse for captions and alphaname
   const fuse = new Fuse(Images, {
     keys: [
       { name: 'caption', weight: 0.6 },
@@ -187,31 +187,42 @@ if (!rawQuery) {
     distance: 200,
     includeScore: true
   });
-
   const fuseResults = fuse.search(rawQuery).map(r => r.item);
 
-  // Autocomplete style for director, year, dimensions
-const autocompleteResults = Images.filter(img => {
-  const dir = img.director?.toLowerCase() || '';
-  const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
-  const year = String(img.year || '');
+  // ✅ Autocomplete for director and dimensions
+  const autocompleteResults = Images.filter(img => {
+    const dir = img.director?.toLowerCase() || '';
+    const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
 
-  return queryParts.every(part =>
-    dir.split(/\s+/).some(word => word.startsWith(part)) ||
-    dim.startsWith(part) ||
-    (part.length === 4 ? year === part : year.startsWith(part))
-  );
-});
+    return queryParts.every(part =>
+      dir.split(/\s+/).some(word => word.startsWith(part)) ||
+      dim.startsWith(part)
+    );
+  });
 
-  // Combine and deduplicate
+  // ✅ Strict year filtering
+  let yearResults = [];
+  if (/^\d{4}$/.test(rawQuery)) {
+    // Exact 4-digit year (e.g., 1933)
+    yearResults = Images.filter(img => String(img.year) === rawQuery);
+  } else if (/^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
+    // Decade queries (e.g., 193, 193x, 1930s → 1930–1939)
+    const decadePrefix = rawQuery.slice(0, 3);
+    yearResults = Images.filter(img =>
+      String(img.year).startsWith(decadePrefix)
+    );
+  }
+
+  // ✅ Combine and deduplicate
   const seen = new Set();
-  filteredImages = [...fuseResults, ...autocompleteResults].filter(img => {
+  filteredImages = [...yearResults, ...fuseResults, ...autocompleteResults].filter(img => {
     const key = img.src;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 }
+
 
 
 
