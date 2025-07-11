@@ -168,7 +168,7 @@ export default function Index() {
     }
   };
 
-// 🔥 Hybrid search: Fuse for captions/alphaname + autocomplete for director/dimensions + strict year filters
+// 🔥 Strict years first, then hybrid search for others
 const rawQuery = searchQuery.trim().toLowerCase();
 const queryParts = rawQuery.split(/\s+/);
 
@@ -176,8 +176,17 @@ let filteredImages;
 
 if (!rawQuery) {
   filteredImages = Images;
+} else if (/^\d{4}$/.test(rawQuery)) {
+  // 🎯 Exact 4-digit year (e.g., 1933)
+  filteredImages = Images.filter(img => String(img.year) === rawQuery);
+} else if (/^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
+  // 🎯 Decade queries (e.g., 193, 193x, 1930s → 1930–1939)
+  const decadePrefix = rawQuery.slice(0, 3);
+  filteredImages = Images.filter(img =>
+    String(img.year).startsWith(decadePrefix)
+  );
 } else {
-  // ✅ Fuse for captions and alphaname
+  // 🔥 Fuse for captions and alphaname
   const fuse = new Fuse(Images, {
     keys: [
       { name: 'caption', weight: 0.6 },
@@ -189,7 +198,7 @@ if (!rawQuery) {
   });
   const fuseResults = fuse.search(rawQuery).map(r => r.item);
 
-  // ✅ Autocomplete for director and dimensions
+  // 🔥 Autocomplete for director and dimensions
   const autocompleteResults = Images.filter(img => {
     const dir = img.director?.toLowerCase() || '';
     const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
@@ -200,22 +209,9 @@ if (!rawQuery) {
     );
   });
 
-  // ✅ Strict year filtering
-  let yearResults = [];
-  if (/^\d{4}$/.test(rawQuery)) {
-    // Exact 4-digit year (e.g., 1933)
-    yearResults = Images.filter(img => String(img.year) === rawQuery);
-  } else if (/^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
-    // Decade queries (e.g., 193, 193x, 1930s → 1930–1939)
-    const decadePrefix = rawQuery.slice(0, 3);
-    yearResults = Images.filter(img =>
-      String(img.year).startsWith(decadePrefix)
-    );
-  }
-
-  // ✅ Combine and deduplicate
+  // 🔥 Combine and deduplicate
   const seen = new Set();
-  filteredImages = [...yearResults, ...fuseResults, ...autocompleteResults].filter(img => {
+  filteredImages = [...fuseResults, ...autocompleteResults].filter(img => {
     const key = img.src;
     if (seen.has(key)) return false;
     seen.add(key);
