@@ -8,7 +8,7 @@ import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
 import Footer from '../../components/Footer'
-import Fuse from 'fuse.js'
+import Fuse from 'fuse.js';
 import MoreImageLoader from '../../components/MoreImageLoader'
 import RootLayout from '../layout'
 import InfiniteScroll from 'react-infinite-scroll-component'
@@ -21,12 +21,11 @@ export function cn(...inputs) {
 }
 
 export default function Order() {
-  const searchInputRef = useRef(null)
+  const searchInputRef = useRef(null);
   const [isSorted, setSorted] = useState(false)
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
-  const [ImagesBackup, setImagesBackup] = useState([]) // 🆕 Backup for full dataset
   const wasCalled = useRef(false)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
@@ -66,9 +65,11 @@ export default function Order() {
 
         setNextPageToken(data.nextPageToken)
 
-        const mergedImages = [...Images, ...images.filter(img => !Images.some(i => i.id === img.id))]
-        setImages(mergedImages)
-        setImagesBackup(mergedImages) // 🆕 Cache full dataset
+        setImages(prevImages => {
+          const existingIds = new Set(prevImages.map(img => img.id))
+          const uniqueImages = images.filter(img => !existingIds.has(img.id))
+          return [...prevImages, ...uniqueImages]
+        })
 
         const newSlides = images.map(photo => ({
           src: photo.src,
@@ -125,9 +126,11 @@ export default function Order() {
 
         setNextPageToken(data.nextPageToken)
 
-        const mergedImages = [...Images, ...images.filter(img => !Images.some(i => i.id === img.id))]
-        setImages(mergedImages)
-        setImagesBackup(mergedImages) // 🆕 Cache full dataset
+        setImages(prevImages => {
+          const existingIds = new Set(prevImages.map(img => img.id))
+          const uniqueImages = images.filter(img => !existingIds.has(img.id))
+          return [...prevImages, ...uniqueImages]
+        })
 
         const newSlides = images.map(photo => ({
           src: photo.src,
@@ -182,38 +185,39 @@ export default function Order() {
     setSorted(true)
   }, [])
 
+  // 🔥 Auto-focus search input when searchOpen becomes true
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => {
-        searchInputRef.current.focus()
-      }, 0)
+        searchInputRef.current.focus();
+      }, 0);
     }
-  }, [searchOpen])
+  }, [searchOpen]);
 
+  // ✅ Debounced search (local first, backend fallback)
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
     debounceRef.current = setTimeout(async () => {
       const query = searchQuery.trim().toLowerCase()
+
       if (!query) {
         clearValues().then(() => getImages(null))
         return
       }
 
       const queryParts = query.split(/\s+/)
-      let local
+      let local;
 
       if (/^\d{4}$/.test(query)) {
-        // 🎯 Exact year (e.g., 1933)
-        local = ImagesBackup.filter(img => String(img.year) === query)
+        local = Images.filter(img => String(img.year ?? '').trim() === query)
       } else if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
-        // 🎯 Decade search (e.g., 193, 193x, 1930s)
         const decadePrefix = query.slice(0, 3)
-        local = ImagesBackup.filter(img =>
-          String(img.year).startsWith(decadePrefix)
+        local = Images.filter(img =>
+          String(img.year ?? '').startsWith(decadePrefix)
         )
       } else {
-        const fuse = new Fuse(ImagesBackup, {
+        const fuse = new Fuse(Images, {
           keys: [
             { name: 'caption', weight: 0.6 },
             { name: 'alphaname', weight: 0.4 }
@@ -224,10 +228,9 @@ export default function Order() {
         })
         const fuseResults = fuse.search(query).map(r => r.item)
 
-        const autocompleteResults = ImagesBackup.filter(img => {
+        const autocompleteResults = Images.filter(img => {
           const dir = img.director?.toLowerCase() || ''
           const dim = img.dimensions?.slice(0, 6).toLowerCase() || ''
-
           return queryParts.every(part =>
             dir.split(/\s+/).some(word => word.startsWith(part)) ||
             dim.startsWith(part)
@@ -254,32 +257,30 @@ export default function Order() {
           director: photo.director || null,
           year: photo.year || null
         })))
-        return
-      }
-
-      // 🆘 Backend fallback
-      try {
-        __loader(true)
-        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ queryText: query })
-        })
-        const data = await res.json()
-        setImages(data.results)
-        setSlides(data.results.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director || null,
-          year: photo.year || null
-        })))
-      } catch (err) {
-        console.error('Remote search failed:', err)
-      } finally {
-        __loader(false)
+      } else {
+        try {
+          __loader(true)
+          const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ queryText: query })
+          })
+          const data = await res.json()
+          setImages(data.results)
+          setSlides(data.results.map(photo => ({
+            src: photo.src,
+            width: 1080 * 4,
+            height: 1620 * 4,
+            title: photo.caption,
+            description: photo.dimensions,
+            director: photo.director || null,
+            year: photo.year || null
+          })))
+        } catch (err) {
+          console.error('Remote search failed:', err)
+        } finally {
+          __loader(false)
+        }
       }
     }, 300)
   }, [searchQuery])
@@ -292,7 +293,6 @@ export default function Order() {
           <Link href={'/'}>
             <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
           </Link>
-
           <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
             {searchOpen ? (
               <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
@@ -305,9 +305,9 @@ export default function Order() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') {
-                        searchInputRef.current.blur()
-                        setSearchOpen(false)
-                        setSearchQuery('')
+                        searchInputRef.current.blur();
+                        setSearchOpen(false);
+                        setSearchQuery('');
                       }
                     }}
                     className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
@@ -361,11 +361,13 @@ export default function Order() {
       {!loader ? (
         <div className="px-4 lg:px-16 pb-10 relative top-[.5px]">
           <InfiniteScroll
-            className="mt-[-2px]"
+            className='mt-[-2px]'
             dataLength={Images.length}
             next={loadMoreByCondition}
             hasMore={hasMore}
-            loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
+            loader={
+              !searchQuery.trim() && hasMore ? <MoreImageLoader /> : null
+            }
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
@@ -393,7 +395,7 @@ export default function Order() {
                     {slide.title && (
                       <div className="yarl__slide_title">{slide.title}</div>
                     )}
-                    <div className={cn('!space-y-0', slide.director && '!mb-5')}>
+                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
                       {slide.director && (
                         <div className="yarl__slide_description !text-[#99AABB]">
                           <span className="font-medium">{slide.director}</span>
