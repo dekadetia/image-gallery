@@ -191,17 +191,17 @@ if (!rawQuery) {
   const fuseResults = fuse.search(rawQuery).map(r => r.item);
 
   // Autocomplete style for director, year, dimensions
-  const autocompleteResults = Images.filter(img => {
-    const dir = img.director?.toLowerCase() || '';
-    const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
-    const year = String(img.year || '');
+const autocompleteResults = Images.filter(img => {
+  const dir = img.director?.toLowerCase() || '';
+  const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
+  const year = String(img.year || '');
 
-    return queryParts.every(part =>
-      dir.split(/\s+/).some(word => word.startsWith(part)) ||
-      dim.startsWith(part) ||
-      year.startsWith(part)
-    );
-  });
+  return queryParts.every(part =>
+    dir.split(/\s+/).some(word => word.startsWith(part)) ||
+    dim.startsWith(part) ||
+    (part.length === 4 ? year === part : year.startsWith(part))
+  );
+});
 
   // Combine and deduplicate
   const seen = new Set();
