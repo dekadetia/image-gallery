@@ -196,69 +196,101 @@ useEffect(() => {
 }, [searchOpen]);
 
 
-  // ✅ Debounced search
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+// ✅ Debounced search
+useEffect(() => {
+  if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    debounceRef.current = setTimeout(async () => {
-      const query = searchQuery.trim().toLowerCase()
+  debounceRef.current = setTimeout(async () => {
+    const query = searchQuery.trim().toLowerCase()
 
-      if (!query) {
-        clearValues().then(() => getImages(null))
-        return
-      }
-      
-      // ✅ Local search only caption, director, year
-const fuse = new Fuse(Images, {
-  keys: ['caption', 'director', 'year'],
-  threshold: 0.3,
-  distance: 200,
-  includeScore: true
-});
+    if (!query) {
+      clearValues().then(() => getImages(null))
+      return
+    }
 
-const local = fuse.search(query).map(result => result.item);
+    // 🎯 Strict year and decade matching first
+    let local
+    if (/^\d{4}$/.test(query)) {
+      // Exact 4-digit year (e.g., 1933)
+      local = Images.filter(img => String(img.year) === query)
+    } else if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
+      // Decade queries (e.g., 193, 193x, 1930s → 1930–1939)
+      const decadePrefix = query.slice(0, 3)
+      local = Images.filter(img => String(img.year).startsWith(decadePrefix))
+    } else {
+      // ✅ Fuse for captions and alphaname
+      const fuse = new Fuse(Images, {
+        keys: [
+          { name: 'caption', weight: 0.6 },
+          { name: 'alphaname', weight: 0.4 }
+        ],
+        threshold: 0.4,
+        distance: 200,
+        includeScore: true
+      })
+      const fuseResults = fuse.search(query).map(r => r.item)
 
+      // ✅ Autocomplete for director and dimensions
+      const queryParts = query.split(/\s+/)
+      const autocompleteResults = Images.filter(img => {
+        const dir = img.director?.toLowerCase() || ''
+        const dim = img.dimensions?.slice(0, 6).toLowerCase() || ''
+        return queryParts.every(part =>
+          dir.split(/\s+/).some(word => word.startsWith(part)) ||
+          dim.startsWith(part)
+        )
+      })
 
-      if (local.length > 0) {
-        setImages(local)
-        setSlides(local.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director || null,
-          year: photo.year || null
-        })))
-        return
-      }
+      // ✅ Combine Fuse + autocomplete and deduplicate
+      const seen = new Set()
+      local = [...fuseResults, ...autocompleteResults].filter(img => {
+        const key = img.src
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+    }
 
-      // ✅ Backend fallback
-      try {
-        __loader(true)
-        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ queryText: query })
-        })
-        const data = await res.json()
-        setImages(data.results)
-        setSlides(data.results.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director || null,
-          year: photo.year || null
-        })))
-      } catch (err) {
-        console.error('Remote search failed:', err)
-      } finally {
-        __loader(false)
-      }
-    }, 300)
-  }, [searchQuery])
+    if (local.length > 0) {
+      setImages(local)
+      setSlides(local.map(photo => ({
+        src: photo.src,
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: photo.caption,
+        description: photo.dimensions,
+        director: photo.director || null,
+        year: photo.year || null
+      })))
+      return
+    }
+
+    // ✅ Backend fallback if local search fails
+    try {
+      __loader(true)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queryText: query })
+      })
+      const data = await res.json()
+      setImages(data.results)
+      setSlides(data.results.map(photo => ({
+        src: photo.src,
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: photo.caption,
+        description: photo.dimensions,
+        director: photo.director || null,
+        year: photo.year || null
+      })))
+    } catch (err) {
+      console.error('Remote search failed:', err)
+    } finally {
+      __loader(false)
+    }
+  }, 300)
+}, [searchQuery])
 
   return (
     <RootLayout>
