@@ -8,7 +8,7 @@ import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
 import Footer from '../../components/Footer'
-import Fuse from 'fuse.js';
+import Fuse from 'fuse.js'
 import MoreImageLoader from '../../components/MoreImageLoader'
 import RootLayout from '../layout'
 import InfiniteScroll from 'react-infinite-scroll-component'
@@ -26,53 +26,35 @@ export default function Order() {
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
-  const [FullImages, setFullImages] = useState([])
+  const [FullImages, setFullImages] = useState([]) // ⬅️ Store all images once
   const wasCalled = useRef(false)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
   const [loader, __loader] = useState(true)
   const [sort_loader, __sort_loader] = useState(true)
-
   const [order_key, __order_key] = useState(null)
   const [order_value, __order_value] = useState(null)
   const [order_key_2, __order_key_2] = useState(null)
   const [order_value_2, __order_value_2] = useState(null)
-
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const debounceRef = useRef(null)
 
   const getImages = async (token) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_by_key: 'alphaname',
-          order_by_value: 'asc',
-          size_limit: 99,
-          lastVisibleDocId: token
-        })
+        headers: { 'Content-Type': 'application/json' }
       })
 
       if (response.ok) {
         const data = await response.json()
         const images = data.images
 
-        if (images.length === 0) {
-          setHasMore(false)
-          return
-        }
-
+        setFullImages(images) // ⬅️ Save all images for searching
         setNextPageToken(data.nextPageToken)
-
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id))
-          const uniqueImages = images.filter(img => !existingIds.has(img.id))
-          return [...prevImages, ...uniqueImages]
-        })
-
-        const newSlides = images.map(photo => ({
+        setImages(images.slice(0, 99))
+        setSlides(images.slice(0, 99).map(photo => ({
           src: photo.src,
           width: 1080 * 4,
           height: 1620 * 4,
@@ -80,91 +62,12 @@ export default function Order() {
           description: photo.dimensions,
           director: photo.director || null,
           year: photo.year
-        }))
-
-        setSlides(prevSlides => {
-          const existingSrcs = new Set(prevSlides.map(slide => slide.src))
-          const uniqueSlides = newSlides.filter(slide => !existingSrcs.has(slide.src))
-          return [...prevSlides, ...uniqueSlides]
-        })
+        })))
       }
     } catch (error) {
       console.error('Error fetching files:', error)
     }
     __loader(false)
-  }
-
-  const getAllImages = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`)
-      if (response.ok) {
-        const data = await response.json()
-        setFullImages(data.images)
-      }
-    } catch (error) {
-      console.error('Error fetching full image list:', error)
-    }
-  }
-
-  const sortImages = async (order_key, order_value, order_key_2, order_value_2, size, token) => {
-    try {
-      __order_key(order_key)
-      __order_value(order_value)
-      __order_key_2(order_key_2)
-      __order_value_2(order_value_2)
-      __sort_loader(true)
-      setSorted(!isSorted)
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_by_key: order_key,
-          order_by_value: order_value,
-          order_by_key_2: order_key_2,
-          order_by_value_2: order_value_2,
-          size_limit: size,
-          lastVisibleDocId: token
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const images = data.images
-
-        if (images.length === 0) {
-          setHasMore(false)
-          return
-        }
-
-        setNextPageToken(data.nextPageToken)
-
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id))
-          const uniqueImages = images.filter(img => !existingIds.has(img.id))
-          return [...prevImages, ...uniqueImages]
-        })
-
-        const newSlides = images.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions
-        }))
-
-        setSlides(prevSlides => {
-          const existingSrcs = new Set(prevSlides.map(slide => slide.src))
-          const uniqueSlides = newSlides.filter(slide => !existingSrcs.has(slide.src))
-          return [...prevSlides, ...uniqueSlides]
-        })
-      }
-    } catch (error) {
-      console.error('Sort fetch error:', error)
-    } finally {
-      __sort_loader(false)
-      __loader(false)
-    }
   }
 
   const clearValues = () =>
@@ -176,122 +79,98 @@ export default function Order() {
       resolve()
     })
 
-  const loadMoreByCondition = () => {
-    if (searchQuery.trim()) return;
-    if (order_key === 'alphaname') {
-      sortImages(order_key, order_value, null, null, 99, nextPageToken)
-    } else if (
-      order_key === 'year' &&
-      order_key_2 === 'alphaname'
-    ) {
-      sortImages(order_key, order_value, order_key_2, order_value_2, 99, nextPageToken)
-    } else {
-      getImages(nextPageToken)
-    }
-  }
-
   useEffect(() => {
     if (wasCalled.current) return
     wasCalled.current = true
     __loader(true)
     getImages(nextPageToken)
-    getAllImages() // Fetch full dataset for search
     setSorted(true)
   }, [])
 
-// 🔥 Auto-focus search input when searchOpen becomes true
-useEffect(() => {
-  if (searchOpen && searchInputRef.current) {
-    setTimeout(() => {
-      searchInputRef.current.focus();
-    }, 0);
-  }
-}, [searchOpen]);
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current.focus()
+      }, 0)
+    }
+  }, [searchOpen])
 
-  // ✅ Debounced search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-
     debounceRef.current = setTimeout(() => {
       const query = searchQuery.trim().toLowerCase()
-
       if (!query) {
-        clearValues().then(() => getImages(null))
-        return
-      }
-
-      const queryParts = query.split(/\s+/)
-
-      let local
-
-      // 🎯 Strict year or decade searches
-      if (/^\d{4}$/.test(query)) {
-        local = FullImages.filter(img => String(img.year) === query)
-      } else if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
-        const decadePrefix = query.slice(0, 3)
-        local = FullImages.filter(img =>
-          String(img.year).startsWith(decadePrefix)
-        )
-      } else {
-        // ✅ Fuse for captions, alphaname, director, dimensions
-        const fuse = new Fuse(FullImages, {
-          keys: [
-            { name: 'caption', weight: 0.5 },
-            { name: 'alphaname', weight: 0.3 },
-            { name: 'director', weight: 0.15 },
-            {
-              name: 'dimensions',
-              getFn: obj => obj.dimensions?.slice(0, 6) || '',
-              weight: 0.05
-            }
-          ],
-          threshold: 0.3,
-          distance: 200,
-          includeScore: true
-        })
-        local = fuse.search(query).map(r => r.item)
-      }
-
-      if (local.length > 0) {
-        setImages(local)
-        setSlides(local.map(photo => ({
+        setImages(FullImages.slice(0, 99))
+        setSlides(FullImages.slice(0, 99).map(photo => ({
           src: photo.src,
           width: 1080 * 4,
           height: 1620 * 4,
           title: photo.caption,
           description: photo.dimensions,
           director: photo.director || null,
-          year: photo.year || null
+          year: photo.year
         })))
         return
       }
 
-      // ✅ Backend fallback
-      try {
-        __loader(true)
-        fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ queryText: query })
-        })
-          .then(res => res.json())
-          .then(data => {
-            setImages(data.results)
-            setSlides(data.results.map(photo => ({
-              src: photo.src,
-              width: 1080 * 4,
-              height: 1620 * 4,
-              title: photo.caption,
-              description: photo.dimensions,
-              director: photo.director || null,
-              year: photo.year || null
-            })))
-          })
-      } catch (err) {
-        console.error('Remote search failed:', err)
-      } finally {
-        __loader(false)
+      let local
+
+      // 📅 Decade queries: 193, 193x, 1930s
+      if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
+        const decadePrefix = query.slice(0, 3)
+        local = FullImages.filter(img =>
+          String(img.year).startsWith(decadePrefix)
+        )
       }
+      // 🎥 Exact year query: 1933
+      else if (/^\d{4}$/.test(query)) {
+        local = FullImages.filter(img =>
+          String(img.year) === query
+        )
+      }
+      // 📐 Strict aspect ratio: 1.33 or 1.33:1
+      else if (/^\d\.\d{2}(:1)?$/.test(query)) {
+        local = FullImages.filter(img =>
+          img.dimensions?.toLowerCase().startsWith(query)
+        )
+      }
+      else {
+        // 🔥 Fuse for captions/alphaname
+        const fuse = new Fuse(FullImages, {
+          keys: [
+            { name: 'caption', weight: 0.6 },
+            { name: 'alphaname', weight: 0.4 }
+          ],
+          threshold: 0.4,
+          distance: 200,
+          includeScore: true
+        })
+        const fuseResults = fuse.search(query).map(r => r.item)
+
+        // 🔥 Autocomplete for director
+        const autocompleteResults = FullImages.filter(img =>
+          img.director?.toLowerCase().includes(query)
+        )
+
+        const seen = new Set()
+        local = [...fuseResults, ...autocompleteResults].filter(img => {
+          const key = img.src
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+      }
+
+      setImages(local)
+      setSlides(local.map(photo => ({
+        src: photo.src,
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: photo.caption,
+        description: photo.dimensions,
+        director: photo.director || null,
+        year: photo.year || null
+      })))
     }, 300)
   }, [searchQuery])
 
@@ -303,27 +182,25 @@ useEffect(() => {
           <Link href={'/'}>
             <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
           </Link>
-
           <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
             {searchOpen ? (
               <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
                 <div className="relative w-full">
-<input
-  ref={searchInputRef}
-  type="text"
-  placeholder=""
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
-  onKeyDown={(e) => {
-    if (e.key === 'Escape') {
-      searchInputRef.current.blur()
-      setSearchOpen(false)
-      setSearchQuery('')
-    }
-  }}
-  className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
-/>
-
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder=""
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        searchInputRef.current.blur()
+                        setSearchOpen(false)
+                        setSearchQuery('')
+                      }
+                    }}
+                    className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
+                  />
                   <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
                     <RxCross1 className="absolute right-3 top-2.5 text-white" />
                   </div>
@@ -336,7 +213,7 @@ useEffect(() => {
                   onClick={() => {
                     clearValues().then(() => {
                       __loader(true)
-                      sortImages('alphaname', 'asc', null, null, Images.length, null)
+                      sortImages('alphaname', 'asc', null, null, FullImages.length, null)
                     })
                   }}
                 />
@@ -349,7 +226,7 @@ useEffect(() => {
                     onClick={() => {
                       clearValues().then(() => {
                         __loader(true)
-                        sortImages('year', 'desc', 'alphaname', 'asc', Images.length, null)
+                        sortImages('year', 'desc', 'alphaname', 'asc', FullImages.length, null)
                       })
                     }}
                   />
@@ -359,7 +236,7 @@ useEffect(() => {
                     onClick={() => {
                       clearValues().then(() => {
                         __loader(true)
-                        sortImages('year', 'asc', 'alphaname', 'asc', Images.length, null)
+                        sortImages('year', 'asc', 'alphaname', 'asc', FullImages.length, null)
                       })
                     }}
                   />
