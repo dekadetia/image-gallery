@@ -168,7 +168,7 @@ export default function Index() {
     }
   };
 
-// 🔥 Smarter dynamic search logic with quotes fixed
+// 🔥 Smarter dynamic search logic with strict quotes working
 const rawQuery = searchQuery.trim();
 const isQuoted = /^".+"$/.test(rawQuery);
 const query = isQuoted ? rawQuery.slice(1, -1).trim().toLowerCase() : rawQuery.toLowerCase();
@@ -196,9 +196,9 @@ if (isAspectRatio) {
   filteredImages = fuse.search(query).map(r => r.item);
 
 } else if (isExactYear) {
-  // Exact match on year
+  // Exact match on year (normalize to string)
   filteredImages = Images.filter(img =>
-    String(img.year) === query
+    String(img.year).trim() === query
   );
 
 } else if (isDecade) {
@@ -209,26 +209,35 @@ if (isAspectRatio) {
   );
 
 } else if (searchQuery) {
-  // General fuzzy search (quoted → tighter threshold)
-  const fuse = new Fuse(Images, {
+  // General fuzzy search
+  const fuseOptions = {
     keys: [
       { name: 'caption', weight: 0.3 },
       { name: 'alphaname', weight: 0.3 },
       { name: 'year', weight: 0.1 },
       { name: 'director', weight: 0.5 }
     ],
-    threshold: isQuoted ? 0.1 : 0.4, // 🔥 less strict than 0.01 for quotes
-    distance: isQuoted ? 20 : 200,
+    threshold: 0.4,
+    distance: 200,
     includeScore: true
-  });
-  filteredImages = fuse.search(query).map(r => r.item);
+  };
+
+  // If quoted, use extended search exact operator
+  if (isQuoted) {
+    fuseOptions.useExtendedSearch = true;
+    filteredImages = new Fuse(Images, fuseOptions)
+      .search(`="${query}"`) // 🔥 Exact match operator
+      .map(r => r.item);
+  } else {
+    filteredImages = new Fuse(Images, fuseOptions)
+      .search(query)
+      .map(r => r.item);
+  }
 
 } else {
   // No search query
   filteredImages = Images;
 }
-
-
 
 
   useEffect(() => {
