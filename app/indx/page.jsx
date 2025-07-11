@@ -168,22 +168,50 @@ export default function Index() {
     }
   };
 
-const fuse = new Fuse(Images, {
-  keys: ['caption', 'alphaname', 'year', 'director',
-    {
-      name: 'dimensions',
-      getFn: (obj) => obj.dimensions?.slice(0, 6) || ''
-    }
-  ],
-  threshold: 0.3,        // your chosen fuzziness level
-  distance: 200,         // allows letters farther apart
-  includeScore: true     // optional: relevance scores
-});
+// 🔥 Hybrid search: Fuse for captions/alphaname + autocomplete for director/year/dimensions
+const rawQuery = searchQuery.trim().toLowerCase();
+const queryParts = rawQuery.split(/\s+/);
 
-const filteredImages = searchQuery
-  ? fuse.search(searchQuery).map(result => result.item)
-  : Images;
+let filteredImages;
 
+if (!rawQuery) {
+  filteredImages = Images;
+} else {
+  // Fuse for caption + alphaname
+  const fuse = new Fuse(Images, {
+    keys: [
+      { name: 'caption', weight: 0.6 },
+      { name: 'alphaname', weight: 0.4 }
+    ],
+    threshold: 0.4,
+    distance: 200,
+    includeScore: true
+  });
+
+  const fuseResults = fuse.search(rawQuery).map(r => r.item);
+
+  // Autocomplete style for director, year, dimensions
+  const autocompleteResults = Images.filter(img => {
+    const dir = img.director?.toLowerCase() || '';
+    const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
+    const year = String(img.year || '');
+
+    return queryParts.every(part =>
+      dir.split(/\s+/).some(word => word.startsWith(part)) ||
+      dim.startsWith(part) ||
+      year.startsWith(part)
+    );
+  });
+
+  // Combine and deduplicate
+  const seen = new Set();
+  filteredImages = [...fuseResults, ...autocompleteResults].filter(img => {
+    const key = img.src;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 
 
