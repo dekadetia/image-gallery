@@ -168,17 +168,17 @@ export default function Index() {
     }
   };
 
-// 🔥 Smarter dynamic search logic with quoted exact matches
-const query = searchQuery.trim().toLowerCase();
+// 🔥 Smarter dynamic search logic with quotes fixed
+const rawQuery = searchQuery.trim();
+const isQuoted = /^".+"$/.test(rawQuery);
+const query = isQuoted ? rawQuery.slice(1, -1).trim().toLowerCase() : rawQuery.toLowerCase();
 
-// Detect query types
+// Detect query types (after unquoting)
 const isAspectRatio = /^\d+(\.\d+)?(:1)?$/.test(query); // "1.33" or "1.33:1"
 const isExactYear = /^\d{4}$/.test(query);              // "1933"
 const isDecade = /^\d{3}$/.test(query)                  // "193"
-                 || /^\d{3}x$/.test(query)              // "193x"
-                 || /^\d{4}s$/.test(query);             // "1930s"
-const isQuoted = /^".+"$/.test(query);                  // Quoted exact search
-const unquotedQuery = isQuoted ? query.slice(1, -1).trim() : query;
+               || /^\d{3}x$/.test(query)                // "193x"
+               || /^\d{4}s$/.test(query);               // "1930s"
 
 let filteredImages;
 
@@ -193,40 +193,41 @@ if (isAspectRatio) {
     distance: 5,
     includeScore: true
   });
-  filteredImages = fuse.search(unquotedQuery).map(r => r.item);
+  filteredImages = fuse.search(query).map(r => r.item);
 
 } else if (isExactYear) {
   // Exact match on year
   filteredImages = Images.filter(img =>
-    String(img.year) === unquotedQuery
+    String(img.year) === query
   );
 
 } else if (isDecade) {
   // Decade match (193, 193x, 1930s → 1930–1939)
-  const decadePrefix = unquotedQuery.slice(0, 3);
+  const decadePrefix = query.slice(0, 3);
   filteredImages = Images.filter(img =>
     String(img.year).startsWith(decadePrefix)
   );
 
 } else if (searchQuery) {
-  // General fuzzy search (quoted → strict, unquoted → forgiving)
+  // General fuzzy search (quoted → tighter threshold)
   const fuse = new Fuse(Images, {
     keys: [
       { name: 'caption', weight: 0.3 },
       { name: 'alphaname', weight: 0.3 },
       { name: 'year', weight: 0.1 },
-      { name: 'director', weight: 0.5 } // forgiving director matching
+      { name: 'director', weight: 0.5 }
     ],
-    threshold: isQuoted ? 0.01 : 0.4, // 🔥 stricter if quoted
-    distance: isQuoted ? 5 : 200,
+    threshold: isQuoted ? 0.1 : 0.4, // 🔥 less strict than 0.01 for quotes
+    distance: isQuoted ? 20 : 200,
     includeScore: true
   });
-  filteredImages = fuse.search(unquotedQuery).map(r => r.item);
+  filteredImages = fuse.search(query).map(r => r.item);
 
 } else {
   // No search query
   filteredImages = Images;
 }
+
 
 
 
