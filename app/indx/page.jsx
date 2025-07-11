@@ -168,37 +168,29 @@ export default function Index() {
     }
   };
 
-// 🔥 Smarter dynamic search logic with quotes fixed and integers safe
 const rawQuery = searchQuery.trim();
 const isQuoted = /^".+"$/.test(rawQuery);
 const query = isQuoted ? rawQuery.slice(1, -1).trim().toLowerCase() : rawQuery.toLowerCase();
 
-// Detect query types (after unquoting)
-const isAspectRatio = /^\d+(\.\d+)?(:1)?$/.test(query); // "1.33" or "1.33:1"
-const isExactYear = /^\d{4}$/.test(query);              // "1933"
-const isDecade = /^\d{3}$/.test(query)                  // "193"
-               || /^\d{3}x$/.test(query)                // "193x"
-               || /^\d{4}s$/.test(query);               // "1930s"
+// Detect query types
+const isAspectRatio = /^\d+(\.\d+)?(:1)?$/.test(query); // e.g., "1.33" or "1.33:1"
+const isExactYear = /^\d{4}$/.test(query);              // e.g., "1933"
+const isDecade = /^\d{3}$/.test(query)                  // e.g., "193"
+               || /^\d{3}x$/.test(query)                // e.g., "193x"
+               || /^\d{4}s$/.test(query);               // e.g., "1930s"
 
 let filteredImages;
 
 if (isAspectRatio) {
   // Strict match on dimensions
-  const fuse = new Fuse(Images, {
-    keys: [{
-      name: 'dimensions',
-      getFn: (obj) => obj.dimensions?.slice(0, 6) || ''
-    }],
-    threshold: 0.01,
-    distance: 5,
-    includeScore: true
-  });
-  filteredImages = fuse.search(query).map(r => r.item);
+  filteredImages = Images.filter(img =>
+    img.dimensions?.slice(0, 6).toLowerCase() === query
+  );
 
 } else if (isExactYear) {
-  // Exact match on year (normalize year field to string)
+  // Exact match on year
   filteredImages = Images.filter(img =>
-    String(img.year).trim() === query
+    String(img.year) === query
   );
 
 } else if (isDecade) {
@@ -209,21 +201,18 @@ if (isAspectRatio) {
   );
 
 } else if (searchQuery) {
-  // General fuzzy search
-  const fuseOptions = {
+  // General fuzzy search for text
+  const fuse = new Fuse(Images, {
     keys: [
       { name: 'caption', weight: 0.3 },
       { name: 'alphaname', weight: 0.3 },
       { name: 'year', weight: 0.1 },
       { name: 'director', weight: 0.5 }
     ],
-    threshold: isQuoted ? 0.2 : 0.4, // 🔥 tighter for quoted text but not too strict
-    distance: isQuoted ? 50 : 200,
+    threshold: isQuoted ? 0.2 : 0.4, // tighter for quoted but not strict
+    distance: 200,
     includeScore: true
-  };
-
-  const fuse = new Fuse(Images, fuseOptions);
-
+  });
   filteredImages = fuse.search(query).map(r => r.item);
 
 } else {
