@@ -26,6 +26,7 @@ export default function Order() {
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
+  const [FullImages, setFullImages] = useState([]) // 🆕 hold full dataset
   const wasCalled = useRef(false)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
@@ -65,10 +66,16 @@ export default function Order() {
 
         setNextPageToken(data.nextPageToken)
 
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id))
-          const uniqueImages = images.filter(img => !existingIds.has(img.id))
-          return [...prevImages, ...uniqueImages]
+        setImages(prev => {
+          const existingIds = new Set(prev.map(img => img.id))
+          const unique = images.filter(img => !existingIds.has(img.id))
+          return [...prev, ...unique]
+        })
+
+        setFullImages(prev => {
+          const existingIds = new Set(prev.map(img => img.id))
+          const unique = images.filter(img => !existingIds.has(img.id))
+          return [...prev, ...unique]
         })
 
         const newSlides = images.map(photo => ({
@@ -81,10 +88,10 @@ export default function Order() {
           year: photo.year
         }))
 
-        setSlides(prevSlides => {
-          const existingSrcs = new Set(prevSlides.map(slide => slide.src))
-          const uniqueSlides = newSlides.filter(slide => !existingSrcs.has(slide.src))
-          return [...prevSlides, ...uniqueSlides]
+        setSlides(prev => {
+          const existingSrcs = new Set(prev.map(slide => slide.src))
+          const unique = newSlides.filter(slide => !existingSrcs.has(slide.src))
+          return [...prev, ...unique]
         })
       }
     } catch (error) {
@@ -126,10 +133,16 @@ export default function Order() {
 
         setNextPageToken(data.nextPageToken)
 
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id))
-          const uniqueImages = images.filter(img => !existingIds.has(img.id))
-          return [...prevImages, ...uniqueImages]
+        setImages(prev => {
+          const existingIds = new Set(prev.map(img => img.id))
+          const unique = images.filter(img => !existingIds.has(img.id))
+          return [...prev, ...unique]
+        })
+
+        setFullImages(prev => {
+          const existingIds = new Set(prev.map(img => img.id))
+          const unique = images.filter(img => !existingIds.has(img.id))
+          return [...prev, ...unique]
         })
 
         const newSlides = images.map(photo => ({
@@ -140,10 +153,10 @@ export default function Order() {
           description: photo.dimensions
         }))
 
-        setSlides(prevSlides => {
-          const existingSrcs = new Set(prevSlides.map(slide => slide.src))
-          const uniqueSlides = newSlides.filter(slide => !existingSrcs.has(slide.src))
-          return [...prevSlides, ...uniqueSlides]
+        setSlides(prev => {
+          const existingSrcs = new Set(prev.map(slide => slide.src))
+          const unique = newSlides.filter(slide => !existingSrcs.has(slide.src))
+          return [...prev, ...unique]
         })
       }
     } catch (error) {
@@ -157,8 +170,8 @@ export default function Order() {
   const clearValues = () =>
     new Promise(resolve => {
       setImages([])
-      setNextPageToken(null)
       setSlides([])
+      setNextPageToken(null)
       setHasMore(true)
       resolve()
     })
@@ -167,10 +180,7 @@ export default function Order() {
     if (searchQuery.trim()) return;
     if (order_key === 'alphaname') {
       sortImages(order_key, order_value, null, null, 99, nextPageToken)
-    } else if (
-      order_key === 'year' &&
-      order_key_2 === 'alphaname'
-    ) {
+    } else if (order_key === 'year' && order_key_2 === 'alphaname') {
       sortImages(order_key, order_value, order_key_2, order_value_2, 99, nextPageToken)
     } else {
       getImages(nextPageToken)
@@ -185,39 +195,32 @@ export default function Order() {
     setSorted(true)
   }, [])
 
-  // 🔥 Auto-focus search input when searchOpen becomes true
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => {
         searchInputRef.current.focus();
       }, 0);
     }
-  }, [searchOpen]);
+  }, [searchOpen])
 
-  // ✅ Debounced search (local first, backend fallback)
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    debounceRef.current = setTimeout(async () => {
+    debounceRef.current = setTimeout(() => {
       const query = searchQuery.trim().toLowerCase()
-
       if (!query) {
         clearValues().then(() => getImages(null))
         return
       }
 
-      const queryParts = query.split(/\s+/)
       let local;
-
       if (/^\d{4}$/.test(query)) {
-        local = Images.filter(img => String(img.year ?? '').trim() === query)
+        local = FullImages.filter(img => String(img.year) === query);
       } else if (/^\d{3}$/.test(query) || /^\d{3}x$/.test(query) || /^\d{4}s$/.test(query)) {
-        const decadePrefix = query.slice(0, 3)
-        local = Images.filter(img =>
-          String(img.year ?? '').startsWith(decadePrefix)
-        )
+        const decadePrefix = query.slice(0, 3);
+        local = FullImages.filter(img => String(img.year).startsWith(decadePrefix));
       } else {
-        const fuse = new Fuse(Images, {
+        const fuse = new Fuse(FullImages, {
           keys: [
             { name: 'caption', weight: 0.6 },
             { name: 'alphaname', weight: 0.4 }
@@ -226,12 +229,12 @@ export default function Order() {
           distance: 200,
           includeScore: true
         })
-        const fuseResults = fuse.search(query).map(r => r.item)
+        const fuseResults = fuse.search(query).map(r => r.item);
 
-        const autocompleteResults = Images.filter(img => {
-          const dir = img.director?.toLowerCase() || ''
-          const dim = img.dimensions?.slice(0, 6).toLowerCase() || ''
-          return queryParts.every(part =>
+        const autocompleteResults = FullImages.filter(img => {
+          const dir = img.director?.toLowerCase() || '';
+          const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
+          return query.split(/\s+/).every(part =>
             dir.split(/\s+/).some(word => word.startsWith(part)) ||
             dim.startsWith(part)
           )
@@ -257,33 +260,38 @@ export default function Order() {
           director: photo.director || null,
           year: photo.year || null
         })))
-      } else {
-        try {
-          __loader(true)
-          const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ queryText: query })
+        return
+      }
+
+      // Backend fallback
+      try {
+        __loader(true)
+        fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queryText: query })
+        })
+          .then(res => res.json())
+          .then(data => {
+            setImages(data.results)
+            setSlides(data.results.map(photo => ({
+              src: photo.src,
+              width: 1080 * 4,
+              height: 1620 * 4,
+              title: photo.caption,
+              description: photo.dimensions,
+              director: photo.director || null,
+              year: photo.year || null
+            })))
           })
-          const data = await res.json()
-          setImages(data.results)
-          setSlides(data.results.map(photo => ({
-            src: photo.src,
-            width: 1080 * 4,
-            height: 1620 * 4,
-            title: photo.caption,
-            description: photo.dimensions,
-            director: photo.director || null,
-            year: photo.year || null
-          })))
-        } catch (err) {
-          console.error('Remote search failed:', err)
-        } finally {
-          __loader(false)
-        }
+      } catch (err) {
+        console.error('Remote search failed:', err)
+      } finally {
+        __loader(false)
       }
     }, 300)
   }, [searchQuery])
+
 
   return (
     <RootLayout>
