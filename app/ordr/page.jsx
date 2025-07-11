@@ -26,7 +26,7 @@ export default function Order() {
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
-  const [FullImages, setFullImages] = useState([]) // 🆕 hold full dataset
+  const [FullImages, setFullImages] = useState([]) // 🆕 preload all pages
   const wasCalled = useRef(false)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
@@ -41,6 +41,32 @@ export default function Order() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const debounceRef = useRef(null)
+
+  // 🆕 Preload all pages into FullImages
+  const preloadAllPages = async () => {
+    let token = null;
+    let allImages = [];
+    try {
+      do {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_by_key: 'alphaname',
+            order_by_value: 'asc',
+            size_limit: 99,
+            lastVisibleDocId: token
+          })
+        })
+        const data = await response.json();
+        allImages = [...allImages, ...data.images];
+        token = data.nextPageToken;
+      } while (token);
+      setFullImages(allImages);
+    } catch (error) {
+      console.error('Error preloading all pages:', error)
+    }
+  }
 
   const getImages = async (token) => {
     try {
@@ -67,12 +93,6 @@ export default function Order() {
         setNextPageToken(data.nextPageToken)
 
         setImages(prev => {
-          const existingIds = new Set(prev.map(img => img.id))
-          const unique = images.filter(img => !existingIds.has(img.id))
-          return [...prev, ...unique]
-        })
-
-        setFullImages(prev => {
           const existingIds = new Set(prev.map(img => img.id))
           const unique = images.filter(img => !existingIds.has(img.id))
           return [...prev, ...unique]
@@ -139,12 +159,6 @@ export default function Order() {
           return [...prev, ...unique]
         })
 
-        setFullImages(prev => {
-          const existingIds = new Set(prev.map(img => img.id))
-          const unique = images.filter(img => !existingIds.has(img.id))
-          return [...prev, ...unique]
-        })
-
         const newSlides = images.map(photo => ({
           src: photo.src,
           width: 1080 * 4,
@@ -192,6 +206,7 @@ export default function Order() {
     wasCalled.current = true
     __loader(true)
     getImages(nextPageToken)
+    preloadAllPages(); // 🆕 Preload all pages at mount
     setSorted(true)
   }, [])
 
@@ -262,35 +277,9 @@ export default function Order() {
         })))
         return
       }
-
-      // Backend fallback
-      try {
-        __loader(true)
-        fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ queryText: query })
-        })
-          .then(res => res.json())
-          .then(data => {
-            setImages(data.results)
-            setSlides(data.results.map(photo => ({
-              src: photo.src,
-              width: 1080 * 4,
-              height: 1620 * 4,
-              title: photo.caption,
-              description: photo.dimensions,
-              director: photo.director || null,
-              year: photo.year || null
-            })))
-          })
-      } catch (err) {
-        console.error('Remote search failed:', err)
-      } finally {
-        __loader(false)
-      }
     }, 300)
   }, [searchQuery])
+
 
 
   return (
