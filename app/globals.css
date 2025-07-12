@@ -285,3 +285,7 @@ html {
         height: auto !important
     }
 }
+
+body.blackmode-hide-cursor * {
+    cursor: none !important;
+}
