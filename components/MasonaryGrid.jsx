@@ -7,11 +7,11 @@ import MoreImageLoader from "../components/MoreImageLoader/index";
 
 import InfiniteScroll from "react-infinite-scroll-component";
 import Loader from "./loader/loader";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
 export default function MasonaryGrid() {
@@ -73,7 +73,7 @@ export default function MasonaryGrid() {
             title: `${photo.caption}`,
             description: photo.dimensions,
             director: photo.director || null,
-            year: photo.year,
+            year: photo.year
           };
         });
 
@@ -81,7 +81,6 @@ export default function MasonaryGrid() {
       }
     } catch (error) {
       console.log(error);
-      // errorToast("Error fetching files");
     }
 
     __loader(false);
@@ -95,20 +94,20 @@ export default function MasonaryGrid() {
     getImages(nextPageToken);
   }, []);
 
-  // 🩹 MutationObserver to remove title="Close"
+  // 🩹 Remove title="Close" dynamically when Lightbox opens
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      document
-        .querySelectorAll('.yarl__button[title="Close"]')
-        .forEach((btn) => {
-          btn.removeAttribute("title");
+    if (index >= 0) {
+      const observer = new MutationObserver(() => {
+        document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+          btn.removeAttribute('title');
         });
-    });
+      });
 
-    observer.observe(document.body, { childList: true, subtree: true });
+      observer.observe(document.body, { childList: true, subtree: true });
 
-    return () => observer.disconnect();
-  }, []);
+      return () => observer.disconnect();
+    }
+  }, [index]);
 
   return (
     <>
@@ -157,13 +156,11 @@ export default function MasonaryGrid() {
                         </div>
                       )}
                       {slide.description && (
-                        <div className="yarl__slide_description">
-                          {slide.description}
-                        </div>
+                        <div className="yarl__slide_description">{slide.description}</div>
                       )}
                     </div>
                   </div>
-                ),
+                )
               }}
             />
           )}
