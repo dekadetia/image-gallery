@@ -8,7 +8,7 @@ import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
 import Footer from '../../components/Footer'
-import Fuse from 'fuse.js';
+import Fuse from 'fuse.js'
 import MoreImageLoader from '../../components/MoreImageLoader'
 import RootLayout from '../layout'
 import InfiniteScroll from 'react-infinite-scroll-component'
@@ -21,12 +21,12 @@ export function cn(...inputs) {
 }
 
 export default function Order() {
-  const searchInputRef = useRef(null);
+  const searchInputRef = useRef(null)
   const [isSorted, setSorted] = useState(false)
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
-  const [FullImages, setFullImages] = useState([]) // ✅ All images preloaded
+  const [FullImages, setFullImages] = useState([])
   const wasCalled = useRef(false)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
@@ -98,7 +98,7 @@ export default function Order() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images-no-limit`)
       const data = await res.json()
       if (data.success) {
-        setFullImages(data.images) // ✅ Preload all images
+        setFullImages(data.images)
       }
     } catch (error) {
       console.error('Error preloading all images:', error)
@@ -150,7 +150,7 @@ export default function Order() {
           height: 1620 * 4,
           title: photo.caption,
           description: photo.dimensions,
-          director: photo.director // ✅ Fix: preserve director
+          director: photo.director
         }))
 
         setSlides(prevSlides => {
@@ -177,7 +177,7 @@ export default function Order() {
     })
 
   const loadMoreByCondition = () => {
-    if (searchQuery.trim()) return;
+    if (searchQuery.trim()) return
     if (order_key === 'alphaname') {
       sortImages(order_key, order_value, null, null, 99, nextPageToken)
     } else if (
@@ -194,38 +194,42 @@ export default function Order() {
     if (wasCalled.current) return
     wasCalled.current = true
     __loader(true)
-    getAllImagesNoLimit() // ✅ Preload all images
+    getAllImagesNoLimit()
     getImages(nextPageToken)
     setSorted(true)
   }, [])
 
-  // 🔥 Auto-focus search input when searchOpen becomes true
+  // 🩹 MutationObserver to remove title="Close"
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+        btn.removeAttribute('title')
+      })
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
+
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => {
-        searchInputRef.current.focus();
-      }, 0);
+        searchInputRef.current.focus()
+      }, 0)
     }
-  }, [searchOpen]);
+  }, [searchOpen])
 
-  // ✅ Tightened Search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-
     debounceRef.current = setTimeout(async () => {
       const rawQuery = searchQuery.trim().toLowerCase()
       if (!rawQuery) {
         clearValues().then(() => getImages(null))
         return
       }
-
-      // 🎯 Exact year or decade → backend only
       if (/^\d{4}$/.test(rawQuery) || /^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
-        fetchBackendSearch(rawQuery);
-        return;
+        fetchBackendSearch(rawQuery)
+        return
       }
-
-      // 🔥 Fuzzy text search
       const fuse = new Fuse(FullImages, {
         keys: [
           { name: 'caption', weight: 0.7 },
@@ -235,15 +239,12 @@ export default function Order() {
         threshold: 0.3,
         distance: 100,
         includeScore: true
-      });
+      })
       const fuseResults = fuse.search(rawQuery).map(r => r.item)
-
-      // Fallback if Fuse too weak
       if (fuseResults.length < 5) {
-        fetchBackendSearch(rawQuery);
-        return;
+        fetchBackendSearch(rawQuery)
+        return
       }
-
       setImages(fuseResults)
       setSlides(fuseResults.map(photo => ({
         src: photo.src,
@@ -361,9 +362,7 @@ export default function Order() {
             dataLength={Images.length}
             next={loadMoreByCondition}
             hasMore={hasMore}
-            loader={
-              !searchQuery.trim() && hasMore ? <MoreImageLoader /> : null
-            }
+            loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
