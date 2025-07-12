@@ -56,7 +56,6 @@ export default function Index() {
         }
 
         setNextPageToken(data.nextPageToken);
-        console.log(images)
         setImages(images);
 
         const newSlides = images.map((photo) => {
@@ -226,22 +225,26 @@ export default function Index() {
     }
   }, [searchOpen]);
 
-  // 🩹 MutationObserver to remove title="Close"
+  // 🩹 Delayed MutationObserver to remove title="Close"
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
-        btn.removeAttribute('title')
-      })
-    })
+    const timeout = setTimeout(() => {
+      const observer = new MutationObserver(() => {
+        document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+          btn.removeAttribute('title');
+        });
+      });
 
-    observer.observe(document.body, { childList: true, subtree: true })
+      observer.observe(document.body, { childList: true, subtree: true });
 
-    return () => observer.disconnect()
-  }, [])
+      return () => observer.disconnect();
+    }, 500); // Wait 500ms for Lightbox to mount
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
     <RootLayout>
-      {/* your unchanged JSX remains here */}
+      {/* ✅ Your unchanged JSX remains here */}
     </RootLayout>
   );
 }
