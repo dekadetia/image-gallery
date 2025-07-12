@@ -15,10 +15,12 @@ export default function FadeGallery() {
     const poolRef = useRef([])
     const intervalRef = useRef(null)
     const loadingRef = useRef(false)
-    const isInitialLoad = useRef(true) // 🆕 Prevent repeat bulk fills
+    const isInitialLoad = useRef(true)
     const [loader, __loader] = useState(true)
 
-    const [blackMode, setBlackMode] = useState(false) // 🆕 Toggle state
+    const [blackMode, setBlackMode] = useState(false) // 🆕 Black Mode toggle
+    const [hideCursor, setHideCursor] = useState(false) // 🆕 Cursor hide state
+    const cursorTimerRef = useRef(null) // 🆕 Cursor timer
 
     // Lightbox state
     const [index, setIndex] = useState(-1)
@@ -71,15 +73,12 @@ export default function FadeGallery() {
     const pickSlot = () => {
         fadeCount.current++
 
-        // Sort slots by oldest last update first
         const sortedSlots = lastUpdatedRef.current
             .map((lastUpdate, index) => ({ index, lastUpdate }))
             .sort((a, b) => a.lastUpdate - b.lastUpdate)
 
-        // Exclude the slot used last time
         const candidates = sortedSlots.filter(s => s.index !== lastSlotRef.current)
 
-        // Randomly pick one of the oldest candidates
         const chosen = candidates[Math.floor(Math.random() * candidates.length)]
         lastUpdatedRef.current[chosen.index] = fadeCount.current
         lastSlotRef.current = chosen.index
@@ -134,11 +133,51 @@ export default function FadeGallery() {
     const toggleBlackMode = () => {
         if (!blackMode) {
             document.body.style.backgroundColor = '#000000'
+
+            // 🆕 Try to enter fullscreen
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn('Fullscreen request failed:', err)
+                })
+            }
         } else {
             document.body.style.backgroundColor = ''
+
+            // 🆕 Exit fullscreen if active
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(err => {
+                    console.warn('Exiting fullscreen failed:', err)
+                })
+            }
         }
         setBlackMode(!blackMode)
     }
+
+    // 🆕 Cursor hide logic in Black Mode
+    useEffect(() => {
+        const handleMouseMove = () => {
+            clearTimeout(cursorTimerRef.current)
+            setHideCursor(false)
+
+            if (blackMode) {
+                cursorTimerRef.current = setTimeout(() => {
+                    setHideCursor(true)
+                }, 3000) // 3 seconds idle
+            }
+        }
+
+        if (blackMode) {
+            window.addEventListener('mousemove', handleMouseMove)
+        } else {
+            clearTimeout(cursorTimerRef.current)
+            setHideCursor(false)
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove)
+            clearTimeout(cursorTimerRef.current)
+        }
+    }, [blackMode])
 
     return (
         <RootLayout>
@@ -159,7 +198,7 @@ export default function FadeGallery() {
                 tabIndex={-1}
             />
 
-            <div className={`${blackMode ? 'fixed inset-0 flex justify-center items-center bg-black z-50' : 'px-4 lg:px-16 pb-10'}`}>
+            <div className={`${blackMode ? `fixed inset-0 flex justify-center items-center bg-black z-50 ${hideCursor ? 'cursor-none' : ''}` : 'px-4 lg:px-16 pb-10'}`}>
                 {/* Navigation */}
                 {!blackMode && (
                     <div className='w-full flex justify-center items-center py-9'>
