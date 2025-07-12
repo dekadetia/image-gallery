@@ -82,6 +82,19 @@ export default function FadeGallery() {
         return () => clearInterval(intervalRef.current)
     }, [])
 
+    // 🩹 MutationObserver to remove title="Close"
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+                btn.removeAttribute('title')
+            })
+        })
+
+        observer.observe(document.body, { childList: true, subtree: true })
+
+        return () => observer.disconnect()
+    }, [])
+
     const openLightboxByImage = (photo) => {
         const matchedIndex = slides.findIndex((slide) => slide.src === photo.src)
         if (matchedIndex !== -1) {
