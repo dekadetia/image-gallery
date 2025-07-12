@@ -78,8 +78,7 @@ export default function Order() {
           height: 1620 * 4,
           title: photo.caption,
           description: photo.dimensions,
-          director: photo.director || null,
-          year: photo.year
+          director: photo.director
         }))
 
         setSlides(prevSlides => {
@@ -151,8 +150,7 @@ export default function Order() {
           height: 1620 * 4,
           title: photo.caption,
           description: photo.dimensions,
-          director: photo.director || null
-
+          director: photo.director // ✅ Fix: preserve director
         }))
 
         setSlides(prevSlides => {
@@ -210,67 +208,78 @@ export default function Order() {
     }
   }, [searchOpen]);
 
-  // ✅ Debounced search
+  // ✅ Tightened Search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
     debounceRef.current = setTimeout(async () => {
-      const query = searchQuery.trim().toLowerCase()
-
-      if (!query) {
+      const rawQuery = searchQuery.trim().toLowerCase()
+      if (!rawQuery) {
         clearValues().then(() => getImages(null))
         return
       }
 
-      const fuse = new Fuse(FullImages, { // ✅ Use FullImages for Fuse
-        keys: ['caption', 'director', 'year'],
+      // 🎯 Exact year or decade → backend only
+      if (/^\d{4}$/.test(rawQuery) || /^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
+        fetchBackendSearch(rawQuery);
+        return;
+      }
+
+      // 🔥 Fuzzy text search
+      const fuse = new Fuse(FullImages, {
+        keys: [
+          { name: 'caption', weight: 0.7 },
+          { name: 'alphaname', weight: 0.2 },
+          { name: 'director', weight: 0.1 }
+        ],
         threshold: 0.3,
-        distance: 200,
+        distance: 100,
         includeScore: true
-      })
+      });
+      const fuseResults = fuse.search(rawQuery).map(r => r.item)
 
-      const local = fuse.search(query).map(result => result.item)
-
-      if (local.length > 0) {
-        setImages(local)
-        setSlides(local.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director || null,
-          year: photo.year || null
-        })))
-        return
+      // Fallback if Fuse too weak
+      if (fuseResults.length < 5) {
+        fetchBackendSearch(rawQuery);
+        return;
       }
 
-      // ✅ Backend fallback
-      try {
-        __loader(true)
-        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ queryText: query })
-        })
-        const data = await res.json()
-        setImages(data.results)
-        setSlides(data.results.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director || null,
-          year: photo.year || null
-        })))
-      } catch (err) {
-        console.error('Remote search failed:', err)
-      } finally {
-        __loader(false)
-      }
+      setImages(fuseResults)
+      setSlides(fuseResults.map(photo => ({
+        src: photo.src,
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: photo.caption,
+        description: photo.dimensions,
+        director: photo.director
+      })))
     }, 300)
   }, [searchQuery])
+
+  async function fetchBackendSearch(queryText) {
+    try {
+      __loader(true)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queryText })
+      })
+      const data = await res.json()
+      setImages(data.results)
+      setSlides(data.results.map(photo => ({
+        src: photo.src,
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: photo.caption,
+        description: photo.dimensions,
+        director: photo.director
+      })))
+    } catch (err) {
+      console.error('Backend search failed:', err)
+    } finally {
+      __loader(false)
+    }
+  }
 
   return (
     <RootLayout>
