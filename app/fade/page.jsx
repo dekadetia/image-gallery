@@ -18,15 +18,14 @@ export default function FadeGallery() {
     const isInitialLoad = useRef(true)
     const [loader, __loader] = useState(true)
 
-    const [blackMode, setBlackMode] = useState(false) // 🆕 Black Mode toggle
-    const [hideCursor, setHideCursor] = useState(false) // 🆕 Cursor hide state
-    const cursorTimerRef = useRef(null) // 🆕 Cursor timer
+    const [blackMode, setBlackMode] = useState(false) // Black Mode toggle
+    const [hideCursor, setHideCursor] = useState(false) // Cursor hide state
+    const cursorTimerRef = useRef(null) // Cursor timer
 
     // Lightbox state
     const [index, setIndex] = useState(-1)
     const [slides, setSlides] = useState([])
 
-    // 🆕 Track slot updates
     const lastSlotRef = useRef(-1)
     const lastUpdatedRef = useRef(Array(9).fill(0))
     let fadeCount = useRef(0)
@@ -43,7 +42,6 @@ export default function FadeGallery() {
             if (images.length) {
                 poolRef.current.push(...images)
 
-                // Prepare Lightbox slides
                 const newSlides = images.map((photo) => ({
                     src: photo.src,
                     width: 1080 * 4,
@@ -55,7 +53,6 @@ export default function FadeGallery() {
                 }))
                 setSlides((prev) => [...prev, ...newSlides])
 
-                // Only bulk fill slots on first load
                 if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
                     const newSlots = poolRef.current.splice(0, 9)
                     setSlots(newSlots)
@@ -110,7 +107,7 @@ export default function FadeGallery() {
         return () => clearInterval(intervalRef.current)
     }, [])
 
-    // 🩹 MutationObserver to remove title="Close"
+    // MutationObserver to remove title="Close"
     useEffect(() => {
         const observer = new MutationObserver(() => {
             document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
@@ -134,38 +131,32 @@ export default function FadeGallery() {
         if (!blackMode) {
             document.body.style.backgroundColor = '#000000'
 
-            // 🆕 Enter fullscreen
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(err => {
                     console.warn('Fullscreen request failed:', err)
                 })
             }
-
-            document.body.classList.add('blackmode-hide-cursor')
         } else {
             document.body.style.backgroundColor = ''
 
-            // 🆕 Exit fullscreen
             if (document.fullscreenElement && document.exitFullscreen) {
                 document.exitFullscreen().catch(err => {
                     console.warn('Exiting fullscreen failed:', err)
                 })
             }
-
-            document.body.classList.remove('blackmode-hide-cursor')
         }
         setBlackMode(!blackMode)
     }
 
-    // 🆕 Global time-based cursor hide logic
+    // Global time-based cursor hide
     useEffect(() => {
         const handleMouseMove = () => {
             clearTimeout(cursorTimerRef.current)
-            setHideCursor(false) // Show cursor globally on move
+            setHideCursor(false)
 
             if (blackMode) {
                 cursorTimerRef.current = setTimeout(() => {
-                    setHideCursor(true) // Hide after idle
+                    setHideCursor(true)
                 }, 3000) // 3 seconds idle
             }
         }
@@ -175,17 +166,28 @@ export default function FadeGallery() {
         } else {
             clearTimeout(cursorTimerRef.current)
             setHideCursor(false)
+            document.body.classList.remove('blackmode-hide-cursor')
         }
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove)
             clearTimeout(cursorTimerRef.current)
+            document.body.classList.remove('blackmode-hide-cursor')
         }
     }, [blackMode])
 
+    // Apply/remove global cursor hiding
+    useEffect(() => {
+        if (hideCursor && blackMode) {
+            document.body.classList.add('blackmode-hide-cursor')
+        } else {
+            document.body.classList.remove('blackmode-hide-cursor')
+        }
+    }, [hideCursor, blackMode])
+
     return (
         <RootLayout>
-            {/* 🕵️‍♂️ Invisible dev button in top-right */}
+            {/* Invisible dev button */}
             <button
                 onClick={toggleBlackMode}
                 style={{
@@ -202,8 +204,7 @@ export default function FadeGallery() {
                 tabIndex={-1}
             />
 
-            <div className={`${blackMode ? `fixed inset-0 flex justify-center items-center bg-black z-50 ${hideCursor ? 'cursor-none' : ''}` : 'px-4 lg:px-16 pb-10'}`}>
-                {/* Navigation */}
+            <div className={`${blackMode ? 'fixed inset-0 flex justify-center items-center bg-black z-50' : 'px-4 lg:px-16 pb-10'}`}>
                 {!blackMode && (
                     <div className='w-full flex justify-center items-center py-9'>
                         <div className='w-full grid place-items-center space-y-6'>
@@ -299,7 +300,6 @@ function FadeSlot({ image }) {
 
     return (
         <div className='relative w-full h-full'>
-            {/* Previous image fading out */}
             {previousImage && (
                 <motion.img
                     key={previousImage.id}
@@ -312,7 +312,6 @@ function FadeSlot({ image }) {
                 />
             )}
 
-            {/* Current image fading in */}
             {currentImage && (
                 <motion.img
                     key={currentImage.id}
