@@ -26,7 +26,7 @@ export default function Order() {
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
-  const [FullImages, setFullImages] = useState([])
+  const [FullImages, setFullImages] = useState([]) // ✅ All images preloaded
   const wasCalled = useRef(false)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
@@ -98,7 +98,7 @@ export default function Order() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images-no-limit`)
       const data = await res.json()
       if (data.success) {
-        setFullImages(data.images)
+        setFullImages(data.images) // ✅ Preload all images
       }
     } catch (error) {
       console.error('Error preloading all images:', error)
@@ -150,7 +150,7 @@ export default function Order() {
           height: 1620 * 4,
           title: photo.caption,
           description: photo.dimensions,
-          director: photo.director
+          director: photo.director // ✅ Fix: preserve director
         }))
 
         setSlides(prevSlides => {
@@ -194,11 +194,12 @@ export default function Order() {
     if (wasCalled.current) return
     wasCalled.current = true
     __loader(true)
-    getAllImagesNoLimit()
+    getAllImagesNoLimit() // ✅ Preload all images
     getImages(nextPageToken)
     setSorted(true)
   }, [])
 
+  // 🔥 Auto-focus search input when searchOpen becomes true
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => {
@@ -207,6 +208,7 @@ export default function Order() {
     }
   }, [searchOpen]);
 
+  // ✅ Tightened Search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
@@ -217,30 +219,10 @@ export default function Order() {
         return
       }
 
-      // 🎯 Exact year
-      if (/^\d{4}$/.test(rawQuery)) {
-        fetchBackendSearch(rawQuery)
-        return
-      }
-
-      // 🎯 Decade (193x, 1930s, 193)
-      if (/^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
-        const decadeStart = parseInt(rawQuery.slice(0, 3) + '0', 10)
-        const decadeEnd = decadeStart + 9
-        const decadeResults = FullImages.filter(img => {
-          const y = parseInt(img.year, 10)
-          return y >= decadeStart && y <= decadeEnd
-        })
-        setImages(decadeResults)
-        setSlides(decadeResults.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director
-        })))
-        return
+      // 🎯 Exact year or decade → backend only
+      if (/^\d{4}$/.test(rawQuery) || /^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
+        fetchBackendSearch(rawQuery);
+        return;
       }
 
       // 🔥 Fuzzy text search
@@ -256,9 +238,10 @@ export default function Order() {
       });
       const fuseResults = fuse.search(rawQuery).map(r => r.item)
 
+      // Fallback if Fuse too weak
       if (fuseResults.length < 5) {
-        fetchBackendSearch(rawQuery)
-        return
+        fetchBackendSearch(rawQuery);
+        return;
       }
 
       setImages(fuseResults)
