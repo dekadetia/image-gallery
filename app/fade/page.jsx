@@ -18,6 +18,8 @@ export default function FadeGallery() {
     const isInitialLoad = useRef(true) // 🆕 Prevent repeat bulk fills
     const [loader, __loader] = useState(true)
 
+    const [blackMode, setBlackMode] = useState(false) // 🆕 Toggle state
+
     // Lightbox state
     const [index, setIndex] = useState(-1)
     const [slides, setSlides] = useState([])
@@ -129,15 +131,20 @@ export default function FadeGallery() {
         }
     }
 
-    const setBackgroundBlack = () => {
-        document.body.style.backgroundColor = '#000000'
+    const toggleBlackMode = () => {
+        if (!blackMode) {
+            document.body.style.backgroundColor = '#000000'
+        } else {
+            document.body.style.backgroundColor = ''
+        }
+        setBlackMode(!blackMode)
     }
 
     return (
         <RootLayout>
             {/* 🕵️‍♂️ Invisible dev button in top-right */}
             <button
-                onClick={setBackgroundBlack}
+                onClick={toggleBlackMode}
                 style={{
                     position: 'fixed',
                     top: '10px',
@@ -152,33 +159,35 @@ export default function FadeGallery() {
                 tabIndex={-1}
             />
 
-            <div className='px-4 lg:px-16 pb-10'>
+            <div className={`px-4 lg:px-16 pb-10 ${blackMode ? 'flex justify-center items-center min-h-screen' : ''}`}>
                 {/* Navigation */}
-                <div className='w-full flex justify-center items-center py-9'>
-                    <div className='w-full grid place-items-center space-y-6'>
-                        <Link href={'/'}>
-                            <img
-                                src='/assets/logo.svg'
-                                className='object-contain w-40'
-                                alt='Logo'
-                            />
-                        </Link>
+                {!blackMode && (
+                    <div className='w-full flex justify-center items-center py-9'>
+                        <div className='w-full grid place-items-center space-y-6'>
+                            <Link href={'/'}>
+                                <img
+                                    src='/assets/logo.svg'
+                                    className='object-contain w-40'
+                                    alt='Logo'
+                                />
+                            </Link>
 
-                        <div className='flex gap-8 items-center'>
-                            <img
-                                src="/assets/crossfade.svg"
-                                className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 cursor-pointer'
-                                alt="Crossfade"
-                            />
-                            <Link href={'/ordr'}>
-                                <RxCaretSort className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
-                            </Link>
-                            <Link href={'/rndm'}>
-                                <IoMdShuffle className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl' />
-                            </Link>
+                            <div className='flex gap-8 items-center'>
+                                <img
+                                    src="/assets/crossfade.svg"
+                                    className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 cursor-pointer'
+                                    alt="Crossfade"
+                                />
+                                <Link href={'/ordr'}>
+                                    <RxCaretSort className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
+                                </Link>
+                                <Link href={'/rndm'}>
+                                    <IoMdShuffle className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl' />
+                                </Link>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {loader ? (
                     <Loader />
@@ -197,7 +206,7 @@ export default function FadeGallery() {
                 )}
             </div>
 
-            {!loader && <Footer />}
+            {!loader && !blackMode && <Footer />}
 
             {slides && (
                 <Lightbox
