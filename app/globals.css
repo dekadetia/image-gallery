@@ -286,6 +286,11 @@ html {
     }
 }
 
+
 body.blackmode-hide-cursor * {
     cursor: none !important;
+}
+
+body.blackmode-hide-cursor button {
+    cursor: default !important; /* Cursor visible in the safe zone */
 }
