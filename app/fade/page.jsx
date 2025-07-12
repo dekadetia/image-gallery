@@ -134,21 +134,27 @@ export default function FadeGallery() {
         if (!blackMode) {
             document.body.style.backgroundColor = '#000000'
 
-            // 🆕 Try to enter fullscreen
+            // 🆕 Enter fullscreen
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(err => {
                     console.warn('Fullscreen request failed:', err)
                 })
             }
+
+            // 🆕 Add class to hide cursors globally
+            document.body.classList.add('blackmode-hide-cursor')
         } else {
             document.body.style.backgroundColor = ''
 
-            // 🆕 Exit fullscreen if active
+            // 🆕 Exit fullscreen
             if (document.fullscreenElement && document.exitFullscreen) {
                 document.exitFullscreen().catch(err => {
                     console.warn('Exiting fullscreen failed:', err)
                 })
             }
+
+            // 🆕 Remove cursor-hiding class
+            document.body.classList.remove('blackmode-hide-cursor')
         }
         setBlackMode(!blackMode)
     }
