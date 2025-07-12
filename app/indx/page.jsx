@@ -227,15 +227,18 @@ export default function Index() {
     }
   }, [searchOpen]);
 
-  // 🩹 Remove Close tooltip only when Lightbox is open
+  // 🩹 Strip Close tooltip on every index change
   useEffect(() => {
     if (index >= 0) {
-      const observer = new MutationObserver(() => {
+      const cleanupTitle = () => {
         document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
           btn.removeAttribute('title');
         });
-      });
+      };
 
+      cleanupTitle();
+
+      const observer = new MutationObserver(cleanupTitle);
       observer.observe(document.body, { childList: true, subtree: true });
 
       return () => observer.disconnect();
