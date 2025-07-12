@@ -15,6 +15,7 @@ export default function FadeGallery() {
     const poolRef = useRef([])
     const intervalRef = useRef(null)
     const loadingRef = useRef(false)
+    const isInitialLoad = useRef(true) // 🆕 Prevent repeat bulk fills
     const [loader, __loader] = useState(true)
 
     // Lightbox state
@@ -45,10 +46,11 @@ export default function FadeGallery() {
                 }))
                 setSlides((prev) => [...prev, ...newSlides])
 
-                // If first time and slots are empty
-                if (slots.every(slot => slot === null) && poolRef.current.length >= 9) {
+                // Only bulk fill slots on first load
+                if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
                     const newSlots = poolRef.current.splice(0, 9)
                     setSlots(newSlots)
+                    isInitialLoad.current = false // 🆕 Prevent future bulk fills
                 }
             }
         } catch (err) {
@@ -181,7 +183,6 @@ export default function FadeGallery() {
         </RootLayout>
     )
 }
-
 
 function FadeSlot({ image }) {
     const [currentImage, setCurrentImage] = useState(image)
