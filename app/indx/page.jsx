@@ -227,21 +227,16 @@ export default function Index() {
     }
   }, [searchOpen]);
 
-  // 🩹 Strip Close tooltip on every index change
+  // 🩹 Strip Close tooltip with delayed cleanup
   useEffect(() => {
     if (index >= 0) {
-      const cleanupTitle = () => {
+      const timer = setTimeout(() => {
         document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
           btn.removeAttribute('title');
         });
-      };
+      }, 100); // Delay to let DOM settle
 
-      cleanupTitle();
-
-      const observer = new MutationObserver(cleanupTitle);
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      return () => observer.disconnect();
+      return () => clearTimeout(timer);
     }
   }, [index]);
 
