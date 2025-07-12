@@ -145,16 +145,6 @@ export default function FadeGallery() {
                     open={index >= 0}
                     close={() => setIndex(-1)}
                     render={{
-                        buttonClose: ({ close, label }) => (
-    <button
-        type="button"
-        onClick={close}
-        aria-label={label} // keeps accessibility
-        className="yarl__button yarl__button_close"
-    >
-        ×
-    </button>
-),
                         slideFooter: ({ slide }) => (
                             <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
                                 {slide.title && (
