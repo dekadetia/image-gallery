@@ -129,8 +129,29 @@ export default function FadeGallery() {
         }
     }
 
+    const setBackgroundBlack = () => {
+        document.body.style.backgroundColor = '#000000'
+    }
+
     return (
         <RootLayout>
+            {/* 🕵️‍♂️ Invisible dev button in top-right */}
+            <button
+                onClick={setBackgroundBlack}
+                style={{
+                    position: 'fixed',
+                    top: '10px',
+                    right: '10px',
+                    width: '30px',
+                    height: '30px',
+                    opacity: 0,
+                    cursor: 'pointer',
+                    zIndex: 9999
+                }}
+                aria-hidden="true"
+                tabIndex={-1}
+            />
+
             <div className='px-4 lg:px-16 pb-10'>
                 {/* Navigation */}
                 <div className='w-full flex justify-center items-center py-9'>
