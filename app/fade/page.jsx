@@ -71,9 +71,15 @@ export default function FadeGallery() {
                     return prev
                 }
 
-                const randomIndex = Math.floor(Math.random() * 9)
                 const nextImage = poolRef.current.shift()
-                if (!nextImage || prev[randomIndex]?.id === nextImage.id) return prev
+                if (!nextImage) return prev
+
+                let randomIndex = Math.floor(Math.random() * 9)
+
+                // 🆕 Minimal retry if same image in same slot
+                if (prev[randomIndex]?.id === nextImage.id) {
+                    randomIndex = (randomIndex + 1) % 9
+                }
 
                 const newSlots = [...prev]
                 newSlots[randomIndex] = nextImage
