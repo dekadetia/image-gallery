@@ -22,6 +22,11 @@ export default function FadeGallery() {
     const [index, setIndex] = useState(-1)
     const [slides, setSlides] = useState([])
 
+    // 🆕 Track slot updates
+    const lastSlotRef = useRef(-1)
+    const lastUpdatedRef = useRef(Array(9).fill(0))
+    let fadeCount = useRef(0)
+
     const fetchImages = async () => {
         if (loadingRef.current) return
         loadingRef.current = true
@@ -50,7 +55,7 @@ export default function FadeGallery() {
                 if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
                     const newSlots = poolRef.current.splice(0, 9)
                     setSlots(newSlots)
-                    isInitialLoad.current = false // 🆕 Prevent future bulk fills
+                    isInitialLoad.current = false
                 }
             }
         } catch (err) {
@@ -59,6 +64,25 @@ export default function FadeGallery() {
             loadingRef.current = false
             __loader(false)
         }
+    }
+
+    const pickSlot = () => {
+        fadeCount.current++
+
+        // Sort slots by oldest last update first
+        const sortedSlots = lastUpdatedRef.current
+            .map((lastUpdate, index) => ({ index, lastUpdate }))
+            .sort((a, b) => a.lastUpdate - b.lastUpdate)
+
+        // Exclude the slot used last time
+        const candidates = sortedSlots.filter(s => s.index !== lastSlotRef.current)
+
+        // Randomly pick one of the oldest candidates
+        const chosen = candidates[Math.floor(Math.random() * candidates.length)]
+        lastUpdatedRef.current[chosen.index] = fadeCount.current
+        lastSlotRef.current = chosen.index
+
+        return chosen.index
     }
 
     useEffect(() => {
@@ -74,12 +98,7 @@ export default function FadeGallery() {
                 const nextImage = poolRef.current.shift()
                 if (!nextImage) return prev
 
-                let randomIndex = Math.floor(Math.random() * 9)
-
-                // 🆕 Minimal retry if same image in same slot
-                if (prev[randomIndex]?.id === nextImage.id) {
-                    randomIndex = (randomIndex + 1) % 9
-                }
+                const randomIndex = pickSlot()
 
                 const newSlots = [...prev]
                 newSlots[randomIndex] = nextImage
