@@ -285,3 +285,7 @@ html {
         height: auto !important
     }
 }
+
+.yarl__button[title="Close"]::after {
+  display: none !important;
+}
