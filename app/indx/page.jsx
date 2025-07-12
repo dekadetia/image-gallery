@@ -192,7 +192,7 @@ if (!rawQuery) {
       { name: 'caption', weight: 0.6 },
       { name: 'alphaname', weight: 0.4 }
     ],
-    threshold: 0.4,
+    threshold: 0.3,
     distance: 200,
     includeScore: true
   });
