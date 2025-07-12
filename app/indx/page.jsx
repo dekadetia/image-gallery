@@ -230,6 +230,19 @@ if (!rawQuery) {
     getImages(nextPageToken);
   }, []);
 
+// 🩹 MutationObserver to remove title="Close"
+useEffect(() => {
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+            btn.removeAttribute('title');
+        });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+}, []);
+  
   // 🔥 Auto-focus search input when searchOpen becomes true
 useEffect(() => {
   if (searchOpen && searchInputRef.current) {
