@@ -63,7 +63,6 @@ export default function Random() {
         setImages(prev => [...prev, ...uniqueImages])
       } else {
         console.error('Failed to get files')
-        errorToast('Failed to get files')
       }
     } catch (error) {
       console.log(error)
@@ -96,7 +95,6 @@ export default function Random() {
         setImages(images)
       } else {
         console.error('Failed to get files')
-        errorToast('Failed to get files')
       }
     } catch (error) {
       console.log(error)
@@ -113,7 +111,19 @@ export default function Random() {
     if (wasCalled.current) return
     wasCalled.current = true
     getImages()
-  }, []) // ✅ Ensure it runs only once
+  }, [])
+
+  // 🩹 MutationObserver to remove title="Close"
+  useEffect(() => {
+    if (!slides.length) return
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+        btn.removeAttribute('title')
+      })
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [slides])
 
   const handleImageClick = (imageId) => {
     const idx = Images.findIndex(img => img.id === imageId)
@@ -166,7 +176,7 @@ export default function Random() {
                   <img
                     alt={photo.name}
                     src={photo.src}
-                    onClick={() => handleImageClick(photo.id)} // ✅ Use ID instead of index
+                    onClick={() => handleImageClick(photo.id)}
                     className='aspect-[16/9] object-cover cursor-zoom-in'
                     decoding='async'
                   />
@@ -181,7 +191,7 @@ export default function Random() {
             index={index}
             slides={slides}
             open={index >= 0}
-            close={() => setIndex(-1)}
+            close={handleCloseLightbox}
             render={{
               slideFooter: ({ slide }) => (
                 <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
