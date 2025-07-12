@@ -159,7 +159,7 @@ export default function FadeGallery() {
                 tabIndex={-1}
             />
 
-            <div className={`px-4 lg:px-16 pb-10 ${blackMode ? 'flex justify-center items-center min-h-screen' : ''}`}>
+            <div className={`${blackMode ? 'fixed inset-0 flex justify-center items-center bg-black z-50' : 'px-4 lg:px-16 pb-10'}`}>
                 {/* Navigation */}
                 {!blackMode && (
                     <div className='w-full flex justify-center items-center py-9'>
