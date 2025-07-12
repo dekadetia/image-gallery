@@ -286,7 +286,9 @@ html {
     }
 }
 
-.yarl__button[title="Close"] * {
+.yarl__button[title="Close"]::after,
+.yarl__button[title="Close"]::before {
   display: none !important;
+  content: none !important;
 }
 
