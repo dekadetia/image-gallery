@@ -126,7 +126,7 @@ export default function FadeGallery() {
                         {slots.map((image, idx) => (
                             <div
                                 key={idx}
-                                className='w-full aspect-[16/9] relative overflow-hidden cursor-pointer'
+                                className='w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in'
                                 onClick={() => openLightboxByImage(image)}
                             >
                                 <FadeSlot image={image} />
