@@ -285,3 +285,11 @@ html {
         height: auto !important
     }
 }
+
+.yarl__button[title="Close"]::after,
+.yarl__button[title="Close"]::before,
+.yarl__button[title="Close"] span {
+  content: none !important;
+  display: none !important;
+}
+
