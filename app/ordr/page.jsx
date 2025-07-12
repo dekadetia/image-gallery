@@ -177,7 +177,7 @@ export default function Order() {
     })
 
   const loadMoreByCondition = () => {
-    if (searchQuery.trim()) return
+    if (searchQuery.trim()) return;
     if (order_key === 'alphaname') {
       sortImages(order_key, order_value, null, null, 99, nextPageToken)
     } else if (
@@ -201,6 +201,7 @@ export default function Order() {
 
   // 🩹 MutationObserver to remove title="Close"
   useEffect(() => {
+    if (!slides.length) return
     const observer = new MutationObserver(() => {
       document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
         btn.removeAttribute('title')
@@ -208,28 +209,31 @@ export default function Order() {
     })
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
-  }, [])
+  }, [slides])
 
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => {
-        searchInputRef.current.focus()
-      }, 0)
+        searchInputRef.current.focus();
+      }, 0);
     }
-  }, [searchOpen])
+  }, [searchOpen]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
+
     debounceRef.current = setTimeout(async () => {
       const rawQuery = searchQuery.trim().toLowerCase()
       if (!rawQuery) {
         clearValues().then(() => getImages(null))
         return
       }
+
       if (/^\d{4}$/.test(rawQuery) || /^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
-        fetchBackendSearch(rawQuery)
-        return
+        fetchBackendSearch(rawQuery);
+        return;
       }
+
       const fuse = new Fuse(FullImages, {
         keys: [
           { name: 'caption', weight: 0.7 },
@@ -239,12 +243,14 @@ export default function Order() {
         threshold: 0.3,
         distance: 100,
         includeScore: true
-      })
+      });
       const fuseResults = fuse.search(rawQuery).map(r => r.item)
+
       if (fuseResults.length < 5) {
-        fetchBackendSearch(rawQuery)
-        return
+        fetchBackendSearch(rawQuery);
+        return;
       }
+
       setImages(fuseResults)
       setSlides(fuseResults.map(photo => ({
         src: photo.src,
@@ -362,7 +368,9 @@ export default function Order() {
             dataLength={Images.length}
             next={loadMoreByCondition}
             hasMore={hasMore}
-            loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
+            loader={
+              !searchQuery.trim() && hasMore ? <MoreImageLoader /> : null
+            }
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
