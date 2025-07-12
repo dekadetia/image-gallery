@@ -141,7 +141,6 @@ export default function FadeGallery() {
                 })
             }
 
-            // 🆕 Add class to hide cursors globally
             document.body.classList.add('blackmode-hide-cursor')
         } else {
             document.body.style.backgroundColor = ''
@@ -153,21 +152,20 @@ export default function FadeGallery() {
                 })
             }
 
-            // 🆕 Remove cursor-hiding class
             document.body.classList.remove('blackmode-hide-cursor')
         }
         setBlackMode(!blackMode)
     }
 
-    // 🆕 Cursor hide logic in Black Mode
+    // 🆕 Global time-based cursor hide logic
     useEffect(() => {
         const handleMouseMove = () => {
             clearTimeout(cursorTimerRef.current)
-            setHideCursor(false)
+            setHideCursor(false) // Show cursor globally on move
 
             if (blackMode) {
                 cursorTimerRef.current = setTimeout(() => {
-                    setHideCursor(true)
+                    setHideCursor(true) // Hide after idle
                 }, 3000) // 3 seconds idle
             }
         }
