@@ -286,10 +286,7 @@ html {
     }
 }
 
-.yarl__button[title="Close"]::after,
-.yarl__button[title="Close"]::before,
-.yarl__button[title="Close"] span {
-  content: none !important;
+.yarl__button[title="Close"] * {
   display: none !important;
 }
 
