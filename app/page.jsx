@@ -8,16 +8,10 @@ import Loader from "../components/loader/loader";
 import MoreImageLoader from "../components/MoreImageLoader/index";
 import Footer from "../components/Footer";
 import RootLayout from "./layout";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 
 import { IoMdList } from "react-icons/io";
 import { RxCaretSort } from "react-icons/rx";
 import { IoMdShuffle } from "react-icons/io";
-
-export function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
 
 export default function Page() {
   const [autosMode, setAutosMode] = useState(false);
@@ -29,8 +23,10 @@ export default function Page() {
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loader, __loader] = useState(true);
+
   const [index, setIndex] = useState(-1);
   const [slides, setSlides] = useState([]);
+
   const wasCalled = useRef(false);
 
   const fetchImages = async (token) => {
@@ -53,15 +49,19 @@ export default function Page() {
           return;
         }
 
-        setNextPageToken(data.nextPageToken);
-
-        setImages((prevImages) => {
-          const existingNames = new Set(prevImages.map((img) => img.name));
-          const uniqueImages = newImages.filter(
-            (img) => !existingNames.has(img.name)
-          );
-          return [...prevImages, ...uniqueImages];
-        });
+        if (!data.nextPageToken) {
+          setHasMore(false);
+          setNextPageToken(null);
+        } else {
+          setImages((prevImages) => {
+            const existingNames = new Set(prevImages.map((img) => img.name));
+            const uniqueImages = newImages.filter(
+              (img) => !existingNames.has(img.name)
+            );
+            return [...prevImages, ...uniqueImages];
+          });
+          setNextPageToken(data.nextPageToken);
+        }
 
         const newSlides = newImages.map((photo) => ({
           src: photo.src,
@@ -70,15 +70,10 @@ export default function Page() {
           title: photo.caption,
           description: photo.dimensions,
           director: photo.director || null,
+          year: photo.year,
         }));
 
-        setSlides((prevSlides) => {
-          const existingSrcs = new Set(prevSlides.map((slide) => slide.src));
-          const uniqueSlides = newSlides.filter(
-            (slide) => !existingSrcs.has(slide.src)
-          );
-          return [...prevSlides, ...uniqueSlides];
-        });
+        setSlides((prevSlides) => [...prevSlides, ...newSlides]);
       }
     } catch (err) {
       console.error("Failed to fetch images:", err);
@@ -90,6 +85,7 @@ export default function Page() {
   useEffect(() => {
     if (wasCalled.current) return;
     wasCalled.current = true;
+
     __loader(true);
     fetchImages(nextPageToken);
   }, []);
@@ -110,10 +106,7 @@ export default function Page() {
       let scrollSpeed = 0.5; // pixels per frame (~30px/sec)
       const scrollStep = () => {
         window.scrollBy(0, scrollSpeed);
-        if (
-          window.scrollY + window.innerHeight >=
-          document.body.scrollHeight
-        ) {
+        if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
           window.scrollTo(0, 0); // Loop back to top
         }
         scrollRef.current = requestAnimationFrame(scrollStep);
@@ -172,18 +165,6 @@ export default function Page() {
     }
   }, [hideCursor, autosMode]);
 
-  // 🩹 MutationObserver to remove title="Close"
-  useEffect(() => {
-    if (!slides.length) return;
-    const observer = new MutationObserver(() => {
-      document
-        .querySelectorAll('.yarl__button[title="Close"]')
-        .forEach((btn) => btn.removeAttribute("title"));
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [slides]);
-
   return (
     <RootLayout>
       {/* Invisible dev button */}
@@ -203,9 +184,9 @@ export default function Page() {
         tabIndex={-1}
       />
 
-      {/* Header/Nav */}
+      {/* Header/Nav only if NOT autosMode */}
       {!autosMode && (
-        <div className="w-full flex justify-center items-center pt-9 pb-[1.69rem]">
+        <div className="w-full flex justify-center items-center py-9">
           <div className="w-full grid place-items-center space-y-6">
             <Link href={"/"}>
               <img
@@ -232,10 +213,12 @@ export default function Page() {
         </div>
       )}
 
-      {!loader ? (
-        <div className="px-4 lg:px-16 pb-10 relative top-[.5px]">
+      {/* Loader or Grid */}
+      {loader ? (
+        <Loader />
+      ) : (
+        <div className={`${autosMode ? "w-full z-50" : "px-4 lg:px-16 pb-10"}`}>
           <InfiniteScroll
-            className="mt-[-2px]"
             dataLength={images.length}
             next={() => fetchImages(nextPageToken)}
             hasMore={hasMore}
@@ -244,83 +227,52 @@ export default function Page() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {images.map((photo, i) => (
                 <div key={i}>
-                  {photo.src.includes(".webm") ? (
-                    <video
-                      src={photo.src}
-                      onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      alt={photo.name}
-                      src={photo.src}
-                      onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
-                    />
-                  )}
+                  <img
+                    alt={photo.name}
+                    src={photo.src}
+                    onClick={() => setIndex(i)}
+                    className="aspect-[16/9] object-cover cursor-zoom-in"
+                  />
                 </div>
               ))}
             </div>
           </InfiniteScroll>
-
-          {slides && (
-            <Lightbox
-              index={index}
-              slides={slides}
-              open={index >= 0}
-              close={() => setIndex(-1)}
-              render={{
-                slide: ({ slide }) =>
-                  slide.src.includes(".webm") ? (
-                    <video
-                      src={slide.src}
-                      className="w-full h-auto max-h-[90vh] object-contain"
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      src={slide.src}
-                      alt={slide.title || ""}
-                      className="w-full h-auto max-h-[90vh] object-contain"
-                    />
-                  ),
-                slideFooter: ({ slide }) => (
-                  <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-                    {slide.title && (
-                      <div className="yarl__slide_title">{slide.title}</div>
-                    )}
-                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
-                      {slide.director && (
-                        <div className="yarl__slide_description !text-[#99AABB]">
-                          <span className="font-medium">
-                            {slide.director}
-                          </span>
-                        </div>
-                      )}
-                      {slide.description && (
-                        <div className="yarl__slide_description">
-                          {slide.description}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ),
-              }}
-            />
-          )}
         </div>
-      ) : (
-        <Loader />
       )}
 
+      {/* Footer only if NOT autosMode */}
       {!loader && !autosMode && <Footer />}
+
+      {/* Lightbox */}
+      {slides && (
+        <Lightbox
+          index={index}
+          slides={slides}
+          open={index >= 0}
+          close={() => setIndex(-1)}
+          render={{
+            slideFooter: ({ slide }) => (
+              <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                {slide.title && (
+                  <div className="yarl__slide_title">{slide.title}</div>
+                )}
+                <div className={slide.director && "!mb-5"}>
+                  {slide.director && (
+                    <div className="yarl__slide_description !text-[#99AABB]">
+                      <span className="font-medium">{slide.director}</span>
+                    </div>
+                  )}
+                  {slide.description && (
+                    <div className="yarl__slide_description">
+                      {slide.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ),
+          }}
+        />
+      )}
     </RootLayout>
   );
 }
