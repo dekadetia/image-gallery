@@ -90,10 +90,17 @@ export default function Page() {
     fetchImages(nextPageToken);
   }, []);
 
-  // AUTOSMODE: handle scrolling and cursor hide
+  // AUTOSMODE: handle scrolling, fullscreen, and cursor hide
   useEffect(() => {
     if (autosMode) {
       document.body.classList.add("autosmode");
+
+      // FULLSCREEN REQUEST
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch((err) => {
+          console.warn("Fullscreen request failed:", err);
+        });
+      }
 
       // Start autoscroll
       let scrollSpeed = 0.5; // pixels per frame (~30px/sec)
@@ -133,6 +140,14 @@ export default function Page() {
 
       return () => {
         document.body.classList.remove("autosmode");
+
+        // Exit fullscreen
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch((err) => {
+            console.warn("Exiting fullscreen failed:", err);
+          });
+        }
+
         cancelAnimationFrame(scrollRef.current);
         clearTimeout(cursorTimerRef.current);
         window.removeEventListener("mousemove", handleMouseMove);
@@ -202,7 +217,9 @@ export default function Page() {
       {loader ? (
         <Loader />
       ) : (
-        <div className="px-4 lg:px-16 pb-10">
+        <div className={`${
+          autosMode ? "w-full fixed inset-0 z-50" : "px-4 lg:px-16 pb-10"
+        }`}>
           <InfiniteScroll
             dataLength={images.length}
             next={() => fetchImages(nextPageToken)}
