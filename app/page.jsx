@@ -123,15 +123,11 @@ export default function Page() {
         <MasonaryGrid />
       </div>
 
-      {/* Bottom logo + Footer only in normal mode */}
+      {/* Bottom logo only in normal mode */}
       {!autosMode && (
-        <>
-          <div className="flex justify-center items-center mt-10">
-            <img src="/assets/logo.svg" className="w-24 opacity-50" alt="" />
-          </div>
-          {/* Footer rendered here instead of MasonaryGrid */}
-          <MasonaryGrid.Footer />
-        </>
+        <div className="flex justify-center items-center mt-10">
+          <img src="/assets/logo.svg" className="w-24 opacity-50" alt="" />
+        </div>
       )}
     </RootLayout>
   );
