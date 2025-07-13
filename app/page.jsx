@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import Lightbox, { defaultRenderSlide }  from "yet-another-react-lightbox";
+import Lightbox, { defaultRenderSlide } from "yet-another-react-lightbox";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Loader from "../components/loader/loader";
 import MoreImageLoader from "../components/MoreImageLoader/index";
 import Footer from "../components/Footer";
 import RootLayout from "./layout";
-
 import { IoMdList } from "react-icons/io";
 import { RxCaretSort } from "react-icons/rx";
 import { IoMdShuffle } from "react-icons/io";
@@ -160,13 +159,13 @@ export default function Page() {
     }
   }, [hideCursor, autosMode]);
 
-  // MutationObserver to remove Close tooltip
+  // 🩹 MutationObserver to remove title="Close"
   useEffect(() => {
     if (!slides.length) return;
     const observer = new MutationObserver(() => {
-      document.querySelectorAll('.yarl__button[title="Close"]').forEach((btn) =>
-        btn.removeAttribute("title")
-      );
+      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+        btn.removeAttribute('title');
+      });
     });
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
@@ -174,6 +173,7 @@ export default function Page() {
 
   return (
     <RootLayout>
+      {/* Invisible dev button */}
       <button
         onClick={() => setAutosMode(true)}
         style={{
@@ -200,16 +200,13 @@ export default function Page() {
                 alt=""
               />
             </Link>
-
             <div className="flex gap-8 items-center">
               <Link href={"/indx"}>
                 <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
               </Link>
-
               <Link href={"/ordr"}>
                 <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
               </Link>
-
               <Link href={"/rndm"}>
                 <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
               </Link>
@@ -240,7 +237,6 @@ export default function Page() {
                       muted
                       loop
                       playsInline
-                      controls={false}
                     />
                   ) : (
                     <img
@@ -260,51 +256,49 @@ export default function Page() {
       {!loader && !autosMode && <Footer />}
 
       {slides && (
-<Lightbox
-  index={index}
-  slides={slides}
-  open={index >= 0}
-  close={() => setIndex(-1)}
-  render={{
-    slide: ({ slide, offset, rect }) =>
-      slide.src.includes(".webm") ? (
-        <div className="yarl__slide_image">
-          <video
-            src={slide.src}
-            className="w-full h-auto max-h-[90vh] object-contain"
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls={false}
-          />
-        </div>
-      ) : (
-        defaultRenderSlide({ slide, offset, rect }) // calls YARL’s native renderer
-      ),
-    slideFooter: ({ slide }) => (
-      <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-        {slide.title && (
-          <div className="yarl__slide_title">{slide.title}</div>
-        )}
-        <div className={slide.director && "!mb-5"}>
-          {slide.director && (
-            <div className="yarl__slide_description !text-[#99AABB]">
-              <span className="font-medium">{slide.director}</span>
-            </div>
-          )}
-          {slide.description && (
-            <div className="yarl__slide_description">
-              {slide.description}
-            </div>
-          )}
-        </div>
-      </div>
-    ),
-  }}
-/>
-
-
+        <Lightbox
+          index={index}
+          slides={slides}
+          open={index >= 0}
+          close={() => setIndex(-1)}
+          render={{
+            slide: (props) =>
+              props.slide.src.includes(".webm") ? (
+                <div className="yarl__slide_image">
+                  <video
+                    src={props.slide.src}
+                    className="w-full h-auto max-h-[90vh] object-contain"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    controls={false}
+                  />
+                </div>
+              ) : (
+                defaultRenderSlide(props)
+              ),
+            slideFooter: ({ slide }) => (
+              <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                {slide.title && (
+                  <div className="yarl__slide_title">{slide.title}</div>
+                )}
+                <div className={slide.director && "!mb-5"}>
+                  {slide.director && (
+                    <div className="yarl__slide_description !text-[#99AABB]">
+                      <span className="font-medium">{slide.director}</span>
+                    </div>
+                  )}
+                  {slide.description && (
+                    <div className="yarl__slide_description">
+                      {slide.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ),
+          }}
+        />
       )}
     </RootLayout>
   );
