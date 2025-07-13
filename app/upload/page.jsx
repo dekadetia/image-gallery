@@ -8,7 +8,6 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import InfiniteScroll from "react-infinite-scroll-component";
-// import socket from "../socket";
 import { errorToast, successToast } from "../../utils/toast";
 import Link from "next/link";
 import Loader from "../../components/loader/loader";
@@ -41,11 +40,6 @@ export default function Page() {
   const [loader, __loader] = useState(false);
   const [backupArray, __backupArray] = useState([]);
 
-  // initializing socket
-  //   useEffect(() => {
-  //     socket.emit("firebase-create", "waqas");
-  //   }, []);
-
   const {
     register,
     handleSubmit,
@@ -54,31 +48,25 @@ export default function Page() {
     resolver: yupResolver(schema),
   });
 
-const changeHandler = (e) => {
-  const files = Array.from(e.target.files);
-  const supportedTypes = ["image/webp", "video/webm"];
+  const changeHandler = (e) => {
+    const files = Array.from(e.target.files);
+    const supportedTypes = ["image/webp", "video/webm"];
 
-  const invalidFiles = files.filter(file => !supportedTypes.includes(file.type));
+    const invalidFiles = files.filter(file => !supportedTypes.includes(file.type));
 
-  if (invalidFiles.length > 0) {
-    errorToast("Only WEBP and WEBM files are supported");
-    return;
-  }
+    if (invalidFiles.length > 0) {
+      errorToast("Only WEBP and WEBM files are supported");
+      return;
+    }
 
-  setImages(files);
-};
-
+    setImages(files);
+  };
 
   function formatFileSize(bytes) {
-    if (bytes < 1024) {
-      return bytes + " B";
-    } else if (bytes < 1024 * 1024) {
-      return (bytes / 1024).toFixed(2) + " KB";
-    } else if (bytes < 1024 * 1024 * 1024) {
-      return (bytes / (1024 * 1024)).toFixed(2) + " MB";
-    } else {
-      return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
-    }
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   }
 
   const openModal = (name) => {
@@ -89,34 +77,21 @@ const changeHandler = (e) => {
   const openEditModal = (photo) => {
     setEditModal(true);
     setdelId(photo.name);
-
     setCaption(photo.caption);
     setDirector(photo.director);
-
     setPhotographer(photo.photographer);
     setYear(photo.year);
-
     setAlphaname(photo.alphaname);
     setDimensions(photo.dimensions);
   };
 
   function isObjectMatch(obj1, obj2) {
-    var obj1Keys = Object.keys(obj1);
-    var obj2Keys = Object.keys(obj2);
+    const obj1Keys = Object.keys(obj1);
+    const obj2Keys = Object.keys(obj2);
 
-    if (obj1Keys.length !== obj2Keys.length) {
-      return false;
-    }
+    if (obj1Keys.length !== obj2Keys.length) return false;
 
-    for (var i = 0; i < obj1Keys.length; i++) {
-      var propName = obj1Keys[i];
-
-      if (obj1[propName] !== obj2[propName]) {
-        return false;
-      }
-    }
-
-    return true;
+    return obj1Keys.every(key => obj1[key] === obj2[key]);
   }
 
   const submitHandler = (formData) => {
@@ -145,10 +120,8 @@ const changeHandler = (e) => {
 
     formData.append("caption", caption);
     formData.append("director", director);
-
     formData.append("photographer", photographer);
     formData.append("year", year);
-
     formData.append("alphaname", alphaname);
     formData.append("dimensions", dimensions);
 
@@ -176,14 +149,11 @@ const changeHandler = (e) => {
 
   const updateImageData = async () => {
     const formData = new FormData();
-    formData.append(`file`, delId);
-
+    formData.append("file", delId);
     formData.append("caption", caption);
     formData.append("director", director);
-
     formData.append("photographer", photographer);
     formData.append("year", year);
-
     formData.append("alphaname", alphaname);
     formData.append("dimensions", dimensions);
 
@@ -197,12 +167,12 @@ const changeHandler = (e) => {
           },
           body: JSON.stringify({
             file: delId,
-            caption: caption,
-            director: director,
-            photographer: photographer,
-            year: year,
-            alphaname: alphaname,
-            dimensions: dimensions,
+            caption,
+            director,
+            photographer,
+            year,
+            alphaname,
+            dimensions,
           }),
         }
       );
@@ -241,11 +211,9 @@ const changeHandler = (e) => {
         const images = data.images;
 
         if (!data.nextPageToken) {
-          console.log("nul found ", data.nextPageToken);
           setHasMore(false);
           successToast("All images have been loaded!");
           setNextPageToken(null);
-          return;
         } else {
           setFetchedPhotos((prevImages) => {
             const existingNames = new Set(prevImages.map((img) => img.name));
@@ -272,7 +240,6 @@ const changeHandler = (e) => {
 
   const deleteImage = async (name) => {
     setModal(false);
-
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/delete`,
@@ -306,10 +273,9 @@ const changeHandler = (e) => {
           photo.caption.toLowerCase().includes(query) ||
           photo.photographer.toLowerCase().includes(query)
       );
-
-      setFetchedPhotos((f) => filteredPhotos);
+      setFetchedPhotos(filteredPhotos);
     } else {
-      setFetchedPhotos((f) => [...backupArray]);
+      setFetchedPhotos([...backupArray]);
     }
   };
 
@@ -326,6 +292,7 @@ const changeHandler = (e) => {
 
   return !userIsLogged ? (
     <>
+      {/* LOGIN FORM */}
       <Link href={"/"}>
         <img
           src="/assets/logo.svg"
@@ -372,6 +339,7 @@ const changeHandler = (e) => {
     </>
   ) : (
     <>
+      {/* UPLOAD DASHBOARD */}
       <Link href={"/"}>
         <img
           src="/assets/logo.svg"
