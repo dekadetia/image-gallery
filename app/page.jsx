@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { defaultRenderSlide } from "yet-another-react-lightbox"
 import Link from "next/link";
 import Lightbox from "yet-another-react-lightbox";
 import InfiniteScroll from "react-infinite-scroll-component";
