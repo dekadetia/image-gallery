@@ -117,8 +117,8 @@ export default function Page() {
         </div>
       )}
 
-      {/* MasonaryGrid full width in autosMode */}
-      <div className={autosMode ? "w-full" : "px-4 lg:px-16 pb-10"}>
+      {/* MasonaryGrid wrapper with container only in normal mode */}
+      <div className={!autosMode ? "container mx-auto px-4 lg:px-16 pb-10" : "w-full"}>
         <MasonaryGrid />
       </div>
 
