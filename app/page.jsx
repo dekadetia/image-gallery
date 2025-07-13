@@ -170,6 +170,32 @@ export default function Page() {
     return () => observer.disconnect();
   }, [slides]);
 
+  // 🔥 Hybrid slide renderer
+  const HybridSlide = ({ slide }) => {
+    const isVideo = slide.src.endsWith(".webm");
+    return (
+      <div className="yarl__slide yarl__slide--current">
+        {isVideo ? (
+          <video
+            src={slide.src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls={false}
+            className="yarl__slide_image"
+          />
+        ) : (
+          <img
+            src={slide.src}
+            alt={slide.title || ""}
+            className="yarl__slide_image"
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
     <RootLayout>
       {/* Invisible dev button */}
@@ -227,12 +253,25 @@ export default function Page() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {images.map((photo, i) => (
                 <div key={i}>
-                  <img
-                    alt={photo.name}
-                    src={photo.src}
-                    onClick={() => setIndex(i)}
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                  />
+                  {photo.src.endsWith(".webm") ? (
+                    <video
+                      src={photo.src}
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      controls={false}
+                    />
+                  ) : (
+                    <img
+                      alt={photo.name}
+                      src={photo.src}
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -249,6 +288,7 @@ export default function Page() {
           open={index >= 0}
           close={() => setIndex(-1)}
           render={{
+            slide: HybridSlide,
             slideFooter: ({ slide }) => (
               <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
                 {slide.title && (
