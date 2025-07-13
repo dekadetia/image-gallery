@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "next/link"; 
 import Lightbox from "yet-another-react-lightbox";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Loader from "../components/loader/loader";
