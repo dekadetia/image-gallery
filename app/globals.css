@@ -291,3 +291,15 @@ body.blackmode-hide-cursor * {
     cursor: none !important;
 }
 
+.autosmode {
+  background-color: #000000 !important;
+}
+
+.autosmode .header,
+.autosmode .footer,
+.autosmode .nav,
+.autosmode .buttons {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
