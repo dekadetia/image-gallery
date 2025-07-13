@@ -263,27 +263,28 @@ export default function Page() {
   open={index >= 0}
   close={() => setIndex(-1)}
   render={{
-    slide: ({ slide }) => (
-      <div className="yarl__slide yarl__slide--current">
-        {slide.src.includes(".webm") ? (
-          <video
-            src={slide.src}
-            className="w-full h-auto max-h-[90vh] object-contain"
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls={false}
-          />
-        ) : (
-          <img
-            src={slide.src}
-            alt={slide.title || ""}
-            className="w-full h-auto max-h-[90vh] object-contain"
-          />
-        )}
-      </div>
-    ),
+    slide: (props) => {
+      const { slide } = props;
+      // If it's a .webm, render video in a way YARL can size it
+      if (slide.src.includes(".webm")) {
+        return (
+          <div className="yarl__slide yarl__slide--current">
+            <video
+              src={slide.src}
+              className="yarl__slide_image"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+            />
+          </div>
+        );
+      }
+
+      // Otherwise, let YARL handle it as usual
+      return Lightbox.defaultProps.render.slide(props);
+    },
     slideFooter: ({ slide }) => (
       <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
         {slide.title && (
@@ -305,6 +306,7 @@ export default function Page() {
     ),
   }}
 />
+
 
 
       )}
