@@ -295,6 +295,10 @@ body.blackmode-hide-cursor * {
   background-color: #000000 !important;
 }
 
+.autosmode body {
+  background-color: #000000;
+}
+
 .autosmode .header,
 .autosmode .footer,
 .autosmode .nav,
@@ -303,22 +307,8 @@ body.blackmode-hide-cursor * {
   pointer-events: none;
   transition: opacity 0.5s ease;
 }
-.autosmode {
-  background-color: #000000 !important;
+
+.autosmode .blackmode-hide-cursor {
+  cursor: none;
 }
 
-.autosmode .masonry-grid {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-}
-
-.autosmode .bottom-logo {
-  display: none !important;
-}
-
-.autosmode .page-padding,
-.autosmode .page-margin {
-  padding: 0 !important;
-  margin: 0 !important;
-} 
