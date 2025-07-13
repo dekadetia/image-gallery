@@ -64,7 +64,19 @@ export default function Page() {
         }
 
         const newSlides = newImages.map((photo) => ({
-          src: photo.src,
+          src: photo.src.includes(".webm")
+            ? (
+                <video
+                  src={photo.src}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls={false}
+                  className="w-full h-auto max-h-[90vh] object-contain"
+                />
+              )
+            : photo.src,
           width: 1080 * 4,
           height: 1620 * 4,
           title: photo.caption,
@@ -227,12 +239,25 @@ export default function Page() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {images.map((photo, i) => (
                 <div key={i}>
-                  <img
-                    alt={photo.name}
-                    src={photo.src}
-                    onClick={() => setIndex(i)}
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                  />
+                  {photo.src.includes(".webm") ? (
+                    <video
+                      src={photo.src}
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      controls={false}
+                    />
+                  ) : (
+                    <img
+                      alt={photo.name}
+                      src={photo.src}
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -250,27 +275,6 @@ export default function Page() {
           slides={slides}
           open={index >= 0}
           close={() => setIndex(-1)}
-          render={{
-            slideFooter: ({ slide }) => (
-              <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-                {slide.title && (
-                  <div className="yarl__slide_title">{slide.title}</div>
-                )}
-                <div className={slide.director && "!mb-5"}>
-                  {slide.director && (
-                    <div className="yarl__slide_description !text-[#99AABB]">
-                      <span className="font-medium">{slide.director}</span>
-                    </div>
-                  )}
-                  {slide.description && (
-                    <div className="yarl__slide_description">
-                      {slide.description}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ),
-          }}
         />
       )}
     </RootLayout>
