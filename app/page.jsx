@@ -95,37 +95,33 @@ export default function Page() {
     if (autosMode) {
       document.body.classList.add("autosmode");
 
-      // FULLSCREEN REQUEST
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch((err) => {
           console.warn("Fullscreen request failed:", err);
         });
       }
 
-      // Start autoscroll
-      let scrollSpeed = 0.5; // pixels per frame (~30px/sec)
+      let scrollSpeed = 0.5;
       const scrollStep = () => {
         window.scrollBy(0, scrollSpeed);
         if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
-          window.scrollTo(0, 0); // Loop back to top
+          window.scrollTo(0, 0);
         }
         scrollRef.current = requestAnimationFrame(scrollStep);
       };
       scrollRef.current = requestAnimationFrame(scrollStep);
 
-      // Cursor hide logic
       const handleMouseMove = () => {
         clearTimeout(cursorTimerRef.current);
         setHideCursor(false);
 
         cursorTimerRef.current = setTimeout(() => {
           setHideCursor(true);
-        }, 3000); // 3 seconds idle
+        }, 3000);
       };
 
       window.addEventListener("mousemove", handleMouseMove);
 
-      // Invisible exit button
       const exitBtn = document.createElement("button");
       exitBtn.style.position = "fixed";
       exitBtn.style.top = "10px";
@@ -140,14 +136,11 @@ export default function Page() {
 
       return () => {
         document.body.classList.remove("autosmode");
-
-        // Exit fullscreen
         if (document.fullscreenElement && document.exitFullscreen) {
           document.exitFullscreen().catch((err) => {
             console.warn("Exiting fullscreen failed:", err);
           });
         }
-
         cancelAnimationFrame(scrollRef.current);
         clearTimeout(cursorTimerRef.current);
         window.removeEventListener("mousemove", handleMouseMove);
@@ -164,6 +157,18 @@ export default function Page() {
       document.body.classList.remove("blackmode-hide-cursor");
     }
   }, [hideCursor, autosMode]);
+
+  // 🩹 Kill Lightbox "Close" tooltip
+  useEffect(() => {
+    if (!slides.length) return;
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('.yarl__button[title="Close"]').forEach((btn) =>
+        btn.removeAttribute("title")
+      );
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [slides]);
 
   return (
     <RootLayout>
@@ -184,7 +189,6 @@ export default function Page() {
         tabIndex={-1}
       />
 
-      {/* Header/Nav only if NOT autosMode */}
       {!autosMode && (
         <div className="w-full flex justify-center items-center py-9">
           <div className="w-full grid place-items-center space-y-6">
@@ -195,16 +199,13 @@ export default function Page() {
                 alt=""
               />
             </Link>
-
             <div className="flex gap-8 items-center">
               <Link href={"/indx"}>
                 <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
               </Link>
-
               <Link href={"/ordr"}>
                 <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
               </Link>
-
               <Link href={"/rndm"}>
                 <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
               </Link>
@@ -213,7 +214,6 @@ export default function Page() {
         </div>
       )}
 
-      {/* Loader or Grid */}
       {loader ? (
         <Loader />
       ) : (
@@ -240,10 +240,8 @@ export default function Page() {
         </div>
       )}
 
-      {/* Footer only if NOT autosMode */}
       {!loader && !autosMode && <Footer />}
 
-      {/* Lightbox */}
       {slides && (
         <Lightbox
           index={index}
