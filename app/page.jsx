@@ -227,12 +227,24 @@ export default function Page() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {images.map((photo, i) => (
                 <div key={i}>
-                  <img
-                    alt={photo.name}
-                    src={photo.src}
-                    onClick={() => setIndex(i)}
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                  />
+{photo.contentType.startsWith('video/') ? (
+  <video
+    src={photo.src}
+    onClick={() => setIndex(i)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+    autoPlay
+    muted
+    loop
+    playsInline
+  />
+) : (
+  <img
+    alt={photo.name}
+    src={photo.src}
+    onClick={() => setIndex(i)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+  />
+)}
                 </div>
               ))}
             </div>
