@@ -227,7 +227,7 @@ export default function Page() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {images.map((photo, i) => (
                 <div key={i}>
-{photo.contentType.startsWith('video/') ? (
+{photo.src.endsWith('.webm') ? (
   <video
     src={photo.src}
     onClick={() => setIndex(i)}
@@ -245,6 +245,7 @@ export default function Page() {
     className="aspect-[16/9] object-cover cursor-zoom-in"
   />
 )}
+
                 </div>
               ))}
             </div>
