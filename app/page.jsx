@@ -217,9 +217,7 @@ export default function Page() {
       {loader ? (
         <Loader />
       ) : (
-        <div className={`${
-          autosMode ? "w-full fixed inset-0 z-50" : "px-4 lg:px-16 pb-10"
-        }`}>
+        <div className={`${autosMode ? "w-full z-50" : "px-4 lg:px-16 pb-10"}`}>
           <InfiniteScroll
             dataLength={images.length}
             next={() => fetchImages(nextPageToken)}
