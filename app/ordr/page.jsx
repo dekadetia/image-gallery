@@ -7,15 +7,14 @@ import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
-import Footer from '@/components/Footer'
+import Footer from '../../components/Footer'
 import Fuse from 'fuse.js'
-import MoreImageLoader from '@/components/MoreImageLoader'
-import RootLayout from '@/layout'
+import MoreImageLoader from '../../components/MoreImageLoader'
+import RootLayout from '../layout'
 import InfiniteScroll from 'react-infinite-scroll-component'
-import Loader from '@/components/loader/loader'
+import Loader from '../../components/loader/loader'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import MediaSlot from '@/components/MediaSlot'
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs))
@@ -375,14 +374,12 @@ export default function Order() {
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
-                <div
-                  key={i}
-                  className="w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in"
-                  onClick={() => setIndex(i)}
-                >
-                  <MediaSlot
+                <div key={i}>
+                  <img
+                    alt={photo.name}
                     src={photo.src}
-                    className="h-full w-full object-cover aspect-[16/9]"
+                    onClick={() => setIndex(i)}
+                    className="aspect-[16/9] object-cover cursor-zoom-in"
                   />
                 </div>
               ))}
@@ -396,25 +393,6 @@ export default function Order() {
               open={index >= 0}
               close={() => setIndex(-1)}
               render={{
-                slide: ({ slide }) => (
-                  slide.src.endsWith('.webm') ? (
-                    <video
-                      src={slide.src}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      preload="auto"
-                      className="absolute top-0 left-0 w-full h-full object-contain"
-                    />
-                  ) : (
-                    <img
-                      src={slide.src}
-                      className="absolute top-0 left-0 w-full h-full object-contain"
-                      alt={slide.title || ''}
-                    />
-                  )
-                ),
                 slideFooter: ({ slide }) => (
                   <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
                     {slide.title && (
