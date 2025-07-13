@@ -143,13 +143,6 @@ export default function Page() {
         </div>
       )}
 
-      {/* Bottom logo */}
-      {!loader && (
-        <div className="flex justify-center items-center mt-10">
-          <img src="/assets/logo.svg" className="w-24 opacity-50" alt="" />
-        </div>
-      )}
-
       {/* Footer */}
       {!loader && <Footer />}
 
