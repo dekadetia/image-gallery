@@ -136,11 +136,13 @@ export default function Page() {
 
       return () => {
         document.body.classList.remove("autosmode");
+
         if (document.fullscreenElement && document.exitFullscreen) {
           document.exitFullscreen().catch((err) => {
             console.warn("Exiting fullscreen failed:", err);
           });
         }
+
         cancelAnimationFrame(scrollRef.current);
         clearTimeout(cursorTimerRef.current);
         window.removeEventListener("mousemove", handleMouseMove);
@@ -158,7 +160,7 @@ export default function Page() {
     }
   }, [hideCursor, autosMode]);
 
-  // 🩹 Kill Lightbox "Close" tooltip
+  // MutationObserver to remove Close tooltip
   useEffect(() => {
     if (!slides.length) return;
     const observer = new MutationObserver(() => {
@@ -170,35 +172,8 @@ export default function Page() {
     return () => observer.disconnect();
   }, [slides]);
 
-  // 🔥 Hybrid slide renderer
-  const HybridSlide = ({ slide }) => {
-    const isVideo = slide.src.endsWith(".webm");
-    return (
-      <div className="yarl__slide yarl__slide--current">
-        {isVideo ? (
-          <video
-            src={slide.src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls={false}
-            className="yarl__slide_image"
-          />
-        ) : (
-          <img
-            src={slide.src}
-            alt={slide.title || ""}
-            className="yarl__slide_image"
-          />
-        )}
-      </div>
-    );
-  };
-
   return (
     <RootLayout>
-      {/* Invisible dev button */}
       <button
         onClick={() => setAutosMode(true)}
         style={{
@@ -225,13 +200,16 @@ export default function Page() {
                 alt=""
               />
             </Link>
+
             <div className="flex gap-8 items-center">
               <Link href={"/indx"}>
                 <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
               </Link>
+
               <Link href={"/ordr"}>
                 <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
               </Link>
+
               <Link href={"/rndm"}>
                 <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
               </Link>
@@ -253,7 +231,7 @@ export default function Page() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {images.map((photo, i) => (
                 <div key={i}>
-                  {photo.src.endsWith(".webm") ? (
+                  {photo.src.includes(".webm") ? (
                     <video
                       src={photo.src}
                       onClick={() => setIndex(i)}
@@ -288,7 +266,6 @@ export default function Page() {
           open={index >= 0}
           close={() => setIndex(-1)}
           render={{
-            slide: HybridSlide,
             slideFooter: ({ slide }) => (
               <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
                 {slide.title && (
