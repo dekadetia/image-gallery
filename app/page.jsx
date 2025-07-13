@@ -83,6 +83,18 @@ export default function Page() {
     __loader(false);
   };
 
+useEffect(() => {
+  if (!slides.length) return
+  const observer = new MutationObserver(() => {
+    document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+      btn.removeAttribute('title')
+    })
+  })
+  observer.observe(document.body, { childList: true, subtree: true })
+  return () => observer.disconnect()
+}, [slides])
+
+  
   useEffect(() => {
     if (wasCalled.current) return;
     wasCalled.current = true;
@@ -257,55 +269,53 @@ export default function Page() {
       {!loader && !autosMode && <Footer />}
 
       {/* Lightbox */}
-    {slides && (
-  <div className="relative z-50">
-    <Lightbox
-      index={index}
-      slides={slides}
-      open={index >= 0}
-      close={() => setIndex(-1)}
-      labels={{ close: '' }} // disables "Close" tooltip
-      render={{
-        slide: ({ slide }) =>
-          slide.src.includes('.webm') ? (
-            <video
-              src={slide.src}
-              className="w-full h-auto max-h-[90vh] object-contain"
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
-          ) : (
-            <img
-              src={slide.src}
-              alt={slide.title || ''}
-              className="w-full h-auto max-h-[90vh] object-contain"
-            />
-          ),
-        slideFooter: ({ slide }) => (
-          <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-            {slide.title && (
-              <div className="yarl__slide_title">{slide.title}</div>
-            )}
-            <div className={cn("!space-y-0", slide.director && "!mb-5")}>
-              {slide.director && (
-                <div className="yarl__slide_description !text-[#99AABB]">
-                  <span className="font-medium">{slide.director}</span>
-                </div>
-              )}
-              {slide.description && (
-                <div className="yarl__slide_description">
-                  {slide.description}
-                </div>
-              )}
-            </div>
-          </div>
+   {slides && (
+  <Lightbox
+    index={index}
+    slides={slides}
+    open={index >= 0}
+    close={() => setIndex(-1)}
+    render={{
+      slide: ({ slide }) =>
+        slide.src.includes('.webm') ? (
+          <video
+            src={slide.src}
+            className="w-full h-auto max-h-[90vh] object-contain"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <img
+            src={slide.src}
+            alt={slide.title || ''}
+            className="w-full h-auto max-h-[90vh] object-contain"
+          />
         ),
-      }}
-    />
-  </div>
+      slideFooter: ({ slide }) => (
+        <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+          {slide.title && (
+            <div className="yarl__slide_title">{slide.title}</div>
+          )}
+          <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+            {slide.director && (
+              <div className="yarl__slide_description !text-[#99AABB]">
+                <span className="font-medium">{slide.director}</span>
+              </div>
+            )}
+            {slide.description && (
+              <div className="yarl__slide_description">
+                {slide.description}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    }}
+  />
 )}
+
     </RootLayout>
   );
 }
