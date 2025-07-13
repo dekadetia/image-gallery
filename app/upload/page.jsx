@@ -54,20 +54,10 @@ export default function Page() {
     resolver: yupResolver(schema),
   });
 
-const changeHandler = (e) => {
-  const files = Array.from(e.target.files);
-  const supportedTypes = ["image/webp", "video/webm"];
-
-  const invalidFiles = files.filter(file => !supportedTypes.includes(file.type));
-
-  if (invalidFiles.length > 0) {
-    errorToast("Only WEBP and WEBM files are supported");
-    return;
-  }
-
-  setImages(files);
-};
-
+  const changeHandler = (e) => {
+    const files = Array.from(e.target.files);
+    setImages(files);
+  };
 
   function formatFileSize(bytes) {
     if (bytes < 1024) {
@@ -526,15 +516,13 @@ const changeHandler = (e) => {
 
                   <div className="col-span-2">
                     <label className="my-2 block">Add Files</label>
-<input
-  multiple
-  onChange={changeHandler}
-  className="flex w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 mb-6 py-2"
-  id="file_input"
-  type="file"
-  accept=".webp, .webm"
-/>
-
+                    <input
+                      multiple
+                      onChange={changeHandler}
+                      className="flex w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 mb-6 py-2"
+                      id="file_input"
+                      type="file"
+                    />
                   </div>
                   <button
                     disabled={images.length === 0}
