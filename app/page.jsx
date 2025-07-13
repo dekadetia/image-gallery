@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import MasonaryGrid from "../components/MasonaryGrid";
+import RootLayout from "./layout";
 
 import { IoMdList } from "react-icons/io";
 import { RxCaretSort } from "react-icons/rx";
@@ -16,9 +17,11 @@ export default function Page() {
 
   useEffect(() => {
     if (autosMode) {
+      // Add autosmode class for background + UI fade
       document.body.classList.add("autosmode");
 
-      let scrollSpeed = 0.5;
+      // Start autoscroll
+      let scrollSpeed = 0.5; // pixels per frame (~30px/sec)
       const scrollStep = () => {
         window.scrollBy(0, scrollSpeed);
         if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
@@ -28,16 +31,19 @@ export default function Page() {
       };
       scrollRef.current = requestAnimationFrame(scrollStep);
 
+      // Cursor hide logic
       const handleMouseMove = () => {
         clearTimeout(cursorTimerRef.current);
         setHideCursor(false);
+
         cursorTimerRef.current = setTimeout(() => {
           setHideCursor(true);
-        }, 3000);
+        }, 3000); // 3 seconds idle
       };
 
       window.addEventListener("mousemove", handleMouseMove);
 
+      // Invisible exit button
       const exitBtn = document.createElement("button");
       exitBtn.style.position = "fixed";
       exitBtn.style.top = "10px";
@@ -71,25 +77,24 @@ export default function Page() {
 
   return (
     <>
-      {/* Invisible dev button to toggle autosMode */}
-      <button
-        onClick={() => setAutosMode(true)}
-        style={{
-          position: "fixed",
-          top: "10px",
-          right: "10px",
-          width: "30px",
-          height: "30px",
-          opacity: 0,
-          cursor: "pointer",
-          zIndex: 9999
-        }}
-        aria-hidden="true"
-        tabIndex={-1}
-      />
+      <RootLayout>
+        {/* Invisible dev button to toggle autosMode */}
+        <button
+          onClick={() => setAutosMode(true)}
+          style={{
+            position: "fixed",
+            top: "10px",
+            right: "10px",
+            width: "30px",
+            height: "30px",
+            opacity: 0,
+            cursor: "pointer",
+            zIndex: 9999
+          }}
+          aria-hidden="true"
+          tabIndex={-1}
+        />
 
-      {/* Header/Nav only shown when not in autosMode */}
-      {!autosMode && (
         <div className="w-full flex justify-center items-center py-9">
           <div className="w-full grid place-items-center space-y-6">
             <Link href={"/"}>
@@ -115,19 +120,9 @@ export default function Page() {
             </div>
           </div>
         </div>
-      )}
 
-      {/* MasonaryGrid wrapper with container only in normal mode */}
-      <div className={!autosMode ? "container mx-auto px-4 lg:px-16 pb-10" : "w-full"}>
         <MasonaryGrid />
-      </div>
-
-      {/* Bottom logo only if NOT autosMode */}
-      {!autosMode && (
-        <div className="flex justify-center items-center mt-10">
-          <img src="/assets/logo.svg" className="w-24 opacity-50" alt="" />
-        </div>
-      )}
+      </RootLayout>
     </>
   );
 }
