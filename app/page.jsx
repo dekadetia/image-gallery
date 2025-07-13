@@ -260,8 +260,6 @@ export default function Page() {
       {!loader && !autosMode && <Footer />}
 
       {slides && (
-      import { defaultRenderSlide } from "yet-another-react-lightbox"
-
 <Lightbox
   index={index}
   slides={slides}
