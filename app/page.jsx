@@ -8,6 +8,7 @@ import Loader from "../components/loader/loader";
 import MoreImageLoader from "../components/MoreImageLoader/index";
 import Footer from "../components/Footer";
 import RootLayout from "./layout";
+import cn from "classnames";
 
 import { IoMdList } from "react-icons/io";
 import { RxCaretSort } from "react-icons/rx";
