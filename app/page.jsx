@@ -257,12 +257,12 @@ export default function Page() {
 
       {/* Lightbox */}
       {slides && (
-     <Lightbox
+    <Lightbox
   index={index}
   slides={slides}
   open={index >= 0}
   close={() => setIndex(-1)}
-  labels={{ close: '' }} // 👈 disables "Close" tooltip
+  labels={{ close: '' }} // kills "Close" tooltip like /ordr
   render={{
     slide: ({ slide }) =>
       slide.src.includes('.webm') ? (
@@ -286,22 +286,21 @@ export default function Page() {
         {slide.title && (
           <div className="yarl__slide_title">{slide.title}</div>
         )}
-        <div className={slide.director && "!mb-5"}>
+        <div className={cn("!space-y-0", slide.director && "!mb-5")}>
           {slide.director && (
             <div className="yarl__slide_description !text-[#99AABB]">
               <span className="font-medium">{slide.director}</span>
             </div>
           )}
           {slide.description && (
-            <div className="yarl__slide_description">
-              {slide.description}
-            </div>
+            <div className="yarl__slide_description">{slide.description}</div>
           )}
         </div>
       </div>
     ),
   }}
 />
+
 
 
 
