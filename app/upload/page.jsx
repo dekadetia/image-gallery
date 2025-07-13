@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import InfiniteScroll from "react-infinite-scroll-component";
+// import socket from "../socket";
 import { errorToast, successToast } from "../../utils/toast";
 import Link from "next/link";
 import Loader from "../../components/loader/loader";
@@ -40,6 +41,11 @@ export default function Page() {
   const [loader, __loader] = useState(false);
   const [backupArray, __backupArray] = useState([]);
 
+  // initializing socket
+  //   useEffect(() => {
+  //     socket.emit("firebase-create", "waqas");
+  //   }, []);
+
   const {
     register,
     handleSubmit,
@@ -50,23 +56,19 @@ export default function Page() {
 
   const changeHandler = (e) => {
     const files = Array.from(e.target.files);
-    const supportedTypes = ["image/webp", "video/webm"];
-
-    const invalidFiles = files.filter(file => !supportedTypes.includes(file.type));
-
-    if (invalidFiles.length > 0) {
-      errorToast("Only WEBP and WEBM files are supported");
-      return;
-    }
-
     setImages(files);
   };
 
   function formatFileSize(bytes) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    if (bytes < 1024) {
+      return bytes + " B";
+    } else if (bytes < 1024 * 1024) {
+      return (bytes / 1024).toFixed(2) + " KB";
+    } else if (bytes < 1024 * 1024 * 1024) {
+      return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+    } else {
+      return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+    }
   }
 
   const openModal = (name) => {
@@ -77,21 +79,34 @@ export default function Page() {
   const openEditModal = (photo) => {
     setEditModal(true);
     setdelId(photo.name);
+
     setCaption(photo.caption);
     setDirector(photo.director);
+
     setPhotographer(photo.photographer);
     setYear(photo.year);
+
     setAlphaname(photo.alphaname);
     setDimensions(photo.dimensions);
   };
 
   function isObjectMatch(obj1, obj2) {
-    const obj1Keys = Object.keys(obj1);
-    const obj2Keys = Object.keys(obj2);
+    var obj1Keys = Object.keys(obj1);
+    var obj2Keys = Object.keys(obj2);
 
-    if (obj1Keys.length !== obj2Keys.length) return false;
+    if (obj1Keys.length !== obj2Keys.length) {
+      return false;
+    }
 
-    return obj1Keys.every(key => obj1[key] === obj2[key]);
+    for (var i = 0; i < obj1Keys.length; i++) {
+      var propName = obj1Keys[i];
+
+      if (obj1[propName] !== obj2[propName]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   const submitHandler = (formData) => {
@@ -120,8 +135,10 @@ export default function Page() {
 
     formData.append("caption", caption);
     formData.append("director", director);
+
     formData.append("photographer", photographer);
     formData.append("year", year);
+
     formData.append("alphaname", alphaname);
     formData.append("dimensions", dimensions);
 
@@ -149,11 +166,14 @@ export default function Page() {
 
   const updateImageData = async () => {
     const formData = new FormData();
-    formData.append("file", delId);
+    formData.append(`file`, delId);
+
     formData.append("caption", caption);
     formData.append("director", director);
+
     formData.append("photographer", photographer);
     formData.append("year", year);
+
     formData.append("alphaname", alphaname);
     formData.append("dimensions", dimensions);
 
@@ -167,12 +187,12 @@ export default function Page() {
           },
           body: JSON.stringify({
             file: delId,
-            caption,
-            director,
-            photographer,
-            year,
-            alphaname,
-            dimensions,
+            caption: caption,
+            director: director,
+            photographer: photographer,
+            year: year,
+            alphaname: alphaname,
+            dimensions: dimensions,
           }),
         }
       );
@@ -211,9 +231,11 @@ export default function Page() {
         const images = data.images;
 
         if (!data.nextPageToken) {
+          console.log("nul found ", data.nextPageToken);
           setHasMore(false);
           successToast("All images have been loaded!");
           setNextPageToken(null);
+          return;
         } else {
           setFetchedPhotos((prevImages) => {
             const existingNames = new Set(prevImages.map((img) => img.name));
@@ -240,6 +262,7 @@ export default function Page() {
 
   const deleteImage = async (name) => {
     setModal(false);
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/delete`,
@@ -273,9 +296,10 @@ export default function Page() {
           photo.caption.toLowerCase().includes(query) ||
           photo.photographer.toLowerCase().includes(query)
       );
-      setFetchedPhotos(filteredPhotos);
+
+      setFetchedPhotos((f) => filteredPhotos);
     } else {
-      setFetchedPhotos([...backupArray]);
+      setFetchedPhotos((f) => [...backupArray]);
     }
   };
 
@@ -292,7 +316,6 @@ export default function Page() {
 
   return !userIsLogged ? (
     <>
-      {/* LOGIN FORM */}
       <Link href={"/"}>
         <img
           src="/assets/logo.svg"
@@ -339,7 +362,6 @@ export default function Page() {
     </>
   ) : (
     <>
-      {/* UPLOAD DASHBOARD */}
       <Link href={"/"}>
         <img
           src="/assets/logo.svg"
@@ -494,14 +516,13 @@ export default function Page() {
 
                   <div className="col-span-2">
                     <label className="my-2 block">Add Files</label>
-<input
-  multiple
-  onChange={changeHandler}
-  className="flex w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 mb-6 py-2"
-  id="file_input"
-  type="file"
-  accept=".webp, .webm"
-/>
+                    <input
+                      multiple
+                      onChange={changeHandler}
+                      className="flex w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400 mb-6 py-2"
+                      id="file_input"
+                      type="file"
+                    />
                   </div>
                   <button
                     disabled={images.length === 0}
