@@ -1,9 +1,11 @@
-"use client";
+"use client"; 
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import TNDRLightbox from "../components/Lightbox";
+import Lightbox from "yet-another-react-lightbox";
+import InfiniteScroll from "react-infinite-scroll-component";
 import Loader from "../components/loader/loader";
+import MoreImageLoader from "../components/MoreImageLoader/index";
 import Footer from "../components/Footer";
 import RootLayout from "./layout";
 
@@ -21,6 +23,9 @@ export default function Page() {
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loader, __loader] = useState(true);
+
+  const [index, setIndex] = useState(-1);
+  const [slides, setSlides] = useState([]);
 
   const wasCalled = useRef(false);
 
@@ -50,16 +55,25 @@ export default function Page() {
         } else {
           setImages((prevImages) => {
             const existingNames = new Set(prevImages.map((img) => img.name));
-const uniqueImages = newImages
-  .filter((img) => !existingNames.has(img.name))
-  .map((img) => ({
-    ...img,
-    src: `${img.src}?alt=media&token=${img.token}`,
-  }));
+            const uniqueImages = newImages.filter(
+              (img) => !existingNames.has(img.name)
+            );
             return [...prevImages, ...uniqueImages];
           });
           setNextPageToken(data.nextPageToken);
         }
+
+        const newSlides = newImages.map((photo) => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+          director: photo.director || null,
+          year: photo.year,
+        }));
+
+        setSlides((prevSlides) => [...prevSlides, ...newSlides]);
       }
     } catch (err) {
       console.error("Failed to fetch images:", err);
@@ -146,6 +160,19 @@ const uniqueImages = newImages
     }
   }, [hideCursor, autosMode]);
 
+// 🩹 MutationObserver to remove title="Close"
+useEffect(() => {
+  if (!slides.length) return; // Run only if slides are loaded
+  const observer = new MutationObserver(() => {
+    document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+      btn.removeAttribute('title');
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  return () => observer.disconnect();
+}, [slides]);
+
+  
   return (
     <RootLayout>
       <button
@@ -195,17 +222,73 @@ const uniqueImages = newImages
       {loader ? (
         <Loader />
       ) : (
-<TNDRLightbox
-  images={images}
-  fetchImages={fetchImages}
-  hasMore={hasMore}
-  nextPageToken={nextPageToken}
-  autosMode={autosMode}
-/>
+        <div className={`${autosMode ? "w-full z-50" : "px-4 lg:px-16 pb-10"}`}>
+          <InfiniteScroll
+            dataLength={images.length}
+            next={() => fetchImages(nextPageToken)}
+            hasMore={hasMore}
+            loader={<MoreImageLoader />}
+          >
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+              {images.map((photo, i) => (
+                <div key={i}>
+{photo.src.toLowerCase().includes('.webm') ? (
+  <video
+    src={photo.src}
+    onClick={() => setIndex(i)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+    autoPlay
+    muted
+    loop
+    playsInline
+  />
+) : (
+  <img
+    alt={photo.name}
+    src={photo.src}
+    onClick={() => setIndex(i)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+  />
+)}
 
+                </div>
+              ))}
+            </div>
+          </InfiniteScroll>
+        </div>
       )}
 
       {!loader && !autosMode && <Footer />}
+
+      {slides && (
+        <Lightbox
+          index={index}
+          slides={slides}
+          open={index >= 0}
+          close={() => setIndex(-1)}
+          render={{
+            slideFooter: ({ slide }) => (
+              <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                {slide.title && (
+                  <div className="yarl__slide_title">{slide.title}</div>
+                )}
+                <div className={slide.director && "!mb-5"}>
+                  {slide.director && (
+                    <div className="yarl__slide_description !text-[#99AABB]">
+                      <span className="font-medium">{slide.director}</span>
+                    </div>
+                  )}
+                  {slide.description && (
+                    <div className="yarl__slide_description">
+                      {slide.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ),
+          }}
+        />
+      )}
     </RootLayout>
   );
 }
