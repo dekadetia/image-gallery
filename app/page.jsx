@@ -267,14 +267,14 @@ useEffect(() => {
 
       {!loader && !autosMode && <Footer />}
 
-     {slides && (
+   {slides && (
   <Lightbox
     index={index}
     slides={slides}
     open={index >= 0}
     close={() => setIndex(-1)}
     plugins={[
-      [Video, { autoplay: true, controls: false, playsInline: true }]
+      Video({ autoplay: true, controls: false, playsInline: true })
     ]}
     render={{
       slideFooter: ({ slide }) => (
@@ -299,6 +299,7 @@ useEffect(() => {
     }}
   />
 )}
+
 
     </RootLayout>
   );
