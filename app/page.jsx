@@ -261,64 +261,33 @@ useEffect(() => {
       {!loader && !autosMode && <Footer />}
 
       {slides && (
-<Lightbox
-  index={index}
-  slides={slides}
-  open={index >= 0}
-  close={() => setIndex(-1)}
-  render={{
-    slide: ({ slide, rect }) =>
-      slide.src.toLowerCase().endsWith(".webm") ? (
-        <video
-          key={slide.src} // 🩹 ensures re-render when changing slides
-          src={slide.src}
-          style={{
-            maxWidth: rect.width,
-            maxHeight: rect.height,
-            display: "block",
-            margin: "0 auto",
-          }}
-          autoPlay
-          muted
-          loop
-          playsInline
-          controls
-        />
-      ) : (
-        <img
-          key={slide.src} // 🩹 same here
-          src={slide.src}
-          alt={slide.title || ""}
-          style={{
-            maxWidth: rect.width,
-            maxHeight: rect.height,
-            display: "block",
-            margin: "0 auto",
+        <Lightbox
+          index={index}
+          slides={slides}
+          open={index >= 0}
+          close={() => setIndex(-1)}
+          render={{
+            slideFooter: ({ slide }) => (
+              <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                {slide.title && (
+                  <div className="yarl__slide_title">{slide.title}</div>
+                )}
+                <div className={slide.director && "!mb-5"}>
+                  {slide.director && (
+                    <div className="yarl__slide_description !text-[#99AABB]">
+                      <span className="font-medium">{slide.director}</span>
+                    </div>
+                  )}
+                  {slide.description && (
+                    <div className="yarl__slide_description">
+                      {slide.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ),
           }}
         />
-      ),
-    slideFooter: ({ slide }) => (
-      <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-        {slide.title && (
-          <div className="yarl__slide_title">{slide.title}</div>
-        )}
-        <div className={slide.director && "!mb-5"}>
-          {slide.director && (
-            <div className="yarl__slide_description !text-[#99AABB]">
-              <span className="font-medium">{slide.director}</span>
-            </div>
-          )}
-          {slide.description && (
-            <div className="yarl__slide_description">
-              {slide.description}
-            </div>
-          )}
-        </div>
-      </div>
-    ),
-  }}
-/>
-
       )}
     </RootLayout>
   );
