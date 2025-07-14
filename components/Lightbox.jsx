@@ -33,40 +33,48 @@ export default function TNDRLightbox({ images, fetchImages, hasMore, nextPageTok
           mode="lg-fade"
         >
           <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-            {images.map((photo, i) => (
-              <a
-                key={i}
-                href={photo.src}
-                data-sub-html={`
-                  <div class="yarl__slide_title">${photo.caption || ""}</div>
-                  <div class="yarl__slide_description">
-                    ${photo.director ? `<span class="font-medium">${photo.director}</span><br/>` : ""}
-                    ${photo.dimensions || ""}
-                  </div>
-                `}
-              >
-                {photo.src.toLowerCase().endsWith(".webm") ? (
-                  <video
-                    src={photo.src}
-                    muted
-                    loop
-                    autoPlay
-                    playsInline
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                  />
-                ) : (
-                  <img
-                    src={photo.src}
-                    alt={photo.name}
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                  />
-                )}
-              </a>
-            ))}
+            {images.map((photo, i) => {
+              const absoluteURL = photo.src.startsWith("http")
+                ? photo.src
+                : `${process.env.NEXT_PUBLIC_APP_URL}${photo.src}`;
+
+              return (
+                <a
+                  key={i}
+                  href={absoluteURL}
+                  data-sub-html={`
+                    <div class="yarl__slide_title">${photo.caption || ""}</div>
+                    <div class="yarl__slide_description">
+                      ${photo.director ? `<span class="font-medium">${photo.director}</span><br/>` : ""}
+                      ${photo.dimensions || ""}
+                    </div>
+                  `}
+                  {...(photo.src.toLowerCase().endsWith(".webm")
+                    ? { "data-poster": photo.poster || absoluteURL }
+                    : {})}
+                >
+                  {photo.src.toLowerCase().endsWith(".webm") ? (
+                    <video
+                      src={absoluteURL}
+                      muted
+                      loop
+                      autoPlay
+                      playsInline
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                    />
+                  ) : (
+                    <img
+                      src={absoluteURL}
+                      alt={photo.name}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                    />
+                  )}
+                </a>
+              );
+            })}
           </div>
         </LightGallery>
       </InfiniteScroll>
     </div>
   );
 }
-
