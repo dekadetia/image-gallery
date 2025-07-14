@@ -219,43 +219,12 @@ useEffect(() => {
         </div>
       )}
 
-      {loader ? (
-        <Loader />
-      ) : (
-        <div className={`${autosMode ? "w-full z-50" : "px-4 lg:px-16 pb-10"}`}>
-          <InfiniteScroll
-            dataLength={images.length}
-            next={() => fetchImages(nextPageToken)}
-            hasMore={hasMore}
-            loader={<MoreImageLoader />}
-          >
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-              {images.map((photo, i) => (
-                <div key={i}>
-{photo.src.toLowerCase().includes('.webm') ? (
-  <video
-    src={photo.src}
-    onClick={() => setIndex(i)}
-    className="aspect-[16/9] object-cover cursor-zoom-in"
-    autoPlay
-    muted
-    loop
-    playsInline
-  />
+   {loader ? (
+  <Loader />
 ) : (
-  <img
-    alt={photo.name}
-    src={photo.src}
-    onClick={() => setIndex(i)}
-    className="aspect-[16/9] object-cover cursor-zoom-in"
-  />
+  <TNDRLightbox images={images} fetchImages={fetchImages} hasMore={hasMore} nextPageToken={nextPageToken} />
 )}
 
-                </div>
-              ))}
-            </div>
-          </InfiniteScroll>
-        </div>
       )}
 
       {!loader && !autosMode && <Footer />}
