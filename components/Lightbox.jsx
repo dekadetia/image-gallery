@@ -14,6 +14,7 @@ import MoreImageLoader from "./MoreImageLoader";
 export default function TNDRLightbox({ images, fetchImages, hasMore, nextPageToken, autosMode }) {
   const lgRef = useRef(null);
 
+  // Prepare slides for LightGallery dynamic mode
   const slides = images.map((photo) => ({
     src: photo.src,
     thumb: photo.src,
@@ -45,9 +46,21 @@ export default function TNDRLightbox({ images, fetchImages, hasMore, nextPageTok
     }),
   }));
 
+  // Refresh LightGallery instance when images update
+  useEffect(() => {
+    if (lgRef.current?.instance) {
+      lgRef.current.instance.refresh();
+    }
+  }, [images]);
+
+  // Handle grid click to open Lightbox
   const handleClick = (index) => {
     if (lgRef.current?.instance) {
-      lgRef.current.instance.openGallery(index);
+      setTimeout(() => {
+        lgRef.current.instance.openGallery(index);
+      }, 0);
+    } else {
+      console.warn("LightGallery instance not ready yet");
     }
   };
 
