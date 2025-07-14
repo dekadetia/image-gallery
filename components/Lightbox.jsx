@@ -13,15 +13,13 @@ export default function TNDRLightbox({ slides, index, setIndex }) {
   const lgRef = useRef(null);
 
   useEffect(() => {
-    if (index >= 0 && lgRef.current) {
+    if (index >= 0 && lgRef.current && lgRef.current.instance) {
       lgRef.current.instance.openGallery(index);
     }
   }, [index]);
 
   return (
     <LightGallery
-      onBeforeSlide={({ index }) => setIndex(index)}
-      onClose={() => setIndex(-1)}
       dynamic
       dynamicEl={slides.map((slide) => ({
         src: slide.src,
@@ -36,6 +34,8 @@ export default function TNDRLightbox({ slides, index, setIndex }) {
         `,
       }))}
       plugins={[lgZoom, lgVideo]}
+      onBeforeSlide={({ index }) => setIndex(index)}
+      onClose={() => setIndex(-1)}
       closable
       preload={2}
       download={false}
@@ -43,7 +43,6 @@ export default function TNDRLightbox({ slides, index, setIndex }) {
       autoplayVideoOnSlide
       speed={500}
       mode="lg-fade"
-      container={lgRef}
       ref={lgRef}
     />
   );
