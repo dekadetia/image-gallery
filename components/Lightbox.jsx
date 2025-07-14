@@ -11,11 +11,11 @@ import lgVideo from "lightgallery/plugins/video";
 import InfiniteScroll from "react-infinite-scroll-component";
 import MoreImageLoader from "./MoreImageLoader";
 
-export default function TNDRLightbox({ images, fetchImages, hasMore, nextPageToken }) {
+export default function TNDRLightbox({ images, fetchImages, hasMore, nextPageToken, autosMode }) {
   if (!images || images.length === 0) return null;
 
   return (
-    <div className="px-4 lg:px-16 pb-10">
+    <div className={autosMode ? "w-full z-50" : "px-4 lg:px-16 pb-10"}>
       <InfiniteScroll
         dataLength={images.length}
         next={() => fetchImages(nextPageToken)}
@@ -69,3 +69,4 @@ export default function TNDRLightbox({ images, fetchImages, hasMore, nextPageTok
     </div>
   );
 }
+
