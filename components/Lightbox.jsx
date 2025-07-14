@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import LightGallery from "lightgallery/react";
 import "lightgallery/css/lightgallery.css";
 import "lightgallery/css/lg-zoom.css";
@@ -9,19 +9,19 @@ import "lightgallery/css/lg-video.css";
 import lgZoom from "lightgallery/plugins/zoom";
 import lgVideo from "lightgallery/plugins/video";
 
-export default function TNDRLightbox({
-  slides,
-  index,
-  setIndex,
-}) {
-  if (!slides || slides.length === 0) return null;
+export default function TNDRLightbox({ slides, index, setIndex }) {
+  const lgRef = useRef(null);
 
-  const handleBeforeSlide = (event) => {
-    setIndex(event.index);
-  };
+  useEffect(() => {
+    if (index >= 0 && lgRef.current) {
+      lgRef.current.instance.openGallery(index);
+    }
+  }, [index]);
 
   return (
     <LightGallery
+      onBeforeSlide={({ index }) => setIndex(index)}
+      onClose={() => setIndex(-1)}
       dynamic
       dynamicEl={slides.map((slide) => ({
         src: slide.src,
@@ -36,17 +36,15 @@ export default function TNDRLightbox({
         `,
       }))}
       plugins={[lgZoom, lgVideo]}
-      index={index}
-      onBeforeSlide={handleBeforeSlide}
-      onClose={() => setIndex(-1)}
-      mode="lg-fade"
       closable
       preload={2}
       download={false}
       zoom={true}
-      videojs={false}
-      hideBarsDelay={2000}
       autoplayVideoOnSlide
+      speed={500}
+      mode="lg-fade"
+      container={lgRef}
+      ref={lgRef}
     />
   );
 }
