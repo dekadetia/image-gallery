@@ -9,8 +9,8 @@ import "lightgallery/css/lg-video.css";
 import lgZoom from "lightgallery/plugins/zoom";
 import lgVideo from "lightgallery/plugins/video";
 
-export default function TNDRLightbox({ slides }) {
-  if (!slides || slides.length === 0) return null;
+export default function TNDRLightbox({ images }) {
+  if (!images || images.length === 0) return null;
 
   return (
     <LightGallery
@@ -23,36 +23,38 @@ export default function TNDRLightbox({ slides }) {
       speed={500}
       mode="lg-fade"
     >
-      {slides.map((slide, i) => (
-        <a
-          key={i}
-          href={slide.src}
-          data-sub-html={`
-            <div class="yarl__slide_title">${slide.title || ""}</div>
-            <div class="yarl__slide_description">
-              ${slide.director ? `<span class="font-medium">${slide.director}</span><br/>` : ""}
-              ${slide.description || ""}
-            </div>
-          `}
-        >
-          {slide.src.toLowerCase().endsWith(".webm") ? (
-            <video
-              src={slide.src}
-              muted
-              loop
-              autoPlay
-              playsInline
-              className="aspect-[16/9] object-cover cursor-zoom-in"
-            />
-          ) : (
-            <img
-              src={slide.src}
-              alt={slide.title || ""}
-              className="aspect-[16/9] object-cover cursor-zoom-in"
-            />
-          )}
-        </a>
-      ))}
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+        {images.map((photo, i) => (
+          <a
+            key={i}
+            href={photo.src}
+            data-sub-html={`
+              <div class="yarl__slide_title">${photo.caption || ""}</div>
+              <div class="yarl__slide_description">
+                ${photo.director ? `<span class="font-medium">${photo.director}</span><br/>` : ""}
+                ${photo.dimensions || ""}
+              </div>
+            `}
+          >
+            {photo.src.toLowerCase().endsWith(".webm") ? (
+              <video
+                src={photo.src}
+                muted
+                loop
+                autoPlay
+                playsInline
+                className="aspect-[16/9] object-cover cursor-zoom-in"
+              />
+            ) : (
+              <img
+                src={photo.src}
+                alt={photo.name}
+                className="aspect-[16/9] object-cover cursor-zoom-in"
+              />
+            )}
+          </a>
+        ))}
+      </div>
     </LightGallery>
   );
 }
