@@ -1,11 +1,9 @@
-"use client"; 
- 
+"use client";
+
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import TNDRLightbox from "../components/Lightbox";
-import InfiniteScroll from "react-infinite-scroll-component";
 import Loader from "../components/loader/loader";
-import MoreImageLoader from "../components/MoreImageLoader/index";
 import Footer from "../components/Footer";
 import RootLayout from "./layout";
 
@@ -23,9 +21,6 @@ export default function Page() {
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loader, __loader] = useState(true);
-
-  const [index, setIndex] = useState(-1);
-  const [slides, setSlides] = useState([]);
 
   const wasCalled = useRef(false);
 
@@ -62,18 +57,6 @@ export default function Page() {
           });
           setNextPageToken(data.nextPageToken);
         }
-
-        const newSlides = newImages.map((photo) => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director || null,
-          year: photo.year,
-        }));
-
-        setSlides((prevSlides) => [...prevSlides, ...newSlides]);
       }
     } catch (err) {
       console.error("Failed to fetch images:", err);
@@ -160,19 +143,6 @@ export default function Page() {
     }
   }, [hideCursor, autosMode]);
 
-// 🩹 MutationObserver to remove title="Close"
-useEffect(() => {
-  if (!slides.length) return; // Run only if slides are loaded
-  const observer = new MutationObserver(() => {
-    document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
-      btn.removeAttribute('title');
-    });
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-  return () => observer.disconnect();
-}, [slides]);
-
-  
   return (
     <RootLayout>
       <button
@@ -219,16 +189,18 @@ useEffect(() => {
         </div>
       )}
 
-{loader ? (
-  <Loader />
-) : (
-  <TNDRLightbox
-    images={images}
-    fetchImages={fetchImages}
-    hasMore={hasMore}
-    nextPageToken={nextPageToken}
-  />
-)}
+      {loader ? (
+        <Loader />
+      ) : (
+        <TNDRLightbox
+          images={images}
+          fetchImages={fetchImages}
+          hasMore={hasMore}
+          nextPageToken={nextPageToken}
+        />
+      )}
+
+      {!loader && !autosMode && <Footer />}
     </RootLayout>
   );
 }
