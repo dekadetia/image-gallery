@@ -50,9 +50,12 @@ export default function Page() {
         } else {
           setImages((prevImages) => {
             const existingNames = new Set(prevImages.map((img) => img.name));
-            const uniqueImages = newImages.filter(
-              (img) => !existingNames.has(img.name)
-            );
+const uniqueImages = newImages
+  .filter((img) => !existingNames.has(img.name))
+  .map((img) => ({
+    ...img,
+    src: `${img.src}?alt=media&token=${img.token}`,
+  }));
             return [...prevImages, ...uniqueImages];
           });
           setNextPageToken(data.nextPageToken);
