@@ -64,15 +64,17 @@ export default function Page() {
           setNextPageToken(data.nextPageToken);
         }
 
-        const newSlides = newImages.map((photo) => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director || null,
-          year: photo.year,
-        }));
+const newSlides = newImages.map((photo) => ({
+  src: photo.src,
+  width: 1080 * 4,
+  height: 1620 * 4,
+  title: photo.caption,
+  description: photo.dimensions,
+  director: photo.director || null,
+  year: photo.year,
+  type: photo.src.toLowerCase().endsWith(".webm") ? "video" : "image", // 👈 Tell YARL it’s a video
+}));
+
 
         setSlides((prevSlides) => [...prevSlides, ...newSlides]);
       }
