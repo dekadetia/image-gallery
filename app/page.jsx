@@ -234,35 +234,54 @@ export default function Page() {
 
       {!loader && !autosMode && <Footer />}
 
-      {slides && (
-        <Lightbox
-          index={index}
-          slides={slides}
-          open={index >= 0}
-          close={() => setIndex(-1)}
-          render={{
-            slideFooter: ({ slide }) => (
-              <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-                {slide.title && (
-                  <div className="yarl__slide_title">{slide.title}</div>
-                )}
-                <div className={slide.director && "!mb-5"}>
-                  {slide.director && (
-                    <div className="yarl__slide_description !text-[#99AABB]">
-                      <span className="font-medium">{slide.director}</span>
-                    </div>
-                  )}
-                  {slide.description && (
-                    <div className="yarl__slide_description">
-                      {slide.description}
-                    </div>
-                  )}
-                </div>
+{slides && (
+  <Lightbox
+    index={index}
+    slides={slides}
+    open={index >= 0}
+    close={() => setIndex(-1)}
+    render={{
+      slide: ({ slide }) =>
+        slide.src.endsWith(".webm") ? (
+          <video
+            src={slide.src}
+            className="w-full h-auto max-h-[90vh] object-contain"
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls={false}
+          />
+        ) : (
+          <img
+            src={slide.src}
+            alt={slide.title || ""}
+            className="w-full h-auto max-h-[90vh] object-contain"
+          />
+        ),
+      slideFooter: ({ slide }) => (
+        <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+          {slide.title && (
+            <div className="yarl__slide_title">{slide.title}</div>
+          )}
+          <div className={slide.director && "!mb-5"}>
+            {slide.director && (
+              <div className="yarl__slide_description !text-[#99AABB]">
+                <span className="font-medium">{slide.director}</span>
               </div>
-            ),
-          }}
-        />
-      )}
+            )}
+            {slide.description && (
+              <div className="yarl__slide_description">
+                {slide.description}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    }}
+  />
+)}
+
     </RootLayout>
   );
 }
