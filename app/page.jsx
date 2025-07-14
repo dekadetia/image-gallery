@@ -241,24 +241,23 @@ export default function Page() {
     open={index >= 0}
     close={() => setIndex(-1)}
     render={{
-      slide: ({ slide }) =>
-        slide.src.endsWith(".webm") ? (
-          <video
-            src={slide.src}
-            className="w-full h-auto max-h-[90vh] object-contain"
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls={false}
-          />
-        ) : (
-          <img
-            src={slide.src}
-            alt={slide.title || ""}
-            className="w-full h-auto max-h-[90vh] object-contain"
-          />
-        ),
+      slide: (props) =>
+        props.slide.src.endsWith(".webm")
+          ? defaultRenderSlide({
+              ...props,
+              renderMedia: ({ slide }) => (
+                <video
+                  src={slide.src}
+                  className="w-full h-auto max-h-[90vh] object-contain"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls={false}
+                />
+              ),
+            })
+          : defaultRenderSlide(props),
       slideFooter: ({ slide }) => (
         <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
           {slide.title && (
