@@ -64,19 +64,27 @@ export default function Page() {
           setNextPageToken(data.nextPageToken);
         }
 
-const newSlides = newImages.map((photo) => ({
-  type: photo.src.toLowerCase().endsWith(".webm") ? "video" : "image",
-  src: photo.src,
-  sources: photo.src.toLowerCase().endsWith(".webm")
-    ? [{ src: photo.src, type: "video/webm" }]
-    : undefined,
-  width: 1080 * 4,
-  height: 1620 * 4,
-  title: photo.caption,
-  description: photo.dimensions,
-  director: photo.director || null,
-  year: photo.year,
-}));
+const newSlides = newImages.map((photo) => {
+  const isWebm = photo.src.toLowerCase().endsWith(".webm");
+
+  return {
+    type: isWebm ? "video" : "image",
+    src: photo.src,
+    sources: [
+      {
+        src: photo.src,
+        type: isWebm ? "video/webm" : "image/webp", // 👈 Always include MIME type
+      },
+    ],
+    width: 1080 * 4,
+    height: 1620 * 4,
+    title: photo.caption,
+    description: photo.dimensions,
+    director: photo.director || null,
+    year: photo.year,
+  };
+});
+
 
 
 
