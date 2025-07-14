@@ -65,24 +65,25 @@ export default function Page() {
         }
 
 const newSlides = newImages.map((photo) => {
-  const isWebm = photo.src.toLowerCase().endsWith(".webm");
+ const isVideo = photo.src.toLowerCase().match(/\.(webm|mp4)$/);
 
-  return {
-    type: isWebm ? "video" : "image",
-    src: photo.src,
-    sources: [
-      {
-        src: photo.src,
-        type: isWebm ? "video/webm" : "image/webp", // 👈 Always include MIME type
-      },
-    ],
-    width: 1080 * 4,
-    height: 1620 * 4,
-    title: photo.caption,
-    description: photo.dimensions,
-    director: photo.director || null,
-    year: photo.year,
-  };
+return {
+  type: isVideo ? "video" : "image",
+  src: photo.src,
+  sources: [
+    {
+      src: photo.src,
+      type: "video/mp4", // 👈 Lie to YARL
+    },
+  ],
+  width: 1080 * 4,
+  height: 1620 * 4,
+  title: photo.caption,
+  description: photo.dimensions,
+  director: photo.director || null,
+  year: photo.year,
+};
+
 });
 
 
