@@ -192,12 +192,14 @@ export default function Page() {
       {loader ? (
         <Loader />
       ) : (
-        <TNDRLightbox
-          images={images}
-          fetchImages={fetchImages}
-          hasMore={hasMore}
-          nextPageToken={nextPageToken}
-        />
+<TNDRLightbox
+  images={images}
+  fetchImages={fetchImages}
+  hasMore={hasMore}
+  nextPageToken={nextPageToken}
+  autosMode={autosMode}
+/>
+
       )}
 
       {!loader && !autosMode && <Footer />}
