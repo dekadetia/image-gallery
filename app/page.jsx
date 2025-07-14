@@ -219,23 +219,16 @@ useEffect(() => {
         </div>
       )}
 
-   {loader ? (
+{loader ? (
   <Loader />
 ) : (
-  <TNDRLightbox images={images} fetchImages={fetchImages} hasMore={hasMore} nextPageToken={nextPageToken} />
+  <TNDRLightbox
+    images={images}
+    fetchImages={fetchImages}
+    hasMore={hasMore}
+    nextPageToken={nextPageToken}
+  />
 )}
-
-      )}
-
-      {!loader && !autosMode && <Footer />}
-
-      {slides && (
-      <TNDRLightbox
-  slides={slides}
-  index={index}
-  setIndex={setIndex}
-/>
-      )}
     </RootLayout>
   );
 }
