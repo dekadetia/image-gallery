@@ -160,6 +160,19 @@ export default function Page() {
     }
   }, [hideCursor, autosMode]);
 
+// 🩹 MutationObserver to remove title="Close"
+useEffect(() => {
+  if (!slides.length) return; // Run only if slides are loaded
+  const observer = new MutationObserver(() => {
+    document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+      btn.removeAttribute('title');
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  return () => observer.disconnect();
+}, [slides]);
+
+  
   return (
     <RootLayout>
       <button
