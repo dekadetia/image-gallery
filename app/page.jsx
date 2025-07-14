@@ -283,34 +283,34 @@ useEffect(() => {
   open={index >= 0}
   close={() => setIndex(-1)}
   plugins={[Video]}
-  render={{
-    slide: ({ slide, rect }) =>
-      slide.type === "video" ? (
-        <div
+ render={{
+  slide: ({ slide, rect }) =>
+    typeof window !== "undefined" && slide.type === "video" ? (
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <video
+          src={slide.src}
           style={{
-            position: "relative",
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            maxWidth: "100%",
+            maxHeight: "100%",
+            objectFit: "contain",
           }}
-        >
-          <video
-            src={slide.src}
-            style={{
-              maxWidth: "100%",
-              maxHeight: "100%",
-              objectFit: "contain",
-            }}
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls={false}
-          />
-        </div>
-      ) : undefined, // Let YARL handle images
+          autoPlay
+          muted
+          loop
+          playsInline
+          controls={false}
+        />
+      </div>
+    ) : undefined, // Let YARL handle images
     slideFooter: ({ slide }) => (
       <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
         {slide.title && (
