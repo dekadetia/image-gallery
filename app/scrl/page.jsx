@@ -238,8 +238,8 @@ export default function Scrl() {
     />
   </Link>
 
+      <Link href={'/rndm'}>
   <IoMdShuffle
-    onClick={getRandmImages}
     className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle ml-[3.75px]"
   />
 </div>
