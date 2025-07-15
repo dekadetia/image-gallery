@@ -223,24 +223,24 @@ export default function Scrl() {
               />
             </Link>
 
-        <div className='flex gap-10 items-center'>
+  <div className='flex gap-8 items-center pt-[2.5px]'>
   <Link href={'/fade'}>
     <img
       src="/assets/crossfade.svg"
-      className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle'
+      className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3.75px]"
       alt=""
     />
   </Link>
 
   <Link href={'/scrl'}>
-    <RxDoubleArrowUp  
-      className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle'
+    <RxDoubleArrowUp 
+      className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle"
     />
   </Link>
 
   <IoMdShuffle
     onClick={getRandmImages}
-    className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle'
+    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle ml-[3.75px]"
   />
 </div>
 
