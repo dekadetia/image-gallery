@@ -154,7 +154,7 @@ export default function Random() {
   </Link>
 
   <Link href={'/scrl'}>
-    <RiArrowUpDoubleLine
+    <RxDoubleArrowUp 
       className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl align-middle'
     />
   </Link>
