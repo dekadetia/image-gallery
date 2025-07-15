@@ -1,4 +1,4 @@
-"use client"; 
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -14,11 +14,6 @@ import { RxCaretSort } from "react-icons/rx";
 import { IoMdShuffle } from "react-icons/io";
 
 export default function Page() {
-  const [autosMode, setAutosMode] = useState(false);
-  const [hideCursor, setHideCursor] = useState(false);
-  const scrollRef = useRef(null);
-  const cursorTimerRef = useRef(null);
-
   const [images, setImages] = useState([]);
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
@@ -90,139 +85,50 @@ export default function Page() {
     fetchImages(nextPageToken);
   }, []);
 
-  // AUTOSMODE: handle scrolling, fullscreen, and cursor hide
+  // 🩹 MutationObserver to remove title="Close"
   useEffect(() => {
-    if (autosMode) {
-      document.body.classList.add("autosmode");
-
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch((err) => {
-          console.warn("Fullscreen request failed:", err);
-        });
-      }
-
-      let scrollSpeed = 0.5;
-      const scrollStep = () => {
-        window.scrollBy(0, scrollSpeed);
-        if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
-          window.scrollTo(0, 0);
-        }
-        scrollRef.current = requestAnimationFrame(scrollStep);
-      };
-      scrollRef.current = requestAnimationFrame(scrollStep);
-
-      const handleMouseMove = () => {
-        clearTimeout(cursorTimerRef.current);
-        setHideCursor(false);
-
-        cursorTimerRef.current = setTimeout(() => {
-          setHideCursor(true);
-        }, 3000);
-      };
-
-      window.addEventListener("mousemove", handleMouseMove);
-
-      const exitBtn = document.createElement("button");
-      exitBtn.style.position = "fixed";
-      exitBtn.style.top = "10px";
-      exitBtn.style.right = "10px";
-      exitBtn.style.width = "30px";
-      exitBtn.style.height = "30px";
-      exitBtn.style.opacity = "0";
-      exitBtn.style.cursor = "pointer";
-      exitBtn.style.zIndex = "9999";
-      exitBtn.onclick = () => setAutosMode(false);
-      document.body.appendChild(exitBtn);
-
-      return () => {
-        document.body.classList.remove("autosmode");
-
-        if (document.fullscreenElement && document.exitFullscreen) {
-          document.exitFullscreen().catch((err) => {
-            console.warn("Exiting fullscreen failed:", err);
-          });
-        }
-
-        cancelAnimationFrame(scrollRef.current);
-        clearTimeout(cursorTimerRef.current);
-        window.removeEventListener("mousemove", handleMouseMove);
-        document.body.classList.remove("blackmode-hide-cursor");
-        exitBtn.remove();
-      };
-    }
-  }, [autosMode]);
-
-  useEffect(() => {
-    if (hideCursor && autosMode) {
-      document.body.classList.add("blackmode-hide-cursor");
-    } else {
-      document.body.classList.remove("blackmode-hide-cursor");
-    }
-  }, [hideCursor, autosMode]);
-
-// 🩹 MutationObserver to remove title="Close"
-useEffect(() => {
-  if (!slides.length) return; // Run only if slides are loaded
-  const observer = new MutationObserver(() => {
-    document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
-      btn.removeAttribute('title');
+    if (!slides.length) return;
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+        btn.removeAttribute('title');
+      });
     });
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-  return () => observer.disconnect();
-}, [slides]);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [slides]);
 
-  
   return (
     <RootLayout>
-      <button
-        onClick={() => setAutosMode(true)}
-        style={{
-          position: "fixed",
-          top: "10px",
-          right: "10px",
-          width: "30px",
-          height: "30px",
-          opacity: 0,
-          cursor: "pointer",
-          zIndex: 9999,
-        }}
-        aria-hidden="true"
-        tabIndex={-1}
-      />
+      <div className="w-full flex justify-center items-center py-9">
+        <div className="w-full grid place-items-center space-y-6">
+          <Link href={"/"}>
+            <img
+              src="/assets/logo.svg"
+              className="object-contain w-40"
+              alt=""
+            />
+          </Link>
 
-      {!autosMode && (
-        <div className="w-full flex justify-center items-center py-9">
-          <div className="w-full grid place-items-center space-y-6">
-            <Link href={"/"}>
-              <img
-                src="/assets/logo.svg"
-                className="object-contain w-40"
-                alt=""
-              />
+          <div className="flex gap-8 items-center">
+            <Link href={"/indx"}>
+              <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
             </Link>
 
-            <div className="flex gap-8 items-center">
-              <Link href={"/indx"}>
-                <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
-              </Link>
+            <Link href={"/ordr"}>
+              <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
+            </Link>
 
-              <Link href={"/ordr"}>
-                <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
-              </Link>
-
-              <Link href={"/rndm"}>
-                <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
-              </Link>
-            </div>
+            <Link href={"/rndm"}>
+              <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+            </Link>
           </div>
         </div>
-      )}
+      </div>
 
       {loader ? (
         <Loader />
       ) : (
-        <div className={`${autosMode ? "w-full z-50" : "px-4 lg:px-16 pb-10"}`}>
+        <div className="px-4 lg:px-16 pb-10">
           <InfiniteScroll
             dataLength={images.length}
             next={() => fetchImages(nextPageToken)}
@@ -232,25 +138,24 @@ useEffect(() => {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {images.map((photo, i) => (
                 <div key={i}>
-{photo.src.toLowerCase().includes('.webm') ? (
-  <video
-    src={photo.src}
-    onClick={() => setIndex(i)}
-    className="aspect-[16/9] object-cover cursor-zoom-in"
-    autoPlay
-    muted
-    loop
-    playsInline
-  />
-) : (
-  <img
-    alt={photo.name}
-    src={photo.src}
-    onClick={() => setIndex(i)}
-    className="aspect-[16/9] object-cover cursor-zoom-in"
-  />
-)}
-
+                  {photo.src.toLowerCase().includes('.webm') ? (
+                    <video
+                      src={photo.src}
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      alt={photo.name}
+                      src={photo.src}
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -258,7 +163,7 @@ useEffect(() => {
         </div>
       )}
 
-      {!loader && !autosMode && <Footer />}
+      {!loader && <Footer />}
 
       {slides && (
         <Lightbox
