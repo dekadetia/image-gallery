@@ -144,11 +144,11 @@ export default function Random() {
               />
             </Link>
 
-  <div className='flex gap-8 items-center pt-[2px]'>
+  <div className='flex gap-8 items-center pt-[2.5px]'>
   <Link href={'/fade'}>
     <img
       src="/assets/crossfade.svg"
-      className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3px]"
+      className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3.5px]"
       alt=""
     />
   </Link>
@@ -161,7 +161,7 @@ export default function Random() {
 
   <IoMdShuffle
     onClick={getRandmImages}
-    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle ml-[3px]"
+    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle ml-[3.5px]"
   />
 </div>
 
