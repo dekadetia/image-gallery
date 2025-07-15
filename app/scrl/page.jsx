@@ -1,313 +1,300 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+'use client'
 
+import { useState, useEffect, useRef } from 'react'
+import Lightbox from 'yet-another-react-lightbox'
+import Link from 'next/link'
+import { IoMdShuffle } from 'react-icons/io'
+import { RxCaretSort } from 'react-icons/rx'
+import Footer from '../../components/Footer'
+import RootLayout from '../layout'
+import MoreImageLoader from '../../components/MoreImageLoader'
+import Loader from '../../components/loader/loader'
+import InfiniteScroll from 'react-infinite-scroll-component'
 
-:root {
-    --main-color: #15181b;
-    --point-color: #555;
-    --point-color-1: #e43f25;
-    --point-color-2: #d2c52a;
-    --point-color-3: #4bb9ea;
-    --point-color-4: #6a3e97;
-    --size: 4px;
+import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
 }
 
-@font-face {
-    font-family: GraphikLight;
-    src: url("../public/fonts/GraphikLight.otf");
-}
+export default function Scrl() {
+  const [index, setIndex] = useState(-1)
+  const [Images, setImages] = useState([])
+  const [loader, __loader] = useState(true)
+  const [autosMode, setAutosMode] = useState(false)
+  const [hideCursor, setHideCursor] = useState(false)
+  const scrollRef = useRef(null)
+  const cursorTimerRef = useRef(null)
+  const wasCalled = useRef(false)
+  const seenImageIds = useRef(new Set())
 
-@font-face {
-    font-family: GraphikSemibold;
-    src: url("../public/fonts/GraphikSemibold.otf");
-}
+  const slides = Images.map(photo => ({
+    src: photo.src,
+    width: 1080 * 4,
+    height: 1620 * 4,
+    title: `${photo.caption}`,
+    description: photo.dimensions,
+    director: photo.director || null,
+    year: photo.year
+  }))
 
-@font-face {
-    font-family: GraphikLightItalic;
-    src: url("../public/fonts/GraphikLightItalic.otf");
-}
-
-@font-face {
-    font-family: GraphikBoldItalic;
-    src: url("../public/fonts/GraphikBoldItalic.otf");
-}
-
-@font-face {
-    font-family: TiemposTextSemiBold;
-    src: url("../public/fonts/TiemposText-Semibold.otf");
-}
-
-@font-face {
-    font-family: GraphikBoldItalic;
-    src: url("../public/fonts/GraphikBoldItalic.otf");
-}
-
-body {
-    background-color: #15181b;
-    color: white;
-    font-family: "GraphikLight";
-}
-
-html {
-    font-family: "GraphikLight";
-}
-
-.main-container {
-    break-inside: avoid;
-}
-
-.yarl__container {
-    background-color: #15181b !important;
-}
-
-.yarl__slide {
-    flex-direction: column;
-}
-
-.yarl__slide_title {
-    font-family: TiemposTextSemiBold;
-    margin-top: 1rem;
-    font-size: 1.4rem;
-    color: #e5e7eb;
-    line-height: .9;
-    margin-bottom: 6px;
-}
-
-.yarl__slide_description {
-    /* margin-bottom: 6.5rem; */
-    font-size: .8rem;
-    color: #99AABB !important;
-
-    /* @media (max-width:991px) {
-        margin-bottom: 3rem;
-    } */
-}
-
-.yarl__slide_description,
-.yarl__slide_title {
-    margin-left: 20px;
-
-    @media (max-width:991px) {
-        margin-left: 0;
-    }
-}
-
-.yarl__slide {
-    padding: 3.5rem 0 3rem !important;
-
-    @media (max-width:991px) {
-        padding: 0 1rem !important;
-        padding-top: 5rem !important;
-
-    }
-}
-
-
-
-
-
-/* Loader */
-.bg-colors {
-    display: flex;
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #eee5ac;
-    overflow: auto;
-    animation: colorchange 5s infinite;
-}
-
-
-.lc {
-    width: 90%;
-    padding: .8em 0;
-    margin: auto;
-
-    @media only screen and (min-width: 33.75em) {
-        padding: 2em 0;
+  const getImages = async load => {
+    if (load !== 'load more') {
+      __loader(true)
     }
 
-    @media only screen and (min-width: 50em) {
-        max-width: 50rem;
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        const images = data.images
+
+        const uniqueImages = images.filter(
+          img => !seenImageIds.current.has(img.id)
+        )
+        uniqueImages.forEach(img => seenImageIds.current.add(img.id))
+
+        setImages(prev => [...prev, ...uniqueImages])
+      } else {
+        console.error('Failed to get files')
+      }
+    } catch (error) {
+      console.log(error)
+    } finally {
+      __loader(false)
     }
+  }
 
-}
+  const getRandmImages = async () => {
+    __loader(true)
+    setImages([])
+    seenImageIds.current = new Set()
 
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      )
 
-/* // vertical align the items */
-.v-align-outer {
-    &:before {
-        content: '';
-        display: inline-block;
-        height: 100%;
-        vertical-align: middle;
-        margin-right: -0.25em;
-        /* Adjusts for spacing */
+      if (response.ok) {
+        const data = await response.json()
+        const images = data.images
+
+        images.forEach(img => seenImageIds.current.add(img.id))
+        setImages(images)
+      } else {
+        console.error('Failed to get files')
+      }
+    } catch (error) {
+      console.log(error)
+    } finally {
+      __loader(false)
     }
-}
+  }
 
-.v-align-inner {
-    display: inline-block;
-    vertical-align: middle;
-    width: 300px;
-}
+  const handleCloseLightbox = () => {
+    setIndex(-1)
+  }
 
+  useEffect(() => {
+    if (wasCalled.current) return
+    wasCalled.current = true
+    getImages()
+  }, [])
 
-@keyframes colorchange {
-    0% {
-        background: #e43f25;
+  // Start auto-scrolling immediately
+  useEffect(() => {
+    let scrollSpeed = 0.5
+    const scrollStep = () => {
+      window.scrollBy(0, scrollSpeed)
+      if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
+        window.scrollTo(0, 0)
+      }
+      scrollRef.current = requestAnimationFrame(scrollStep)
     }
+    scrollRef.current = requestAnimationFrame(scrollStep)
 
-    12.5% {
-        background: #d2c52a;
+    return () => cancelAnimationFrame(scrollRef.current)
+  }, [])
+
+  // Handle autosMode fullscreen + cursor hide
+  useEffect(() => {
+    if (autosMode) {
+      document.body.classList.add("autosmode")
+
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch((err) => {
+          console.warn("Fullscreen request failed:", err)
+        })
+      }
+
+      const handleMouseMove = () => {
+        clearTimeout(cursorTimerRef.current)
+        setHideCursor(false)
+
+        cursorTimerRef.current = setTimeout(() => {
+          setHideCursor(true)
+        }, 3000)
+      }
+
+      window.addEventListener("mousemove", handleMouseMove)
+
+      const exitBtn = document.createElement("button")
+      exitBtn.style.position = "fixed"
+      exitBtn.style.top = "10px"
+      exitBtn.style.right = "10px"
+      exitBtn.style.width = "30px"
+      exitBtn.style.height = "30px"
+      exitBtn.style.opacity = "0"
+      exitBtn.style.cursor = "pointer"
+      exitBtn.style.zIndex = "9999"
+      exitBtn.onclick = () => setAutosMode(false)
+      document.body.appendChild(exitBtn)
+
+      return () => {
+        document.body.classList.remove("autosmode")
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch((err) => {
+            console.warn("Exiting fullscreen failed:", err)
+          })
+        }
+
+        clearTimeout(cursorTimerRef.current)
+        window.removeEventListener("mousemove", handleMouseMove)
+        exitBtn.remove()
+      }
     }
+  }, [autosMode])
 
-    25% {
-        background: #4bb9ea;
+  useEffect(() => {
+    if (hideCursor && autosMode) {
+      document.body.classList.add("blackmode-hide-cursor")
+    } else {
+      document.body.classList.remove("blackmode-hide-cursor")
     }
+  }, [hideCursor, autosMode])
 
-    37.5% {
-        background: #6a3e97;
-    }
+  const handleImageClick = (imageId) => {
+    const idx = Images.findIndex(img => img.id === imageId)
+    if (idx !== -1) setIndex(idx)
+  }
 
-    50% {
-        background: #f47f20;
-    }
+  return (
+    <RootLayout>
+      <button
+        onClick={() => setAutosMode(true)}
+        style={{
+          position: "fixed",
+          top: "10px",
+          right: "10px",
+          width: "30px",
+          height: "30px",
+          opacity: 0,
+          cursor: "pointer",
+          zIndex: 9999,
+        }}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
 
-    62.5% {
-        background: #59b94f;
-    }
+      {!autosMode && (
+        <div className='w-full flex justify-center items-center py-9'>
+          <div className='w-full grid place-items-center space-y-6'>
+            <Link href={'/'}>
+              <img
+                src='/assets/logo.svg'
+                className='object-contain w-40'
+                alt=''
+              />
+            </Link>
 
-    75% {
-        background: #1c6bb4;
-    }
+            <div className='flex gap-8 items-center'>
+              <Link href={'/fade'}>
+                <img src="/assets/crossfade.svg" className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105' alt="" />
+              </Link>
 
-    87.5% {
-        background: #d35589;
-    }
+              <Link href={'/ordr'}>
+                <RxCaretSort className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
+              </Link>
 
-    100% {
-        background: #e43f25;
-    }
-}
+              <IoMdShuffle
+                onClick={getRandmImages}
+                className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl'
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
+      {loader ? (
+        <Loader />
+      ) : (
+        <InfiniteScroll
+          dataLength={Images.length}
+          next={() => getImages('load more')}
+          hasMore={true}
+          loader={<MoreImageLoader />}
+        >
+          <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
+            {Images.map(photo => (
+              <div key={photo.id}>
+                <img
+                  alt={photo.name}
+                  src={photo.src}
+                  onClick={() => handleImageClick(photo.id)}
+                  className='aspect-[16/9] object-cover cursor-zoom-in'
+                  decoding='async'
+                />
+              </div>
+            ))}
+          </div>
+        </InfiniteScroll>
+      )}
 
-/* More Images Loader */
+      {slides && (
+        <Lightbox
+          index={index}
+          slides={slides}
+          open={index >= 0}
+          close={handleCloseLightbox}
+          render={{
+            slideFooter: ({ slide }) => (
+              <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                {slide.title && (
+                  <div className="yarl__slide_title">{slide.title}</div>
+                )}
+                <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                  {slide.director && (
+                    <div className="yarl__slide_description !text-[#99AABB]">
+                      <span className="font-medium">{slide.director}</span>
+                    </div>
+                  )}
+                  {slide.description && (
+                    <div className="yarl__slide_description">{slide.description}</div>
+                  )}
+                </div>
+              </div>
+            )
+          }}
+        />
+      )}
 
-.loader {
-    overflow: hidden;
-    top: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    align-content: center;
-    justify-content: center;
-    z-index: 100000;
-}
-
-.loader__element {
-    border-radius: 100%;
-    border: var(--size) solid var();
-    margin: calc(var(--size)*4);
-}
-
-.loader__element:nth-child(1) {
-    animation: preloader .6s ease-in-out alternate infinite;
-    border: var(--size) solid var(--point-color-1);
-}
-
-.loader__element:nth-child(2) {
-    animation: preloader .6s ease-in-out alternate .2s infinite;
-    border: var(--size) solid var(--point-color-2);
-}
-
-.loader__element:nth-child(3) {
-    animation: preloader .6s ease-in-out alternate .4s infinite;
-    border: var(--size) solid var(--point-color-3);
-}
-
-.loader__element:nth-child(4) {
-    animation: preloader .6s ease-in-out alternate .6s infinite;
-    border: var(--size) solid var(--point-color-4);
-}
-
-@keyframes preloader {
-    100% {
-        transform: scale(2);
-    }
-}
-
-.captions-container {
-    text-wrap: stable;
-}
-
-
-
-.yarl__navigation_next,
-.yarl__navigation_prev {
-    display: none !important;
-}
-
-.yarl__icon {
-    height: var(--yarl__icon_size, 9999px) !important;
-    width: var(--yarl__icon_size, 9999px) !important;
-}
-
-@media (max-width: 767px) {
-
-    img.yarl__slide_image {
-        max-width: 100% !important;
-        height: 100% !important;
-        object-fit: contain !important;
-        width: 100% !important;
-        max-height: 96% !important;
-        height: auto !important
-    }
-}
-
-@media (max-width: 1023px) {
-    .yarl-slide-content {
-        width: 100% !important;
-    }
-}
-
-@media (min-width: 768px) {
-    img.yarl__slide_image {
-        max-width: 96% !important;
-        height: 100% !important;
-        object-fit: contain !important;
-        width: 100% !important;
-        margin-top: 30px !important;
-        max-height: 96% !important;
-        height: auto !important
-    }
-}
-
-
-body.blackmode-hide-cursor * {
-    cursor: none !important;
-}
-
-.autosmode {
-  background-color: #000000 !important;
-}
-
-.autosmode body {
-  background-color: #000000;
-}
-
-.autosmode .header,
-.autosmode .footer,
-.autosmode .nav,
-.autosmode .buttons {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-}
-
-.autosmode .blackmode-hide-cursor {
-  cursor: none;
+      {!loader && !autosMode && <Footer />}
+    </RootLayout>
+  )
 }
