@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Lightbox from 'yet-another-react-lightbox'
 import Link from 'next/link'
 import { IoMdShuffle } from 'react-icons/io'
-import { RxCaretSort } from 'react-icons/rx'
-import { RiArrowUpDoubleLine } from 'react-icons/ri'
+import { RxDoubleArrowUp } from "react-icons/rx";
 import Footer from '../../components/Footer'
 import RootLayout from '../layout'
 import MoreImageLoader from '../../components/MoreImageLoader'
@@ -230,7 +229,7 @@ export default function Scrl() {
               </Link>
 
 <Link href={'/scrl'}>
-  <RiArrowUpDoubleLine className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
+  <RxDoubleArrowUp className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
 </Link>
 
 
