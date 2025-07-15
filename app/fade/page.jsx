@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import RootLayout from '../layout'
 import Link from 'next/link'
-import { RxCaretSort } from 'react-icons/rx'
+import { RxDoubleArrowUp } from "react-icons/rx";
 import { IoMdShuffle } from 'react-icons/io'
 import Loader from '../../components/loader/loader'
 import Footer from '../../components/Footer'
