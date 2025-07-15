@@ -241,30 +241,32 @@ export default function Scrl() {
         </div>
       )}
 
-      {loader ? (
-        <Loader />
-      ) : (
-        <InfiniteScroll
-          dataLength={Images.length}
-          next={() => getImages('load more')}
-          hasMore={true}
-          loader={<MoreImageLoader />}
-        >
-          <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
-            {Images.map(photo => (
-              <div key={photo.id}>
-                <img
-                  alt={photo.name}
-                  src={photo.src}
-                  onClick={() => handleImageClick(photo.id)}
-                  className='aspect-[16/9] object-cover cursor-zoom-in'
-                  decoding='async'
-                />
-              </div>
-            ))}
-          </div>
-        </InfiniteScroll>
-      )}
+      <div className={autosMode ? "w-full z-50" : "px-4 lg:px-16 pb-10"}>
+        {loader ? (
+          <Loader />
+        ) : (
+          <InfiniteScroll
+            dataLength={Images.length}
+            next={() => getImages('load more')}
+            hasMore={true}
+            loader={<MoreImageLoader />}
+          >
+            <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
+              {Images.map(photo => (
+                <div key={photo.id}>
+                  <img
+                    alt={photo.name}
+                    src={photo.src}
+                    onClick={() => handleImageClick(photo.id)}
+                    className='aspect-[16/9] object-cover cursor-zoom-in'
+                    decoding='async'
+                  />
+                </div>
+              ))}
+            </div>
+          </InfiniteScroll>
+        )}
+      </div>
 
       {slides && (
         <Lightbox
