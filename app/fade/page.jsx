@@ -216,19 +216,28 @@ export default function FadeGallery() {
                                 />
                             </Link>
 
-                            <div className='flex gap-8 items-center'>
-                                <img
-                                    src="/assets/crossfade.svg"
-                                    className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 cursor-pointer'
-                                    alt="Crossfade"
-                                />
-                                <Link href={'/ordr'}>
-                                    <RxCaretSort className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
-                                </Link>
-                                <Link href={'/rndm'}>
-                                    <IoMdShuffle className='cursor-pointer transition-all duration-200 hover:scale-105 text-2xl' />
-                                </Link>
-                            </div>
+                         <div className='flex gap-8 items-center pt-[2.5px]'>
+
+    <img
+      src="/assets/crossfade.svg"
+      className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3.75px]"
+      alt=""
+    />
+
+
+  <Link href={'/scrl'}>
+    <RxDoubleArrowUp 
+      className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle"
+    />
+  </Link>
+
+                              <Link href={'/fade'}>
+  <IoMdShuffle
+
+    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle ml-[3.75px]"
+  />
+                                    </Link>
+</div>
                         </div>
                     </div>
                 )}
