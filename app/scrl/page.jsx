@@ -5,6 +5,7 @@ import Lightbox from 'yet-another-react-lightbox'
 import Link from 'next/link'
 import { IoMdShuffle } from 'react-icons/io'
 import { RxCaretSort } from 'react-icons/rx'
+import { RiArrowUpDoubleLine } from 'react-icons/ri'
 import Footer from '../../components/Footer'
 import RootLayout from '../layout'
 import MoreImageLoader from '../../components/MoreImageLoader'
@@ -228,9 +229,10 @@ export default function Scrl() {
                 <img src="/assets/crossfade.svg" className='w-[1.4rem] object-contain transition-all duration-200 hover:scale-105' alt="" />
               </Link>
 
-              <Link href={'/ordr'}>
-                <RxCaretSort className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
-              </Link>
+<Link href={'/scrl'}>
+  <RiArrowUpDoubleLine className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl' />
+</Link>
+
 
               <IoMdShuffle
                 onClick={getRandmImages}
