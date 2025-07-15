@@ -242,6 +242,7 @@ export default function Scrl() {
   <IoMdShuffle
     className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle ml-[3.75px]"
   />
+          </Link>
 </div>
 
           </div>
