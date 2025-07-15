@@ -144,7 +144,7 @@ export default function Random() {
               />
             </Link>
 
-      <div className='flex gap-10 items-center'>
+      <div className='flex gap-8 items-center'>
   <Link href={'/fade'}>
     <img
       src="/assets/crossfade.svg"
