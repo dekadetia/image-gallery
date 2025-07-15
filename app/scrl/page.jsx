@@ -233,7 +233,7 @@ export default function Scrl() {
   </Link>
 
   <Link href={'/scrl'}>
-    <RxDoubleArrowUp 
+    <RxDoubleArrowUp  
       className='cursor-pointer transition-all duration-200 hover:scale-105 text-3xl align-middle'
     />
   </Link>
