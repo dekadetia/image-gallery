@@ -128,26 +128,26 @@ export default function FadeGallery() {
         }
     }
 
-    const toggleBlackMode = () => {
-        if (!blackMode) {
-            document.body.style.backgroundColor = '#000000'
+   const toggleBlackMode = () => {
+  if (!blackMode) {
+    document.body.style.backgroundColor = '#000000';
+    document.documentElement.requestFullscreen?.().catch(() => {});
 
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.warn('Fullscreen request failed:', err)
-                })
-            }
-        } else {
-            document.body.style.backgroundColor = ''
-
-            if (document.fullscreenElement && document.exitFullscreen) {
-                document.exitFullscreen().catch(err => {
-                    console.warn('Exiting fullscreen failed:', err)
-                })
-            }
-        }
-        setBlackMode(!blackMode)
-    }
+    // 🎧 Start audio immediately on gesture
+    const firstTrack = new Audio('PASTE_ONE_TOKENIZED_URL_HERE');
+    firstTrack.crossOrigin = "anonymous";
+    firstTrack.volume = 1.0;
+    firstTrack.play().then(() => {
+      console.log('🎧 First track playing');
+    }).catch(err => {
+      console.warn('🚨 Autoplay blocked even on gesture:', err);
+    });
+  } else {
+    document.body.style.backgroundColor = '';
+    document.exitFullscreen?.().catch(() => {});
+  }
+  setBlackMode(!blackMode);
+};
 
     // Global time-based cursor hide
     useEffect(() => {
