@@ -153,7 +153,7 @@ if (blackMode) {
       firstAudio.play().then(() => {
         console.log('🎧 First track started by AudioPlayer');
         currentAudio.current = firstAudio;
-        playTrack(0); // AudioPlayer takes over after first
+playTrack(1); // Start at second track to avoid repeating first
       }).catch(err => {
         console.warn('🚨 Autoplay blocked in AudioPlayer:', err);
       });
