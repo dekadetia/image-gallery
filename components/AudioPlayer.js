@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Howl } from 'howler';
 import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
 const bucket = 'tndrbtns.appspot.com';
@@ -17,25 +16,14 @@ async function fetchAudioFiles() {
   // Get just file names
   const files = data.items
     .filter(item => item.name.endsWith('.mp3'))
-    .map(item => item.name);
+    .map(item => nameToTokenizedUrl(item.name));
 
-  // For each file, fetch its metadata to get token
-  const tokenizedUrls = await Promise.all(
-    files.map(async (name) => {
-      const metadataUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(name)}`;
-      const metaRes = await fetch(metadataUrl);
-      if (!metaRes.ok) throw new Error(`Failed to fetch metadata for ${name}`);
-      const metaData = await metaRes.json();
-      const token = metaData.downloadTokens;
+  console.log('Tokenized Audio URLs:', files);
+  return files;
+}
 
-      if (!token) throw new Error(`No download token found for ${name}`);
-
-      return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(name)}?alt=media&token=${token}`;
-    })
-  );
-
-  console.log('Tokenized Audio URLs:', tokenizedUrls);
-  return tokenizedUrls;
+function nameToTokenizedUrl(name) {
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(name)}?alt=media`;
 }
 
 function shuffle(array) {
@@ -49,71 +37,88 @@ export default function AudioPlayer({ blackMode }) {
   const [fadingOut, setFadingOut] = useState(false);
   const hideTimer = useRef(null);
   const currentIndex = useRef(0);
-  const currentSound = useRef(null);
-  const nextSound = useRef(null);
+  const currentAudio = useRef(null);
+  const nextAudio = useRef(null);
   const fadeDuration = 5000;
 
   const playTrack = (index) => {
     if (!tracks.length) return;
 
-    const sound = new Howl({
-      src: [tracks[index]],
-      volume: 0.0, // Start muted for autoplay
-      html5: true, // 🔥 Force HTML5 Audio
-      onend: () => {
-        currentIndex.current = (index + 1) % tracks.length;
-        playTrack(currentIndex.current);
-      }
-    });
+    const audio = new Audio(tracks[index]);
+    audio.volume = muted ? 0.0 : 1.0;
+    audio.crossOrigin = "anonymous"; // 🔥 Needed if using CORS-protected MP3s
+    audio.play();
 
-    currentSound.current = sound;
-    sound.play();
+    currentAudio.current = audio;
 
-    // Fade in after play starts
-    sound.once('play', () => {
-      sound.fade(0.0, muted ? 0.0 : 1.0, 1000);
+    audio.onended = () => {
+      currentIndex.current = (index + 1) % tracks.length;
+      playTrack(currentIndex.current);
+    };
 
-      const duration = sound.duration() * 1000;
+    // Preload and crossfade next track
+    audio.oncanplaythrough = () => {
+      const duration = audio.duration * 1000;
       setTimeout(() => {
         const nextIndex = (index + 1) % tracks.length;
-        const next = new Howl({
-          src: [tracks[nextIndex]],
-          volume: 0.0,
-          html5: true, // 🔥 Force HTML5 Audio
-        });
-
-        nextSound.current = next;
+        const next = new Audio(tracks[nextIndex]);
+        next.volume = 0.0;
+        next.crossOrigin = "anonymous";
         next.play();
 
-        sound.fade(muted ? 0.0 : 1.0, 0.0, fadeDuration);
-        next.fade(0.0, muted ? 0.0 : 1.0, fadeDuration);
+        nextAudio.current = next;
+
+        // Crossfade
+        fadeVolume(audio, 1.0, 0.0, fadeDuration);
+        fadeVolume(next, 0.0, muted ? 0.0 : 1.0, fadeDuration);
 
         setTimeout(() => {
-          sound.stop();
-          currentSound.current = next;
-          nextSound.current = null;
+          audio.pause();
+          audio.src = '';
+          currentAudio.current = next;
+          nextAudio.current = null;
           currentIndex.current = nextIndex;
         }, fadeDuration);
       }, duration - fadeDuration);
-    });
+    };
+  };
+
+  const fadeVolume = (audio, from, to, duration) => {
+    const steps = 30;
+    const stepTime = duration / steps;
+    let currentStep = 0;
+
+    const fadeInterval = setInterval(() => {
+      const progress = currentStep / steps;
+      audio.volume = from + (to - from) * progress;
+      currentStep++;
+      if (currentStep > steps) {
+        clearInterval(fadeInterval);
+      }
+    }, stepTime);
   };
 
   const stopAudio = () => {
-    if (currentSound.current) {
-      currentSound.current.fade(currentSound.current.volume(), 0.0, fadeDuration);
-      setTimeout(() => currentSound.current.stop(), fadeDuration);
+    if (currentAudio.current) {
+      fadeVolume(currentAudio.current, currentAudio.current.volume, 0.0, fadeDuration);
+      setTimeout(() => {
+        currentAudio.current.pause();
+        currentAudio.current.src = '';
+      }, fadeDuration);
     }
-    if (nextSound.current) {
-      nextSound.current.stop();
+    if (nextAudio.current) {
+      nextAudio.current.pause();
+      nextAudio.current.src = '';
     }
   };
 
   const toggleMute = () => {
     setMuted((prev) => {
       const newMuted = !prev;
-      if (currentSound.current) {
-        currentSound.current.fade(
-          currentSound.current.volume(),
+      if (currentAudio.current) {
+        fadeVolume(
+          currentAudio.current,
+          currentAudio.current.volume,
           newMuted ? 0.0 : 1.0,
           500
         );
