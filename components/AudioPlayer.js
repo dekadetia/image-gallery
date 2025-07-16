@@ -4,20 +4,38 @@ import { useEffect, useRef, useState } from 'react';
 import { Howl } from 'howler';
 import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
+const bucket = 'tndrbtns.appspot.com';
+
 async function fetchAudioFiles() {
   const folder = 'audio';
-  const bucket = 'tndrbtns.appspot.com';
   const apiUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?prefix=${folder}%2F`;
 
   const res = await fetch(apiUrl);
-  if (!res.ok) throw new Error('Failed to fetch audio files');
+  if (!res.ok) throw new Error('Failed to fetch audio file list');
   const data = await res.json();
 
-  return data.items
+  // Get just file names
+  const files = data.items
     .filter(item => item.name.endsWith('.mp3'))
-    .map(item =>
-      `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`
-    );
+    .map(item => item.name);
+
+  // For each file, fetch its metadata to get token
+  const tokenizedUrls = await Promise.all(
+    files.map(async (name) => {
+      const metadataUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(name)}`;
+      const metaRes = await fetch(metadataUrl);
+      if (!metaRes.ok) throw new Error(`Failed to fetch metadata for ${name}`);
+      const metaData = await metaRes.json();
+      const token = metaData.downloadTokens;
+
+      if (!token) throw new Error(`No download token found for ${name}`);
+
+      return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(name)}?alt=media&token=${token}`;
+    })
+  );
+
+  console.log('Tokenized Audio URLs:', tokenizedUrls);
+  return tokenizedUrls;
 }
 
 function shuffle(array) {
@@ -40,7 +58,7 @@ export default function AudioPlayer({ blackMode }) {
 
     const sound = new Howl({
       src: [tracks[index]],
-      volume: 0.0, // Start silent to avoid autoplay block
+      volume: 0.0, // Start muted for autoplay
       onend: () => {
         currentIndex.current = (index + 1) % tracks.length;
         playTrack(currentIndex.current);
@@ -50,7 +68,7 @@ export default function AudioPlayer({ blackMode }) {
     currentSound.current = sound;
     sound.play();
 
-    // Fade in to avoid autoplay block
+    // Fade in after play starts
     sound.once('play', () => {
       sound.fade(0.0, muted ? 0.0 : 1.0, 1000);
 
@@ -110,7 +128,7 @@ export default function AudioPlayer({ blackMode }) {
 
     hideTimer.current = setTimeout(() => {
       setFadingOut(true);
-      setTimeout(() => setVisible(false), 1000); // matches CSS transition duration
+      setTimeout(() => setVisible(false), 1000);
     }, 10000);
   };
 
@@ -154,7 +172,7 @@ export default function AudioPlayer({ blackMode }) {
         cursor: 'pointer',
         opacity: fadingOut ? 0 : 0.8,
         transition: 'opacity 1s ease-in-out',
-        zIndex: 9999, // ensure it floats above other UI
+        zIndex: 9999,
       }}
     >
       {muted ? <FaVolumeMute size={20} /> : <FaVolumeUp size={20} />}
