@@ -27,7 +27,7 @@ function shuffle(array) {
 
 export default function AudioPlayer({ blackMode }) {
   const [tracks, setTracks] = useState([]);
-  const [muted, setMuted] = useState(true); // Start muted (user must unmute to play)
+  const [muted, setMuted] = useState(true); // Start muted
   const [visible, setVisible] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const hideTimer = useRef(null);
@@ -47,7 +47,7 @@ export default function AudioPlayer({ blackMode }) {
       console.log(`🎧 Playing track ${index % tracks.length}: ${tracks[index % tracks.length]}`);
       currentAudio.current = audio;
     }).catch(err => {
-      console.warn(`🚨 Autoplay blocked for track ${index}:`, err);
+      console.warn(`🚨 Playback error for track ${index}:`, err);
     });
 
     audio.oncanplaythrough = () => {
@@ -76,7 +76,7 @@ export default function AudioPlayer({ blackMode }) {
             nextAudio.current = null;
             currentIndex.current = nextIndex;
 
-            playTrack(nextIndex + 1); // Loop continues
+            playTrack(nextIndex + 1); // Continue looping
           }, fadeDuration);
         }).catch(err => {
           console.warn(`🚨 Could not start next track ${nextIndex}:`, err);
@@ -106,11 +106,13 @@ export default function AudioPlayer({ blackMode }) {
       setTimeout(() => {
         currentAudio.current.pause();
         currentAudio.current.src = '';
+        currentAudio.current = null;
       }, fadeDuration);
     }
     if (nextAudio.current) {
       nextAudio.current.pause();
       nextAudio.current.src = '';
+      nextAudio.current = null;
     }
   };
 
@@ -118,16 +120,9 @@ export default function AudioPlayer({ blackMode }) {
     setMuted((prev) => {
       const newMuted = !prev;
 
-      if (!prev && !currentAudio.current) {
-        // First unmute → fetch tracks and start playback
-        fetchAudioFiles()
-          .then(fetched => {
-            const shuffled = shuffle(fetched);
-            setTracks(shuffled);
-            currentIndex.current = 0;
-            playTrack(0);
-          })
-          .catch(err => console.error('Audio fetch error:', err));
+      if (!prev && !currentAudio.current && tracks.length) {
+        console.log('🎧 First unmute → starting playback');
+        playTrack(0);
       } else if (currentAudio.current) {
         fadeVolume(
           currentAudio.current,
@@ -163,12 +158,22 @@ export default function AudioPlayer({ blackMode }) {
 
   useEffect(() => {
     if (blackMode) {
+      // Preload tracks on blackMode entry
+      fetchAudioFiles()
+        .then(fetched => {
+          const shuffled = shuffle(fetched);
+          setTracks(shuffled);
+          currentIndex.current = 0;
+          console.log('🎧 Tracks preloaded, waiting for user to unmute');
+        })
+        .catch(err => console.error('Audio fetch error:', err));
       keepButtonVisible();
     } else {
       stopAudio();
       clearTimeout(hideTimer.current);
       setVisible(false);
       setFadingOut(false);
+      setTracks([]); // Clean state
     }
 
     return () => {
