@@ -5,11 +5,12 @@ import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
 const bucket = 'tndrbtns.appspot.com';
 
-// 🎧 Single Audio Player Instance With Crossfades
+// 🎧 Single Audio Player Instance With Crossfades + Fade on BlackMode
 let audio = null;
 let nextAudio = null;
 let tracks = [];
 let trackIndex = 0;
+let initialized = false; // 🆕 Only shuffle/load once
 const fadeDuration = 5000; // ms
 
 async function fetchAudioFiles() {
@@ -84,21 +85,45 @@ function scheduleNextTrack() {
 }
 
 async function startPlayback() {
-  if (!tracks.length) await fetchAudioFiles();
-  if (!tracks.length) {
-    console.warn('🚨 No tracks available; aborting playback');
-    return;
+  if (!initialized) {
+    await fetchAudioFiles();
+    if (!tracks.length) {
+      console.warn('🚨 No tracks available; aborting playback');
+      return;
+    }
+    shuffle(tracks);
+    trackIndex = 0;
+    initialized = true;
   }
 
-  shuffle(tracks);
-  trackIndex = 0;
   initAudio();
-  audio.src = tracks[trackIndex];
-  audio.volume = 1.0;
-  audio.play().then(() => {
-    console.log(`▶️ Started playback: ${tracks[trackIndex]}`);
-    scheduleNextTrack();
-  }).catch(err => console.warn('🚨 Playback error:', err));
+  if (audio.paused) {
+    audio.src = tracks[trackIndex];
+    audio.volume = 0.0; // 🆕 Start muted for fade-in
+    audio.play().then(() => {
+      console.log(`▶️ Resumed playback: ${tracks[trackIndex]}`);
+      fadeVolume(audio, 0.0, 1.0, fadeDuration);
+      scheduleNextTrack();
+    }).catch(err => console.warn('🚨 Playback error:', err));
+  }
+}
+
+function fadeOutAudio() {
+  if (audio && !audio.paused) {
+    fadeVolume(audio, audio.volume, 0.0, fadeDuration);
+  }
+  if (nextAudio && !nextAudio.paused) {
+    fadeVolume(nextAudio, nextAudio.volume, 0.0, fadeDuration);
+  }
+}
+
+function fadeInAudio() {
+  if (audio && !audio.paused) {
+    fadeVolume(audio, audio.volume, 1.0, fadeDuration);
+  }
+  if (nextAudio && !nextAudio.paused) {
+    fadeVolume(nextAudio, nextAudio.volume, 1.0, fadeDuration);
+  }
 }
 
 export default function AudioPlayer({ blackMode }) {
@@ -110,8 +135,8 @@ export default function AudioPlayer({ blackMode }) {
   const toggleMute = () => {
     const newMuted = !muted;
     setMuted(newMuted);
-    if (audio) audio.muted = newMuted || !blackMode;
-    if (nextAudio) nextAudio.muted = newMuted || !blackMode;
+    if (audio) audio.muted = newMuted;
+    if (nextAudio) nextAudio.muted = newMuted;
     keepButtonVisible();
   };
 
@@ -127,19 +152,19 @@ export default function AudioPlayer({ blackMode }) {
   };
 
   useEffect(() => {
-    let isMounted = true;
-
     startPlayback().then(() => {
-      if (isMounted) {
-        if (audio) audio.muted = muted || !blackMode;
-        if (nextAudio) nextAudio.muted = muted || !blackMode;
+      if (audio) audio.muted = muted;
+      if (nextAudio) nextAudio.muted = muted;
+
+      if (blackMode) {
+        fadeInAudio();
+      } else {
+        fadeOutAudio();
       }
     }).catch(err => console.error('AudioPlayer error:', err));
 
     return () => {
-      isMounted = false;
-      if (audio) audio.muted = true;
-      if (nextAudio) nextAudio.muted = true;
+      if (audio) fadeOutAudio();
       clearTimeout(hideTimer.current);
     };
   }, [blackMode]);
