@@ -1,211 +1,326 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
+import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import RootLayout from '../layout';
+import Link from 'next/link';
+import { RxDoubleArrowUp } from "react-icons/rx";
+import { IoMdShuffle } from 'react-icons/io';
+import Loader from '../../components/loader/loader';
+import Footer from '../../components/Footer';
+import Lightbox from 'yet-another-react-lightbox';
+import AudioPlayer from '../../components/AudioPlayer';
 
-const bucket = 'tndrbtns.appspot.com';
+export default function FadeGallery() {
+    const [slots, setSlots] = useState(Array(9).fill(null));
+    const poolRef = useRef([]);
+    const intervalRef = useRef(null);
+    const loadingRef = useRef(false);
+    const isInitialLoad = useRef(true);
+    const [loader, __loader] = useState(true);
 
-// 🏗️ Singleton Audio Engine
-const AudioEngine = (() => {
-  let tracks = [];
-  let currentIndex = 0;
-  let currentAudio = null;
-  let nextAudio = null;
-  let isPlaying = false;
-  let muted = false;
-  const fadeDuration = 5000;
+    const [blackMode, setBlackMode] = useState(false);
+    const [hideCursor, setHideCursor] = useState(false);
+    const cursorTimerRef = useRef(null);
 
-  async function fetchAudioFiles() {
-    const folder = 'audio';
-    const apiUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?prefix=${folder}%2F`;
+    const [index, setIndex] = useState(-1);
+    const [slides, setSlides] = useState([]);
 
-    const res = await fetch(apiUrl);
-    if (!res.ok) throw new Error('Failed to fetch audio file list');
-    const data = await res.json();
+    const lastSlotRef = useRef(-1);
+    const lastUpdatedRef = useRef(Array(9).fill(0));
+    let fadeCount = useRef(0);
 
-    tracks = data.items
-      .filter(item => item.name.endsWith('.mp3'))
-      .map(item => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`);
+    const fetchImages = async () => {
+        if (loadingRef.current) return;
+        loadingRef.current = true;
 
-    console.log('🎧 Tracks loaded:', tracks);
-  }
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-fade-images`);
+            const data = await res.json();
+            const images = data.images;
 
-  function shuffle(array) {
-    return [...array].sort(() => Math.random() - 0.5);
-  }
+            if (images.length) {
+                poolRef.current.push(...images);
 
-  function fadeVolume(audio, from, to, duration) {
-    const steps = 30;
-    const stepTime = duration / steps;
-    let currentStep = 0;
+                const newSlides = images.map((photo) => ({
+                    src: photo.src,
+                    width: 1080 * 4,
+                    height: 1620 * 4,
+                    title: photo.caption,
+                    description: photo.dimensions,
+                    director: photo.director || null,
+                    year: photo.year
+                }));
+                setSlides((prev) => [...prev, ...newSlides]);
 
-    const fadeInterval = setInterval(() => {
-      const progress = currentStep / steps;
-      audio.volume = from + (to - from) * progress;
-      currentStep++;
-      if (currentStep > steps) clearInterval(fadeInterval);
-    }, stepTime);
-  }
+                if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
+                    const newSlots = poolRef.current.splice(0, 9);
+                    setSlots(newSlots);
+                    isInitialLoad.current = false;
+                }
+            }
+        } catch (err) {
+            console.error('Failed to fetch fade images:', err);
+        } finally {
+            loadingRef.current = false;
+            __loader(false);
+        }
+    };
 
-  function playTrack(index) {
-    if (!tracks.length) return;
+    const pickSlot = () => {
+        fadeCount.current++;
 
-    const audio = new Audio(tracks[index % tracks.length]);
-    audio.volume = muted ? 0.0 : 1.0;
-    audio.crossOrigin = 'anonymous';
+        const sortedSlots = lastUpdatedRef.current
+            .map((lastUpdate, index) => ({ index, lastUpdate }))
+            .sort((a, b) => a.lastUpdate - b.lastUpdate);
 
-    audio.play().then(() => {
-      console.log(`🎧 Now playing: ${tracks[index % tracks.length]}`);
-      currentAudio = audio;
-    }).catch(err => {
-      console.warn('🚨 Playback error:', err);
-    });
+        const candidates = sortedSlots.filter(s => s.index !== lastSlotRef.current);
 
-    audio.oncanplaythrough = () => {
-      const duration = audio.duration * 1000;
-      const crossfadeStart = duration - fadeDuration;
+        const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+        lastUpdatedRef.current[chosen.index] = fadeCount.current;
+        lastSlotRef.current = chosen.index;
 
-      setTimeout(() => {
-        const nextIndex = (index + 1) % tracks.length;
-        const next = new Audio(tracks[nextIndex]);
-        next.volume = 0.0;
-        next.crossOrigin = 'anonymous';
-        next.play().then(() => {
-          console.log(`🎧 Preloaded next track: ${tracks[nextIndex]}`);
-          nextAudio = next;
+        return chosen.index;
+    };
 
-          fadeVolume(audio, muted ? 0.0 : 1.0, 0.0, fadeDuration);
-          fadeVolume(next, 0.0, muted ? 0.0 : 1.0, fadeDuration);
+    useEffect(() => {
+        fetchImages();
 
-          setTimeout(() => {
-            console.log(`🔄 Switching to track ${nextIndex}`);
-            audio.pause();
-            audio.src = '';
-            currentAudio = next;
-            nextAudio = null;
-            currentIndex = nextIndex;
+        intervalRef.current = setInterval(() => {
+            setSlots(prev => {
+                if (poolRef.current.length === 0) {
+                    fetchImages();
+                    return prev;
+                }
 
-            playTrack(nextIndex + 1); // Continue loop
-          }, fadeDuration);
-        }).catch(err => {
-          console.warn(`🚨 Failed to preload next track:`, err);
+                const nextImage = poolRef.current.shift();
+                if (!nextImage) return prev;
+
+                const randomIndex = pickSlot();
+                const newSlots = [...prev];
+                newSlots[randomIndex] = nextImage;
+                return newSlots;
+            });
+        }, 5000);
+
+        return () => clearInterval(intervalRef.current);
+    }, []);
+
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+                btn.removeAttribute('title');
+            });
         });
-      }, crossfadeStart);
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        return () => observer.disconnect();
+    }, []);
+
+    const openLightboxByImage = (photo) => {
+        const matchedIndex = slides.findIndex((slide) => slide.src === photo.src);
+        if (matchedIndex !== -1) {
+            setIndex(matchedIndex);
+        }
     };
-  }
 
-  async function start() {
-    if (isPlaying) return; // Prevent multiple loops
-    await fetchAudioFiles();
-    tracks = shuffle(tracks);
-    currentIndex = 0;
-    isPlaying = true;
-    playTrack(0);
-  }
-
-  function stop() {
-    console.log('🛑 Stopping all audio');
-    if (currentAudio) {
-      fadeVolume(currentAudio, currentAudio.volume, 0.0, fadeDuration);
-      setTimeout(() => {
-        currentAudio.pause();
-        currentAudio.src = '';
-        currentAudio = null;
-      }, fadeDuration);
-    }
-    if (nextAudio) {
-      nextAudio.pause();
-      nextAudio.src = '';
-      nextAudio = null;
-    }
-    isPlaying = false;
-    tracks = [];
-  }
-
-  function setMute(state) {
-    muted = state;
-    if (currentAudio) fadeVolume(currentAudio, currentAudio.volume, muted ? 0.0 : 1.0, 500);
-    if (nextAudio) fadeVolume(nextAudio, nextAudio.volume, muted ? 0.0 : 1.0, 500);
-  }
-
-  return { start, stop, setMute };
-})();
-
-export default function AudioPlayer({ blackMode }) {
-  const [muted, setMuted] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [fadingOut, setFadingOut] = useState(false);
-  const hideTimer = useState(null);
-
-  const toggleMute = () => {
-    const newMuted = !muted;
-    setMuted(newMuted);
-    AudioEngine.setMute(newMuted);
-    keepButtonVisible();
-  };
-
-  const keepButtonVisible = () => {
-    clearTimeout(hideTimer.current);
-    setVisible(true);
-    setFadingOut(false);
-
-    hideTimer.current = setTimeout(() => {
-      setFadingOut(true);
-      setTimeout(() => setVisible(false), 1000);
-    }, 10000);
-  };
-
-  useEffect(() => {
-    if (blackMode) {
-      AudioEngine.start();
-      keepButtonVisible();
-    } else {
-      AudioEngine.stop();
-      clearTimeout(hideTimer.current);
-      setVisible(false);
-      setFadingOut(false);
-    }
-
-    return () => {
-      AudioEngine.stop();
-      clearTimeout(hideTimer.current);
+    const toggleBlackMode = async () => {
+        if (!blackMode) {
+            document.body.style.backgroundColor = '#000000';
+            if (document.documentElement.requestFullscreen) {
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (err) {
+                    console.warn('Fullscreen request failed:', err);
+                }
+            }
+            console.log('🟢 Entering blackMode');
+        } else {
+            document.body.style.backgroundColor = '';
+            if (document.fullscreenElement && document.exitFullscreen) {
+                try {
+                    await document.exitFullscreen();
+                } catch (err) {
+                    console.warn('Exiting fullscreen failed:', err);
+                }
+            }
+            console.log('🔴 Exiting blackMode');
+        }
+        setBlackMode(!blackMode);
     };
-  }, [blackMode]);
 
-  if (!blackMode) return null;
+    useEffect(() => {
+        const handleMouseMove = () => {
+            clearTimeout(cursorTimerRef.current);
+            setHideCursor(false);
 
-  return (
-    <>
-      <div
-        onMouseEnter={keepButtonVisible}
-        onTouchStart={keepButtonVisible}
-        style={{
-          position: 'fixed',
-          bottom: '10px',
-          right: '10px',
-          width: '50px',
-          height: '50px',
-          zIndex: 9998,
-        }}
-      />
-      {visible && (
-        <button
-          onClick={toggleMute}
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            opacity: fadingOut ? 0 : 0.8,
-            transition: 'opacity 1s ease-in-out',
-            zIndex: 9999,
-          }}
-        >
-          {muted ? <FaVolumeMute size={20} /> : <FaVolumeUp size={20} />}
-        </button>
-      )}
-    </>
-  );
+            if (blackMode) {
+                cursorTimerRef.current = setTimeout(() => {
+                    setHideCursor(true);
+                }, 3000);
+            }
+        };
+
+        if (blackMode) {
+            window.addEventListener('mousemove', handleMouseMove);
+        } else {
+            clearTimeout(cursorTimerRef.current);
+            setHideCursor(false);
+            document.body.classList.remove('blackmode-hide-cursor');
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            clearTimeout(cursorTimerRef.current);
+            document.body.classList.remove('blackmode-hide-cursor');
+        };
+    }, [blackMode]);
+
+    useEffect(() => {
+        if (hideCursor && blackMode) {
+            document.body.classList.add('blackmode-hide-cursor');
+        } else {
+            document.body.classList.remove('blackmode-hide-cursor');
+        }
+    }, [hideCursor, blackMode]);
+
+    return (
+        <RootLayout>
+            <button
+                onClick={toggleBlackMode}
+                style={{
+                    position: 'fixed',
+                    top: '10px',
+                    right: '10px',
+                    width: '30px',
+                    height: '30px',
+                    opacity: 0,
+                    cursor: 'pointer',
+                    zIndex: 9999
+                }}
+                aria-hidden="true"
+                tabIndex={-1}
+            />
+            <div className={`${blackMode ? 'fixed inset-0 flex justify-center items-center bg-black z-50' : 'px-4 lg:px-16 pb-10'}`}>
+                {!blackMode && (
+                    <div className='w-full flex justify-center items-center py-9'>
+                        <div className='w-full grid place-items-center space-y-6'>
+                            <Link href={'/'}>
+                                <img
+                                    src='/assets/logo.svg'
+                                    className='object-contain w-40'
+                                    alt='Logo'
+                                />
+                            </Link>
+                            <div className='flex gap-8 items-center pt-[2.5px]'>
+                                <img
+                                    src="/assets/crossfade.svg"
+                                    className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3.75px]"
+                                    alt=""
+                                />
+                                <Link href={'/scrl'}>
+                                    <RxDoubleArrowUp
+                                        className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle"
+                                    />
+                                </Link>
+                                <Link href={'/rndm'}>
+                                    <IoMdShuffle
+                                        className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle ml-[3.75px]"
+                                    />
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {loader ? (
+                    <Loader />
+                ) : (
+                    <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
+                        {slots.map((image, idx) => (
+                            <div
+                                key={idx}
+                                className='w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in'
+                                onClick={() => openLightboxByImage(image)}
+                            >
+                                <FadeSlot image={image} />
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            {!loader && !blackMode && <Footer />}
+            {slides && (
+                <Lightbox
+                    index={index}
+                    slides={slides}
+                    open={index >= 0}
+                    close={() => setIndex(-1)}
+                    render={{
+                        slideFooter: ({ slide }) => (
+                            <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                                {slide.title && (
+                                    <div className="yarl__slide_title">{slide.title}</div>
+                                )}
+                                <div className={slide.director && "!mb-5"}>
+                                    {slide.director && (
+                                        <div className="yarl__slide_description !text-[#99AABB]">
+                                            <span className="font-medium">{slide.director}</span>
+                                        </div>
+                                    )}
+                                    {slide.description && (
+                                        <div className="yarl__slide_description">{slide.description}</div>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    }}
+                />
+            )}
+            {blackMode && <AudioPlayer blackMode={blackMode} />}
+        </RootLayout>
+    );
+}
+
+function FadeSlot({ image }) {
+    const [currentImage, setCurrentImage] = useState(image);
+    const [previousImage, setPreviousImage] = useState(null);
+
+    useEffect(() => {
+        if (!image || image.id === currentImage?.id) return;
+
+        const preload = new Image();
+        preload.src = image.src;
+        preload.onload = () => {
+            setPreviousImage(currentImage);
+            setCurrentImage(image);
+        };
+    }, [image?.id]);
+
+    return (
+        <div className='relative w-full h-full'>
+            {previousImage && (
+                <motion.img
+                    key={previousImage.id}
+                    src={previousImage.src}
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 0 }}
+                    transition={{ duration: 2, ease: 'easeInOut' }}
+                    className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
+                    alt=''
+                />
+            )}
+            {currentImage && (
+                <motion.img
+                    key={currentImage.id}
+                    src={currentImage.src}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 2, ease: 'easeInOut' }}
+                    className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
+                    alt=''
+                />
+            )}
+        </div>
+    );
 }
