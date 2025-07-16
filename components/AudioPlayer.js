@@ -155,24 +155,38 @@ export default function AudioPlayer({ blackMode }) {
 
   useEffect(() => {
     if (blackMode) {
-      const handleStartAudio = () => {
-        fetchAudioFiles()
-          .then(fetched => {
-            const shuffled = shuffle(fetched);
-            setTracks(shuffled);
+      fetchAudioFiles()
+        .then(fetched => {
+          const shuffled = shuffle(fetched);
+          setTracks(shuffled);
+
+          // 🕵️ Detect already-playing first track
+          const firstAudio = document.querySelector('audio');
+          if (firstAudio && !firstAudio.paused) {
+            console.log('🎧 Adopting first track');
+            currentAudio.current = firstAudio;
+
+            // Find index of adopted track
+            const adoptedIndex = shuffled.findIndex(url => firstAudio.src.includes(url.split('?')[0]));
+            currentIndex.current = adoptedIndex >= 0 ? adoptedIndex : 0;
+
+            // Schedule next track crossfade
+            firstAudio.oncanplaythrough = () => {
+              const duration = firstAudio.duration * 1000;
+              const crossfadeStart = duration - fadeDuration;
+              setTimeout(() => {
+                playTrack(currentIndex.current + 1);
+              }, crossfadeStart);
+            };
+          } else {
+            console.log('🎧 No track to adopt, starting fresh');
             currentIndex.current = 0;
+            playTrack(0);
+          }
+        })
+        .catch(err => console.error('Audio fetch error:', err));
 
-            playTrack(0); // Start first track immediately
-          })
-          .catch(err => console.error('Audio fetch error:', err));
-      };
-
-      window.addEventListener('tndrStartAudio', handleStartAudio);
       keepButtonVisible();
-
-      return () => {
-        window.removeEventListener('tndrStartAudio', handleStartAudio);
-      };
     } else {
       stopAudio();
       clearTimeout(hideTimer.current);
