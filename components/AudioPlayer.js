@@ -14,9 +14,9 @@ async function fetchAudioFiles() {
   const data = await res.json();
 
   return data.items
-    .filter(item => item.name.endsWith('.mp3') && item.downloadTokens)
+    .filter(item => item.name.endsWith('.mp3'))
     .map(item =>
-      `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media&token=${item.downloadTokens}`
+      `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`
     );
 }
 
@@ -40,7 +40,7 @@ export default function AudioPlayer({ blackMode }) {
 
     const sound = new Howl({
       src: [tracks[index]],
-      volume: muted ? 0.0 : 1.0,
+      volume: 0.0, // Start silent to avoid autoplay block
       onend: () => {
         currentIndex.current = (index + 1) % tracks.length;
         playTrack(currentIndex.current);
@@ -50,7 +50,10 @@ export default function AudioPlayer({ blackMode }) {
     currentSound.current = sound;
     sound.play();
 
+    // Fade in to avoid autoplay block
     sound.once('play', () => {
+      sound.fade(0.0, muted ? 0.0 : 1.0, 1000);
+
       const duration = sound.duration() * 1000;
       setTimeout(() => {
         const nextIndex = (index + 1) % tracks.length;
