@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
-import RootLayout from '../layout'
-import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import RootLayout from '../layout';
+import Link from 'next/link';
 import { RxDoubleArrowUp } from "react-icons/rx";
-import { IoMdShuffle } from 'react-icons/io'
-import Loader from '../../components/loader/loader'
-import Footer from '../../components/Footer'
-import Lightbox from "yet-another-react-lightbox"
+import { IoMdShuffle } from 'react-icons/io';
+import Loader from '../../components/loader/loader';
+import Footer from '../../components/Footer';
+import Lightbox from 'yet-another-react-lightbox';
+import AudioPlayer from '../../components/AudioPlayer';
 
 export default function FadeGallery() {
     const [slots, setSlots] = useState(Array(9).fill(null))
@@ -288,6 +289,7 @@ export default function FadeGallery() {
                     }}
                 />
             )}
+            {blackMode && <AudioPlayer blackMode={blackMode} />}
         </RootLayout>
     )
 }
