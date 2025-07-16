@@ -5,184 +5,56 @@ import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
 const bucket = 'tndrbtns.appspot.com';
 
-// 🏗️ Singleton Audio Engine (Bombproof + Animation Frame Fades + StrictMode Safe)
-const AudioEngine = (() => {
-  let tracks = [];
-  let currentIndex = 0;
-  let currentAudio = null;
-  let nextAudio = null;
-  let isPlaying = false;
-  let muted = false;
-  let sessionToken = 0; // 🆕 Session token for cancellation
-  const fadeDuration = 5000;
+// 🎧 Single Audio Player Instance
+let audio = null;
+let tracks = [];
+let trackIndex = 0;
 
-  async function fetchAudioFiles() {
-    const folder = 'audio';
-    const apiUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?prefix=${folder}%2F`;
+async function fetchAudioFiles() {
+  const folder = 'audio';
+  const apiUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?prefix=${folder}%2F`;
 
-    const res = await fetch(apiUrl);
-    if (!res.ok) throw new Error('Failed to fetch audio file list');
-    const data = await res.json();
+  const res = await fetch(apiUrl);
+  if (!res.ok) throw new Error('Failed to fetch audio file list');
+  const data = await res.json();
 
-    tracks = data.items
-      .filter(item => item.name.endsWith('.mp3'))
-      .map(item => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`);
+  tracks = data.items
+    .filter(item => item.name.endsWith('.mp3'))
+    .map(item => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`);
 
-    console.log('🎧 Tracks loaded:', tracks);
+  console.log('🎧 Tracks loaded:', tracks);
+}
+
+function shuffle(array) {
+  return [...array].sort(() => Math.random() - 0.5);
+}
+
+function initAudioPlayer() {
+  if (audio) return; // ✅ Already initialized
+  audio = new Audio();
+  audio.crossOrigin = 'anonymous';
+  audio.volume = 1.0;
+
+  audio.addEventListener('ended', () => {
+    trackIndex = (trackIndex + 1) % tracks.length;
+    audio.src = tracks[trackIndex];
+    audio.play().catch(err => console.warn('🚨 Playback error:', err));
+  });
+}
+
+async function startPlayback() {
+  if (!tracks.length) await fetchAudioFiles();
+  if (!tracks.length) {
+    console.warn('🚨 No tracks available; aborting playback');
+    return;
   }
 
-  function shuffle(array) {
-    return [...array].sort(() => Math.random() - 0.5);
-  }
-
-  function fadeVolume(audio, from, to, duration, token) {
-    if (!audio) return;
-
-    let start = null;
-
-    function step(timestamp) {
-      if (token !== sessionToken || !audio) {
-        return; // 🛑 Cancel if session changed or audio gone
-      }
-
-      if (!start) start = timestamp;
-      const elapsed = timestamp - start;
-      const progress = Math.min(elapsed / duration, 1);
-
-      audio.volume = from + (to - from) * progress;
-
-      if (progress < 1) {
-        requestAnimationFrame(step);
-      }
-    }
-
-    requestAnimationFrame(step);
-  }
-
-  function cleanupAudio(audio) {
-    if (audio && audio.src) {
-      audio.pause();
-      audio.src = '';
-    }
-  }
-
-  function playTrack(index, token) {
-    if (!tracks.length || token !== sessionToken) {
-      console.log('🔒 playTrack aborted: session token mismatch');
-      return;
-    }
-
-    const audio = new Audio(tracks[index % tracks.length]);
-    audio.volume = muted ? 0.0 : 1.0;
-    audio.crossOrigin = 'anonymous';
-
-    currentAudio = audio;
-
-    audio.play().then(() => {
-      console.log(`🎧 Now playing: ${tracks[index % tracks.length]}`);
-    }).catch(err => {
-      console.warn('🚨 Playback error:', err);
-    });
-
-    audio.oncanplaythrough = () => {
-      const duration = audio.duration * 1000;
-      const crossfadeStart = duration - fadeDuration;
-
-      const preloadNext = setTimeout(() => {
-        if (!isPlaying || token !== sessionToken) {
-          clearTimeout(preloadNext);
-          return;
-        }
-
-        const nextIndex = (index + 1) % tracks.length;
-        const next = new Audio(tracks[nextIndex]);
-        next.volume = 0.0;
-        next.crossOrigin = 'anonymous';
-
-        next.play().then(() => {
-          console.log(`🎧 Preloaded next track: ${tracks[nextIndex]}`);
-          nextAudio = next;
-
-          fadeVolume(audio, muted ? 0.0 : 1.0, 0.0, fadeDuration, token);
-          fadeVolume(next, 0.0, muted ? 0.0 : 1.0, fadeDuration, token);
-
-          const switchTracks = setTimeout(() => {
-            if (!isPlaying || token !== sessionToken) {
-              clearTimeout(switchTracks);
-              cleanupAudio(next);
-              return;
-            }
-
-            console.log(`🔄 Switching to track ${nextIndex}`);
-            cleanupAudio(audio);
-            currentAudio = next;
-            nextAudio = null;
-            currentIndex = nextIndex;
-
-            playTrack(nextIndex + 1, token);
-          }, fadeDuration);
-
-        }).catch(err => {
-          console.warn(`🚨 Failed to preload next track:`, err);
-        });
-
-      }, crossfadeStart);
-    };
-
-    audio.onerror = () => {
-      console.warn('🚨 Audio error detected; cleaning up');
-      cleanupAudio(audio);
-    };
-  }
-
-  async function start() {
-    if (isPlaying) {
-      console.log('⚠️ AudioEngine already playing — canceling redundant start');
-      return Promise.resolve(); // 🆕 noop for StrictMode double-effect
-    }
-    sessionToken++; // 🆕 Invalidate any old sessions
-    console.log(`▶️ Starting playback session ${sessionToken}`);
-    try {
-      await fetchAudioFiles();
-    } catch (err) {
-      console.error('🚨 Error fetching tracks:', err);
-      return;
-    }
-    if (!tracks.length) {
-      console.warn('🚨 No tracks available; aborting playback');
-      return;
-    }
-    tracks = shuffle(tracks);
-    currentIndex = 0;
-    isPlaying = true;
-    playTrack(0, sessionToken);
-  }
-
-  function stop() {
-    if (!isPlaying) return; // 🆕 Guard against double stop
-    console.log('🛑 Stopping all audio and cancelling session');
-    sessionToken++; // 🔥 Cancel all pending timers and fades
-    if (currentAudio) {
-      fadeVolume(currentAudio, currentAudio.volume, 0.0, fadeDuration, sessionToken);
-      setTimeout(() => cleanupAudio(currentAudio), fadeDuration);
-      currentAudio = null;
-    }
-    if (nextAudio) {
-      cleanupAudio(nextAudio);
-      nextAudio = null;
-    }
-    isPlaying = false;
-    tracks = [];
-  }
-
-  function setMute(state) {
-    muted = state;
-    if (currentAudio) fadeVolume(currentAudio, currentAudio.volume, muted ? 0.0 : 1.0, 500, sessionToken);
-    if (nextAudio) fadeVolume(nextAudio, nextAudio.volume, muted ? 0.0 : 1.0, 500, sessionToken);
-  }
-
-  return { start, stop, setMute };
-})();
+  shuffle(tracks);
+  trackIndex = 0;
+  initAudioPlayer();
+  audio.src = tracks[trackIndex];
+  audio.play().catch(err => console.warn('🚨 Playback error:', err));
+}
 
 export default function AudioPlayer({ blackMode }) {
   const [muted, setMuted] = useState(false);
@@ -193,7 +65,7 @@ export default function AudioPlayer({ blackMode }) {
   const toggleMute = () => {
     const newMuted = !muted;
     setMuted(newMuted);
-    AudioEngine.setMute(newMuted);
+    if (audio) audio.muted = newMuted || !blackMode; // 👈 Mute if toggled OR blackMode off
     keepButtonVisible();
   };
 
@@ -209,26 +81,18 @@ export default function AudioPlayer({ blackMode }) {
   };
 
   useEffect(() => {
-    let cleanupRequested = false;
+    let isMounted = true;
 
-    const manageAudio = async () => {
-      AudioEngine.stop(); // 🆕 stop first for safety
-      if (blackMode) {
-        try {
-          await AudioEngine.start();
-          keepButtonVisible();
-        } catch (err) {
-          console.error('AudioEngine error:', err);
-        }
+    startPlayback().then(() => {
+      if (isMounted && audio) {
+        audio.muted = muted || !blackMode; // 👈 Mute unless blackMode and unmuted
       }
-    };
-
-    manageAudio();
+    }).catch(err => console.error('AudioPlayer error:', err));
 
     return () => {
-      if (!cleanupRequested) {
-        cleanupRequested = true;
-        AudioEngine.stop();
+      isMounted = false;
+      if (audio) {
+        audio.muted = true; // 👈 Always mute on unmount
       }
       clearTimeout(hideTimer.current);
     };
