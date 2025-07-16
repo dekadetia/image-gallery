@@ -1,42 +1,53 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
 const bucket = 'tndrbtns.appspot.com';
 
-async function fetchAudioFiles() {
-  const folder = 'audio';
-  const apiUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?prefix=${folder}%2F`;
-
-  const res = await fetch(apiUrl);
-  if (!res.ok) throw new Error('Failed to fetch audio file list');
-  const data = await res.json();
-
-  const files = data.items
-    .filter(item => item.name.endsWith('.mp3'))
-    .map(item => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`);
-
-  console.log('🎧 Audio files loaded:', files);
-  return files;
-}
-
-function shuffle(array) {
-  return [...array].sort(() => Math.random() - 0.5);
-}
-
-export default function AudioPlayer({ blackMode }) {
-  const [muted, setMuted] = useState(false); // Start unmuted
-  const [visible, setVisible] = useState(false);
-  const [fadingOut, setFadingOut] = useState(false);
-  const hideTimer = useRef(null);
-  const currentIndex = useRef(0);
-  const currentAudio = useRef(null);
-  const nextAudio = useRef(null);
+// 🏗️ Singleton Audio Engine
+const AudioEngine = (() => {
+  let tracks = [];
+  let currentIndex = 0;
+  let currentAudio = null;
+  let nextAudio = null;
+  let isPlaying = false;
+  let muted = false;
   const fadeDuration = 5000;
-  const isPlaying = useRef(false); // 🔥 Guarantees only one playback loop
 
-  const playTrack = (index, tracks) => {
+  async function fetchAudioFiles() {
+    const folder = 'audio';
+    const apiUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?prefix=${folder}%2F`;
+
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error('Failed to fetch audio file list');
+    const data = await res.json();
+
+    tracks = data.items
+      .filter(item => item.name.endsWith('.mp3'))
+      .map(item => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`);
+
+    console.log('🎧 Tracks loaded:', tracks);
+  }
+
+  function shuffle(array) {
+    return [...array].sort(() => Math.random() - 0.5);
+  }
+
+  function fadeVolume(audio, from, to, duration) {
+    const steps = 30;
+    const stepTime = duration / steps;
+    let currentStep = 0;
+
+    const fadeInterval = setInterval(() => {
+      const progress = currentStep / steps;
+      audio.volume = from + (to - from) * progress;
+      currentStep++;
+      if (currentStep > steps) clearInterval(fadeInterval);
+    }, stepTime);
+  }
+
+  function playTrack(index) {
     if (!tracks.length) return;
 
     const audio = new Audio(tracks[index % tracks.length]);
@@ -45,7 +56,7 @@ export default function AudioPlayer({ blackMode }) {
 
     audio.play().then(() => {
       console.log(`🎧 Now playing: ${tracks[index % tracks.length]}`);
-      currentAudio.current = audio;
+      currentAudio = audio;
     }).catch(err => {
       console.warn('🚨 Playback error:', err);
     });
@@ -61,7 +72,7 @@ export default function AudioPlayer({ blackMode }) {
         next.crossOrigin = 'anonymous';
         next.play().then(() => {
           console.log(`🎧 Preloaded next track: ${tracks[nextIndex]}`);
-          nextAudio.current = next;
+          nextAudio = next;
 
           fadeVolume(audio, muted ? 0.0 : 1.0, 0.0, fadeDuration);
           fadeVolume(next, 0.0, muted ? 0.0 : 1.0, fadeDuration);
@@ -70,61 +81,66 @@ export default function AudioPlayer({ blackMode }) {
             console.log(`🔄 Switching to track ${nextIndex}`);
             audio.pause();
             audio.src = '';
-            currentAudio.current = next;
-            nextAudio.current = null;
-            currentIndex.current = nextIndex;
+            currentAudio = next;
+            nextAudio = null;
+            currentIndex = nextIndex;
 
-            playTrack(nextIndex + 1, tracks);
+            playTrack(nextIndex + 1); // Continue loop
           }, fadeDuration);
         }).catch(err => {
           console.warn(`🚨 Failed to preload next track:`, err);
         });
       }, crossfadeStart);
     };
-  };
+  }
 
-  const fadeVolume = (audio, from, to, duration) => {
-    const steps = 30;
-    const stepTime = duration / steps;
-    let currentStep = 0;
+  async function start() {
+    if (isPlaying) return; // Prevent multiple loops
+    await fetchAudioFiles();
+    tracks = shuffle(tracks);
+    currentIndex = 0;
+    isPlaying = true;
+    playTrack(0);
+  }
 
-    const fadeInterval = setInterval(() => {
-      const progress = currentStep / steps;
-      audio.volume = from + (to - from) * progress;
-      currentStep++;
-      if (currentStep > steps) clearInterval(fadeInterval);
-    }, stepTime);
-  };
-
-  const stopAudio = () => {
+  function stop() {
     console.log('🛑 Stopping all audio');
-    if (currentAudio.current) {
-      fadeVolume(currentAudio.current, currentAudio.current.volume, 0.0, fadeDuration);
+    if (currentAudio) {
+      fadeVolume(currentAudio, currentAudio.volume, 0.0, fadeDuration);
       setTimeout(() => {
-        currentAudio.current.pause();
-        currentAudio.current.src = '';
-        currentAudio.current = null;
+        currentAudio.pause();
+        currentAudio.src = '';
+        currentAudio = null;
       }, fadeDuration);
     }
-    if (nextAudio.current) {
-      nextAudio.current.pause();
-      nextAudio.current.src = '';
-      nextAudio.current = null;
+    if (nextAudio) {
+      nextAudio.pause();
+      nextAudio.src = '';
+      nextAudio = null;
     }
-    isPlaying.current = false;
-  };
+    isPlaying = false;
+    tracks = [];
+  }
+
+  function setMute(state) {
+    muted = state;
+    if (currentAudio) fadeVolume(currentAudio, currentAudio.volume, muted ? 0.0 : 1.0, 500);
+    if (nextAudio) fadeVolume(nextAudio, nextAudio.volume, muted ? 0.0 : 1.0, 500);
+  }
+
+  return { start, stop, setMute };
+})();
+
+export default function AudioPlayer({ blackMode }) {
+  const [muted, setMuted] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [fadingOut, setFadingOut] = useState(false);
+  const hideTimer = useState(null);
 
   const toggleMute = () => {
-    setMuted((prev) => {
-      const newMuted = !prev;
-      if (currentAudio.current) {
-        fadeVolume(currentAudio.current, currentAudio.current.volume, newMuted ? 0.0 : 1.0, 500);
-      }
-      if (nextAudio.current) {
-        fadeVolume(nextAudio.current, nextAudio.current.volume, newMuted ? 0.0 : 1.0, 500);
-      }
-      return newMuted;
-    });
+    const newMuted = !muted;
+    setMuted(newMuted);
+    AudioEngine.setMute(newMuted);
     keepButtonVisible();
   };
 
@@ -141,28 +157,17 @@ export default function AudioPlayer({ blackMode }) {
 
   useEffect(() => {
     if (blackMode) {
-      fetchAudioFiles()
-        .then((fetched) => {
-          const shuffled = shuffle(fetched);
-          currentIndex.current = 0;
-
-          if (!isPlaying.current) {
-            console.log('🎯 Starting playback on blackMode enter');
-            playTrack(0, shuffled);
-            isPlaying.current = true;
-          }
-        })
-        .catch(err => console.error('Audio fetch error:', err));
+      AudioEngine.start();
       keepButtonVisible();
     } else {
-      stopAudio();
+      AudioEngine.stop();
       clearTimeout(hideTimer.current);
       setVisible(false);
       setFadingOut(false);
     }
 
     return () => {
-      stopAudio();
+      AudioEngine.stop();
       clearTimeout(hideTimer.current);
     };
   }, [blackMode]);
@@ -171,7 +176,6 @@ export default function AudioPlayer({ blackMode }) {
 
   return (
     <>
-      {/* Hotspot to revive mute button */}
       <div
         onMouseEnter={keepButtonVisible}
         onTouchStart={keepButtonVisible}
@@ -181,7 +185,7 @@ export default function AudioPlayer({ blackMode }) {
           right: '10px',
           width: '50px',
           height: '50px',
-          zIndex: 9998
+          zIndex: 9998,
         }}
       />
       {visible && (
