@@ -14,9 +14,9 @@ async function fetchAudioFiles() {
   const data = await res.json();
 
   return data.items
-    .filter(item => item.name.endsWith('.mp3'))
+    .filter(item => item.name.endsWith('.mp3') && item.downloadTokens)
     .map(item =>
-      `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`
+      `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media&token=${item.downloadTokens}`
     );
 }
 
