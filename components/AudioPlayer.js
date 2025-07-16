@@ -43,42 +43,49 @@ export default function AudioPlayer({ blackMode }) {
   const playTrack = (index) => {
     if (!tracks.length) return;
 
-    const audio = new Audio(tracks[index]);
+    const audio = new Audio(tracks[index % tracks.length]);
     audio.volume = muted ? 0.0 : 1.0;
     audio.crossOrigin = "anonymous";
 
-    audio.play().catch(err => console.warn('Autoplay block (should be bypassed by blackMode gesture):', err));
+    audio.play().then(() => {
+      console.log(`🎧 Playing track ${index % tracks.length}: ${tracks[index % tracks.length]}`);
+      currentAudio.current = audio;
+    }).catch(err => {
+      console.warn(`🚨 Autoplay blocked for track ${index}:`, err);
+    });
 
-    currentAudio.current = audio;
-
-    audio.onended = () => {
-      currentIndex.current = (index + 1) % tracks.length;
-      playTrack(currentIndex.current);
-    };
-
-    // Preload and crossfade next track
     audio.oncanplaythrough = () => {
       const duration = audio.duration * 1000;
+      const crossfadeStart = duration - fadeDuration;
+
+      console.log(`⏳ Scheduling crossfade for track ${index} at ${crossfadeStart}ms`);
+
       setTimeout(() => {
         const nextIndex = (index + 1) % tracks.length;
         const next = new Audio(tracks[nextIndex]);
         next.volume = 0.0;
         next.crossOrigin = "anonymous";
-        next.play();
+        next.play().then(() => {
+          console.log(`🎧 Next track ${nextIndex} started for crossfade`);
+          nextAudio.current = next;
 
-        nextAudio.current = next;
+          fadeVolume(audio, muted ? 0.0 : 1.0, 0.0, fadeDuration);
+          fadeVolume(next, 0.0, muted ? 0.0 : 1.0, fadeDuration);
 
-        fadeVolume(audio, 1.0, 0.0, fadeDuration);
-        fadeVolume(next, 0.0, muted ? 0.0 : 1.0, fadeDuration);
+          setTimeout(() => {
+            console.log(`🔄 Switching to track ${nextIndex}`);
+            audio.pause();
+            audio.src = '';
+            currentAudio.current = next;
+            nextAudio.current = null;
+            currentIndex.current = nextIndex;
 
-        setTimeout(() => {
-          audio.pause();
-          audio.src = '';
-          currentAudio.current = next;
-          nextAudio.current = null;
-          currentIndex.current = nextIndex;
-        }, fadeDuration);
-      }, duration - fadeDuration);
+            playTrack(nextIndex + 1); // Loop continues
+          }, fadeDuration);
+        }).catch(err => {
+          console.warn(`🚨 Could not start next track ${nextIndex}:`, err);
+        });
+      }, crossfadeStart);
     };
   };
 
@@ -122,6 +129,14 @@ export default function AudioPlayer({ blackMode }) {
           500
         );
       }
+      if (nextAudio.current) {
+        fadeVolume(
+          nextAudio.current,
+          nextAudio.current.volume,
+          newMuted ? 0.0 : 1.0,
+          500
+        );
+      }
       return newMuted;
     });
     keepButtonVisible();
@@ -139,30 +154,20 @@ export default function AudioPlayer({ blackMode }) {
   };
 
   useEffect(() => {
-if (blackMode) {
-  fetchAudioFiles()
-    .then(fetched => {
-      const shuffled = shuffle(fetched);
-      setTracks(shuffled);
-      currentIndex.current = 0;
+    if (blackMode) {
+      fetchAudioFiles()
+        .then(fetched => {
+          const shuffled = shuffle(fetched);
+          setTracks(shuffled);
+          currentIndex.current = 0;
 
-      // Start playback immediately (tied to blackMode gesture)
-      const firstAudio = new Audio(shuffled[0]);
-      firstAudio.crossOrigin = "anonymous";
-      firstAudio.volume = muted ? 0.0 : 1.0;
-      firstAudio.play().then(() => {
-        console.log('🎧 First track started by AudioPlayer');
-        currentAudio.current = firstAudio;
-playTrack(1); // Start at second track to avoid repeating first
-      }).catch(err => {
-        console.warn('🚨 Autoplay blocked in AudioPlayer:', err);
-      });
-    })
-    .catch(err => console.error('Audio fetch error:', err));
+          // Start first track
+          playTrack(0);
+        })
+        .catch(err => console.error('Audio fetch error:', err));
 
-  keepButtonVisible();
-}
- else {
+      keepButtonVisible();
+    } else {
       stopAudio();
       clearTimeout(hideTimer.current);
       setVisible(false);
