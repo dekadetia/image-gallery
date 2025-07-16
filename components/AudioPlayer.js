@@ -15,14 +15,10 @@ async function fetchAudioFiles() {
 
   const files = data.items
     .filter(item => item.name.endsWith('.mp3'))
-    .map(nameToTokenizedUrl);
+    .map(item => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`);
 
   console.log('🎧 Tokenized Audio URLs:', files);
   return files;
-}
-
-function nameToTokenizedUrl(item) {
-  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`;
 }
 
 function shuffle(array) {
@@ -31,7 +27,7 @@ function shuffle(array) {
 
 export default function AudioPlayer({ blackMode }) {
   const [tracks, setTracks] = useState([]);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true); // Start muted (user must unmute to play)
   const [visible, setVisible] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const hideTimer = useRef(null);
@@ -121,22 +117,34 @@ export default function AudioPlayer({ blackMode }) {
   const toggleMute = () => {
     setMuted((prev) => {
       const newMuted = !prev;
-      if (currentAudio.current) {
+
+      if (!prev && !currentAudio.current) {
+        // First unmute → fetch tracks and start playback
+        fetchAudioFiles()
+          .then(fetched => {
+            const shuffled = shuffle(fetched);
+            setTracks(shuffled);
+            currentIndex.current = 0;
+            playTrack(0);
+          })
+          .catch(err => console.error('Audio fetch error:', err));
+      } else if (currentAudio.current) {
         fadeVolume(
           currentAudio.current,
           currentAudio.current.volume,
           newMuted ? 0.0 : 1.0,
           500
         );
+        if (nextAudio.current) {
+          fadeVolume(
+            nextAudio.current,
+            nextAudio.current.volume,
+            newMuted ? 0.0 : 1.0,
+            500
+          );
+        }
       }
-      if (nextAudio.current) {
-        fadeVolume(
-          nextAudio.current,
-          nextAudio.current.volume,
-          newMuted ? 0.0 : 1.0,
-          500
-        );
-      }
+
       return newMuted;
     });
     keepButtonVisible();
@@ -155,37 +163,6 @@ export default function AudioPlayer({ blackMode }) {
 
   useEffect(() => {
     if (blackMode) {
-      fetchAudioFiles()
-        .then(fetched => {
-          const shuffled = shuffle(fetched);
-          setTracks(shuffled);
-
-          // 🕵️ Detect already-playing first track
-          const firstAudio = document.querySelector('audio');
-          if (firstAudio && !firstAudio.paused) {
-            console.log('🎧 Adopting first track');
-            currentAudio.current = firstAudio;
-
-            // Find index of adopted track
-            const adoptedIndex = shuffled.findIndex(url => firstAudio.src.includes(url.split('?')[0]));
-            currentIndex.current = adoptedIndex >= 0 ? adoptedIndex : 0;
-
-            // Schedule next track crossfade
-            firstAudio.oncanplaythrough = () => {
-              const duration = firstAudio.duration * 1000;
-              const crossfadeStart = duration - fadeDuration;
-              setTimeout(() => {
-                playTrack(currentIndex.current + 1);
-              }, crossfadeStart);
-            };
-          } else {
-            console.log('🎧 No track to adopt, starting fresh');
-            currentIndex.current = 0;
-            playTrack(0);
-          }
-        })
-        .catch(err => console.error('Audio fetch error:', err));
-
       keepButtonVisible();
     } else {
       stopAudio();
@@ -200,26 +177,42 @@ export default function AudioPlayer({ blackMode }) {
     };
   }, [blackMode]);
 
-  if (!blackMode || !visible) return null;
+  if (!blackMode) return null;
 
   return (
-    <button
-      onClick={toggleMute}
-      onMouseEnter={keepButtonVisible}
-      onTouchStart={keepButtonVisible}
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        opacity: fadingOut ? 0 : 0.8,
-        transition: 'opacity 1s ease-in-out',
-        zIndex: 9999,
-      }}
-    >
-      {muted ? <FaVolumeMute size={20} /> : <FaVolumeUp size={20} />}
-    </button>
+    <>
+      {/* Hotspot to revive mute button */}
+      <div
+        onMouseEnter={keepButtonVisible}
+        onTouchStart={keepButtonVisible}
+        style={{
+          position: 'fixed',
+          bottom: '10px',
+          right: '10px',
+          width: '50px',
+          height: '50px',
+          zIndex: 9998
+        }}
+      />
+      {/* Mute/unmute button */}
+      {visible && (
+        <button
+          onClick={toggleMute}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: fadingOut ? 0 : 0.8,
+            transition: 'opacity 1s ease-in-out',
+            zIndex: 9999,
+          }}
+        >
+          {muted ? <FaVolumeMute size={20} /> : <FaVolumeUp size={20} />}
+        </button>
+      )}
+    </>
   );
 }
