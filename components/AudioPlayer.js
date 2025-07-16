@@ -10,7 +10,7 @@ let audio = null;
 let nextAudio = null;
 let tracks = [];
 let trackIndex = 0;
-let initialized = false; // 🆕 Only shuffle/load once
+let initialized = false; // 🆕 Only load/shuffle once
 const fadeDuration = 5000; // ms
 
 async function fetchAudioFiles() {
@@ -25,7 +25,8 @@ async function fetchAudioFiles() {
     .filter(item => item.name.endsWith('.mp3'))
     .map(item => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`);
 
-  console.log('🎧 Tracks loaded:', tracks);
+  tracks = shuffle(tracks); // ✅ Immediately randomize
+  console.log('🎧 Tracks loaded & shuffled:', tracks);
 }
 
 function shuffle(array) {
@@ -91,8 +92,6 @@ async function startPlayback() {
       console.warn('🚨 No tracks available; aborting playback');
       return;
     }
-    shuffle(tracks);
-    trackIndex = 0;
     initialized = true;
   }
 
