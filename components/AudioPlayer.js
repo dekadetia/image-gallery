@@ -15,14 +15,14 @@ async function fetchAudioFiles() {
 
   const files = data.items
     .filter(item => item.name.endsWith('.mp3'))
-    .map(item => nameToTokenizedUrl(item.name));
+    .map(nameToTokenizedUrl);
 
-  console.log('Tokenized Audio URLs:', files);
+  console.log('🎧 Tokenized Audio URLs:', files);
   return files;
 }
 
-function nameToTokenizedUrl(name) {
-  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(name)}?alt=media`;
+function nameToTokenizedUrl(item) {
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`;
 }
 
 function shuffle(array) {
@@ -155,18 +155,24 @@ export default function AudioPlayer({ blackMode }) {
 
   useEffect(() => {
     if (blackMode) {
-      fetchAudioFiles()
-        .then(fetched => {
-          const shuffled = shuffle(fetched);
-          setTracks(shuffled);
-          currentIndex.current = 0;
+      const handleStartAudio = () => {
+        fetchAudioFiles()
+          .then(fetched => {
+            const shuffled = shuffle(fetched);
+            setTracks(shuffled);
+            currentIndex.current = 0;
 
-          // Start first track
-          playTrack(0);
-        })
-        .catch(err => console.error('Audio fetch error:', err));
+            playTrack(0); // Start first track immediately
+          })
+          .catch(err => console.error('Audio fetch error:', err));
+      };
 
+      window.addEventListener('tndrStartAudio', handleStartAudio);
       keepButtonVisible();
+
+      return () => {
+        window.removeEventListener('tndrStartAudio', handleStartAudio);
+      };
     } else {
       stopAudio();
       clearTimeout(hideTimer.current);
