@@ -58,7 +58,7 @@ function initAudio() {
 }
 
 function handleTrackEnd() {
-  clearTimeout(crossfadeTimer); // 🆕 Cancel any pending preload
+  clearTimeout(crossfadeTimer); // 🆕 Cancel pending preload
   if (!nextAudio) return;
 
   console.log(`🔄 Crossfade complete. Promoting nextAudio.`);
@@ -67,7 +67,7 @@ function handleTrackEnd() {
   audio.play().catch(err => console.warn('🚨 Playback error:', err));
   nextAudio = null;
 
-  scheduleNextTrack(); // 🆕 Schedule following track
+  // 🛑 DO NOT call scheduleNextTrack here
 }
 
 function scheduleNextTrack() {
@@ -84,6 +84,9 @@ function scheduleNextTrack() {
       console.log(`🎧 Preloading & crossfading to: ${tracks[trackIndex]}`);
       fadeVolume(audio, audio.volume, 0.0, fadeDuration);
       fadeVolume(nextAudio, 0.0, 1.0, fadeDuration);
+
+      // 🆕 Schedule the following track only after current preload success
+      scheduleNextTrack();
     }).catch(err => console.warn('🚨 Next track preload error:', err));
   }, crossfadeStart);
 }
@@ -105,7 +108,7 @@ async function startPlayback() {
     audio.play().then(() => {
       console.log(`▶️ Resumed playback: ${tracks[trackIndex]}`);
       fadeVolume(audio, 0.0, 1.0, fadeDuration);
-      scheduleNextTrack();
+      scheduleNextTrack(); // 🆕 Start preloading loop
     }).catch(err => console.warn('🚨 Playback error:', err));
   }
 }
