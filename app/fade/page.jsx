@@ -128,7 +128,7 @@ export default function FadeGallery() {
         }
     }
 
-  const toggleBlackMode = async () => {
+const toggleBlackMode = async () => {
   if (!blackMode) {
     document.body.style.backgroundColor = '#000000';
     if (document.documentElement.requestFullscreen) {
@@ -139,19 +139,22 @@ export default function FadeGallery() {
       }
     }
 
-    // 🎧 Start first audio track directly tied to user gesture
+    // 🎧 Fetch all MP3s and pick one randomly
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-fade-audio`);
+      const apiUrl = 'https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o?prefix=audio%2F';
+      const res = await fetch(apiUrl);
       const data = await res.json();
-      const firstTrackUrl = data.audio?.[0]; // Assuming API returns array of URLs
-      if (firstTrackUrl) {
+      const items = data.items.filter(item => item.name.endsWith('.mp3'));
+      if (items.length) {
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        const firstTrackUrl = `https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/${encodeURIComponent(randomItem.name)}?alt=media`;
         const firstAudio = new Audio(firstTrackUrl);
         firstAudio.crossOrigin = "anonymous";
         firstAudio.volume = 1.0;
         await firstAudio.play();
-        console.log('🎧 First track started in blackMode click');
+        console.log('🎧 Playing random track:', randomItem.name);
       } else {
-        console.warn('No audio URL found in response');
+        console.warn('🚨 No audio tracks found in Firebase');
       }
     } catch (err) {
       console.error('🚨 Audio play error on blackMode click:', err);
@@ -168,6 +171,7 @@ export default function FadeGallery() {
   }
   setBlackMode(!blackMode);
 };
+
 
 
     // Global time-based cursor hide
