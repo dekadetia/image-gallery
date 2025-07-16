@@ -13,6 +13,7 @@ const AudioEngine = (() => {
   let nextAudio = null;
   let isPlaying = false;
   let muted = false;
+  let isTrackActive = false; // 🔒 Lock for recursive playTrack
   const fadeDuration = 5000;
 
   async function fetchAudioFiles() {
@@ -49,6 +50,13 @@ const AudioEngine = (() => {
 
   function playTrack(index) {
     if (!tracks.length) return;
+    if (isTrackActive) {
+      console.log('🔒 Skipping playTrack; another is already active');
+      return;
+    }
+
+    isTrackActive = true; // 🔐 Lock playback loop
+    console.log(`🎧 Starting track ${index % tracks.length}`);
 
     const audio = new Audio(tracks[index % tracks.length]);
     audio.volume = muted ? 0.0 : 1.0;
@@ -59,6 +67,7 @@ const AudioEngine = (() => {
       currentAudio = audio;
     }).catch(err => {
       console.warn('🚨 Playback error:', err);
+      isTrackActive = false; // 💥 Unlock on failure
     });
 
     audio.oncanplaythrough = () => {
@@ -66,6 +75,7 @@ const AudioEngine = (() => {
       const crossfadeStart = duration - fadeDuration;
 
       setTimeout(() => {
+        if (!isPlaying) return; // 💥 Abort if stopped
         const nextIndex = (index + 1) % tracks.length;
         const next = new Audio(tracks[nextIndex]);
         next.volume = 0.0;
@@ -85,17 +95,27 @@ const AudioEngine = (() => {
             nextAudio = null;
             currentIndex = nextIndex;
 
-            playTrack(nextIndex + 1); // Continue loop
+            isTrackActive = false; // 🔓 Unlock before next recursive call
+            playTrack(nextIndex + 1);
           }, fadeDuration);
         }).catch(err => {
           console.warn(`🚨 Failed to preload next track:`, err);
+          isTrackActive = false; // 💥 Unlock on preload failure
         });
       }, crossfadeStart);
+    };
+
+    audio.onerror = () => {
+      console.warn('🚨 Audio error detected; unlocking');
+      isTrackActive = false; // 💥 Unlock on error
     };
   }
 
   async function start() {
-    if (isPlaying) return; // Prevent multiple loops
+    if (isPlaying) {
+      console.log('⚠️ AudioEngine already playing');
+      return;
+    }
     await fetchAudioFiles();
     tracks = shuffle(tracks);
     currentIndex = 0;
@@ -119,6 +139,7 @@ const AudioEngine = (() => {
       nextAudio = null;
     }
     isPlaying = false;
+    isTrackActive = false; // 🔓 Unlock on stop
     tracks = [];
   }
 
