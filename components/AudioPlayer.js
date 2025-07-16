@@ -13,7 +13,6 @@ async function fetchAudioFiles() {
   if (!res.ok) throw new Error('Failed to fetch audio file list');
   const data = await res.json();
 
-  // Get just file names
   const files = data.items
     .filter(item => item.name.endsWith('.mp3'))
     .map(item => nameToTokenizedUrl(item.name));
@@ -46,8 +45,9 @@ export default function AudioPlayer({ blackMode }) {
 
     const audio = new Audio(tracks[index]);
     audio.volume = muted ? 0.0 : 1.0;
-    audio.crossOrigin = "anonymous"; // 🔥 Needed if using CORS-protected MP3s
-    audio.play();
+    audio.crossOrigin = "anonymous";
+
+    audio.play().catch(err => console.warn('Autoplay block (should be bypassed by blackMode gesture):', err));
 
     currentAudio.current = audio;
 
@@ -68,7 +68,6 @@ export default function AudioPlayer({ blackMode }) {
 
         nextAudio.current = next;
 
-        // Crossfade
         fadeVolume(audio, 1.0, 0.0, fadeDuration);
         fadeVolume(next, 0.0, muted ? 0.0 : 1.0, fadeDuration);
 
