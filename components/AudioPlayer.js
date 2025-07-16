@@ -139,17 +139,30 @@ export default function AudioPlayer({ blackMode }) {
   };
 
   useEffect(() => {
-    if (blackMode) {
-      fetchAudioFiles()
-        .then(fetched => {
-          const shuffled = shuffle(fetched);
-          setTracks(shuffled);
-          currentIndex.current = 0;
-          playTrack(0);
-        })
-        .catch(err => console.error('Audio fetch error:', err));
-      keepButtonVisible();
-    } else {
+if (blackMode) {
+  fetchAudioFiles()
+    .then(fetched => {
+      const shuffled = shuffle(fetched);
+      setTracks(shuffled);
+      currentIndex.current = 0;
+
+      // Start playback immediately (tied to blackMode gesture)
+      const firstAudio = new Audio(shuffled[0]);
+      firstAudio.crossOrigin = "anonymous";
+      firstAudio.volume = muted ? 0.0 : 1.0;
+      firstAudio.play().then(() => {
+        console.log('🎧 First track started by AudioPlayer');
+        currentAudio.current = firstAudio;
+        playTrack(0); // AudioPlayer takes over after first
+      }).catch(err => {
+        console.warn('🚨 Autoplay blocked in AudioPlayer:', err);
+      });
+    })
+    .catch(err => console.error('Audio fetch error:', err));
+
+  keepButtonVisible();
+}
+ else {
       stopAudio();
       clearTimeout(hideTimer.current);
       setVisible(false);
