@@ -59,6 +59,7 @@ export default function AudioPlayer({ blackMode }) {
     const sound = new Howl({
       src: [tracks[index]],
       volume: 0.0, // Start muted for autoplay
+      html5: true, // 🔥 Force HTML5 Audio
       onend: () => {
         currentIndex.current = (index + 1) % tracks.length;
         playTrack(currentIndex.current);
@@ -78,6 +79,7 @@ export default function AudioPlayer({ blackMode }) {
         const next = new Howl({
           src: [tracks[nextIndex]],
           volume: 0.0,
+          html5: true, // 🔥 Force HTML5 Audio
         });
 
         nextSound.current = next;
