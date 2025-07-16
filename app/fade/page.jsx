@@ -138,27 +138,7 @@ const toggleBlackMode = async () => {
         console.warn('Fullscreen request failed:', err);
       }
     }
-
-    // 🎧 Fetch all MP3s and pick one randomly
-    try {
-      const apiUrl = 'https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o?prefix=audio%2F';
-      const res = await fetch(apiUrl);
-      const data = await res.json();
-      const items = data.items.filter(item => item.name.endsWith('.mp3'));
-      if (items.length) {
-        const randomItem = items[Math.floor(Math.random() * items.length)];
-        const firstTrackUrl = `https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/${encodeURIComponent(randomItem.name)}?alt=media`;
-        const firstAudio = new Audio(firstTrackUrl);
-        firstAudio.crossOrigin = "anonymous";
-        firstAudio.volume = 1.0;
-        await firstAudio.play();
-        console.log('🎧 Playing random track:', randomItem.name);
-      } else {
-        console.warn('🚨 No audio tracks found in Firebase');
-      }
-    } catch (err) {
-      console.error('🚨 Audio play error on blackMode click:', err);
-    }
+    console.log('🟢 Entering blackMode – AudioPlayer will handle playback');
   } else {
     document.body.style.backgroundColor = '';
     if (document.fullscreenElement && document.exitFullscreen) {
@@ -168,6 +148,7 @@ const toggleBlackMode = async () => {
         console.warn('Exiting fullscreen failed:', err);
       }
     }
+    console.log('🔴 Exiting blackMode – AudioPlayer will stop playback');
   }
   setBlackMode(!blackMode);
 };
