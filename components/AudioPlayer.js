@@ -11,6 +11,7 @@ let nextAudio = null;
 let tracks = [];
 let trackIndex = 0;
 let initialized = false; // 🆕 Only load/shuffle once
+let crossfadeTimer = null; // 🆕 Track pending preload timer
 const fadeDuration = 5000; // ms
 
 async function fetchAudioFiles() {
@@ -57,6 +58,7 @@ function initAudio() {
 }
 
 function handleTrackEnd() {
+  clearTimeout(crossfadeTimer); // 🆕 Cancel any pending preload
   if (!nextAudio) return;
 
   console.log(`🔄 Crossfade complete. Promoting nextAudio.`);
@@ -65,14 +67,15 @@ function handleTrackEnd() {
   audio.play().catch(err => console.warn('🚨 Playback error:', err));
   nextAudio = null;
 
-  scheduleNextTrack();
+  scheduleNextTrack(); // 🆕 Schedule following track
 }
 
 function scheduleNextTrack() {
   const currentDuration = audio.duration * 1000;
   const crossfadeStart = currentDuration - fadeDuration;
 
-  setTimeout(() => {
+  clearTimeout(crossfadeTimer); // 🆕 Cancel any existing preload
+  crossfadeTimer = setTimeout(() => {
     trackIndex = (trackIndex + 1) % tracks.length;
     nextAudio = new Audio(tracks[trackIndex]);
     nextAudio.crossOrigin = 'anonymous';
