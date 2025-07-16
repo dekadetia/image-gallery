@@ -1,3 +1,10 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
+
+const bucket = 'tndrbtns.appspot.com';
+
 // 🏗️ Singleton Audio Engine (Bombproof + Animation Frame Fades)
 const AudioEngine = (() => {
   let tracks = [];
@@ -35,8 +42,7 @@ const AudioEngine = (() => {
 
     function step(timestamp) {
       if (token !== sessionToken || !audio) {
-        // 🛑 Cancel if session changed or audio gone
-        return;
+        return; // 🛑 Cancel if session changed or audio gone
       }
 
       if (!start) start = timestamp;
@@ -54,7 +60,7 @@ const AudioEngine = (() => {
   }
 
   function cleanupAudio(audio) {
-    if (audio) {
+    if (audio && audio.src) {
       audio.pause();
       audio.src = '';
     }
@@ -136,7 +142,16 @@ const AudioEngine = (() => {
     }
     sessionToken++; // 🆕 Invalidate any old sessions
     console.log(`▶️ Starting playback session ${sessionToken}`);
-    await fetchAudioFiles();
+    try {
+      await fetchAudioFiles();
+    } catch (err) {
+      console.error('🚨 Error fetching tracks:', err);
+      return;
+    }
+    if (!tracks.length) {
+      console.warn('🚨 No tracks available; aborting playback');
+      return;
+    }
     tracks = shuffle(tracks);
     currentIndex = 0;
     isPlaying = true;
@@ -144,11 +159,13 @@ const AudioEngine = (() => {
   }
 
   function stop() {
+    if (!isPlaying) return; // 🆕 Guard against double stop
     console.log('🛑 Stopping all audio and cancelling session');
-    sessionToken++; // 🆕 Cancel all pending timers and fades
+    sessionToken++; // 🔥 Cancel all pending timers and fades
     if (currentAudio) {
       fadeVolume(currentAudio, currentAudio.volume, 0.0, fadeDuration, sessionToken);
       setTimeout(() => cleanupAudio(currentAudio), fadeDuration);
+      currentAudio = null;
     }
     if (nextAudio) {
       cleanupAudio(nextAudio);
@@ -166,3 +183,92 @@ const AudioEngine = (() => {
 
   return { start, stop, setMute };
 })();
+
+export default function AudioPlayer({ blackMode }) {
+  const [muted, setMuted] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [fadingOut, setFadingOut] = useState(false);
+  const hideTimer = useRef(null);
+
+  const toggleMute = () => {
+    const newMuted = !muted;
+    setMuted(newMuted);
+    AudioEngine.setMute(newMuted);
+    keepButtonVisible();
+  };
+
+  const keepButtonVisible = () => {
+    clearTimeout(hideTimer.current);
+    setVisible(true);
+    setFadingOut(false);
+
+    hideTimer.current = setTimeout(() => {
+      setFadingOut(true);
+      setTimeout(() => setVisible(false), 1000);
+    }, 10000);
+  };
+
+  useEffect(() => {
+    let cleanupRequested = false;
+
+    const manageAudio = async () => {
+      if (blackMode) {
+        try {
+          await AudioEngine.start();
+          keepButtonVisible();
+        } catch (err) {
+          console.error('AudioEngine error:', err);
+        }
+      } else {
+        AudioEngine.stop();
+      }
+    };
+
+    manageAudio();
+
+    return () => {
+      if (!cleanupRequested) {
+        cleanupRequested = true;
+        AudioEngine.stop();
+      }
+      clearTimeout(hideTimer.current);
+    };
+  }, [blackMode]);
+
+  if (!blackMode) return null;
+
+  return (
+    <>
+      <div
+        onMouseEnter={keepButtonVisible}
+        onTouchStart={keepButtonVisible}
+        style={{
+          position: 'fixed',
+          bottom: '10px',
+          right: '10px',
+          width: '50px',
+          height: '50px',
+          zIndex: 9998,
+        }}
+      />
+      {visible && (
+        <button
+          onClick={toggleMute}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: fadingOut ? 0 : 0.8,
+            transition: 'opacity 1s ease-in-out',
+            zIndex: 9999,
+          }}
+        >
+          {muted ? <FaVolumeMute size={20} /> : <FaVolumeUp size={20} />}
+        </button>
+      )}
+    </>
+  );
+}
