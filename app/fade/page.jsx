@@ -128,26 +128,47 @@ export default function FadeGallery() {
         }
     }
 
-   const toggleBlackMode = () => {
+  const toggleBlackMode = async () => {
   if (!blackMode) {
     document.body.style.backgroundColor = '#000000';
-    document.documentElement.requestFullscreen?.().catch(() => {});
+    if (document.documentElement.requestFullscreen) {
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (err) {
+        console.warn('Fullscreen request failed:', err);
+      }
+    }
 
-    // 🎧 Start audio immediately on gesture
-    const firstTrack = new Audio('PASTE_ONE_TOKENIZED_URL_HERE');
-    firstTrack.crossOrigin = "anonymous";
-    firstTrack.volume = 1.0;
-    firstTrack.play().then(() => {
-      console.log('🎧 First track playing');
-    }).catch(err => {
-      console.warn('🚨 Autoplay blocked even on gesture:', err);
-    });
+    // 🎧 Start first audio track directly tied to user gesture
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-fade-audio`);
+      const data = await res.json();
+      const firstTrackUrl = data.audio?.[0]; // Assuming API returns array of URLs
+      if (firstTrackUrl) {
+        const firstAudio = new Audio(firstTrackUrl);
+        firstAudio.crossOrigin = "anonymous";
+        firstAudio.volume = 1.0;
+        await firstAudio.play();
+        console.log('🎧 First track started in blackMode click');
+      } else {
+        console.warn('No audio URL found in response');
+      }
+    } catch (err) {
+      console.error('🚨 Audio play error on blackMode click:', err);
+    }
   } else {
     document.body.style.backgroundColor = '';
-    document.exitFullscreen?.().catch(() => {});
+    if (document.fullscreenElement && document.exitFullscreen) {
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
+        console.warn('Exiting fullscreen failed:', err);
+      }
+    }
   }
   setBlackMode(!blackMode);
 };
+
 
     // Global time-based cursor hide
     useEffect(() => {
