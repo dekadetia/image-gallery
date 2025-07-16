@@ -5,13 +5,12 @@ import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
 const bucket = 'tndrbtns.appspot.com';
 
-// 🎧 Single Audio Player Instance With Crossfades + Fade on BlackMode
+// 🎧 Single Audio Player Instance With True Crossfades
 let audio = null;
-let nextAudio = null;
 let tracks = [];
 let trackIndex = 0;
-let initialized = false; // 🆕 Only load/shuffle once
-let crossfadeTimer = null; // 🆕 Track pending preload timer
+let initialized = false;
+let crossfadeTimer = null;
 const fadeDuration = 5000; // ms
 
 async function fetchAudioFiles() {
@@ -26,7 +25,7 @@ async function fetchAudioFiles() {
     .filter(item => item.name.endsWith('.mp3'))
     .map(item => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`);
 
-  tracks = shuffle(tracks); // ✅ Immediately randomize
+  tracks = shuffle(tracks);
   console.log('🎧 Tracks loaded & shuffled:', tracks);
 }
 
@@ -34,7 +33,7 @@ function shuffle(array) {
   return [...array].sort(() => Math.random() - 0.5);
 }
 
-function fadeVolume(audioEl, from, to, duration) {
+function fadeVolume(audioEl, from, to, duration, onComplete) {
   if (!audioEl) return;
   const steps = 30;
   const stepTime = duration / steps;
@@ -44,12 +43,15 @@ function fadeVolume(audioEl, from, to, duration) {
     const progress = currentStep / steps;
     audioEl.volume = from + (to - from) * progress;
     currentStep++;
-    if (currentStep > steps) clearInterval(fadeInterval);
+    if (currentStep > steps) {
+      clearInterval(fadeInterval);
+      if (onComplete) onComplete();
+    }
   }, stepTime);
 }
 
 function initAudio() {
-  if (audio) return; // ✅ Already initialized
+  if (audio) return;
   audio = new Audio();
   audio.crossOrigin = 'anonymous';
   audio.volume = 1.0;
@@ -58,36 +60,31 @@ function initAudio() {
 }
 
 function handleTrackEnd() {
-  clearTimeout(crossfadeTimer); // 🆕 Cancel pending preload
-  if (!nextAudio) return;
-
-  console.log(`🔄 Crossfade complete. Promoting nextAudio.`);
-  audio.src = nextAudio.src;
-  audio.volume = nextAudio.volume;
-  audio.play().catch(err => console.warn('🚨 Playback error:', err));
-  nextAudio = null;
-
-  // 🛑 DO NOT call scheduleNextTrack here
+  console.log('⏭ Track ended, moving to next with crossfade.');
+  crossfadeToNextTrack();
 }
 
-function scheduleNextTrack() {
+function crossfadeToNextTrack() {
+  clearTimeout(crossfadeTimer);
+
+  fadeVolume(audio, audio.volume, 0.0, fadeDuration, () => {
+    trackIndex = (trackIndex + 1) % tracks.length;
+    audio.src = tracks[trackIndex];
+    audio.play().then(() => {
+      console.log(`🎧 Crossfaded to: ${tracks[trackIndex]}`);
+      fadeVolume(audio, 0.0, 1.0, fadeDuration);
+      scheduleNextCrossfade();
+    }).catch(err => console.warn('🚨 Playback error:', err));
+  });
+}
+
+function scheduleNextCrossfade() {
   const currentDuration = audio.duration * 1000;
   const crossfadeStart = currentDuration - fadeDuration;
 
-  clearTimeout(crossfadeTimer); // 🆕 Cancel any existing preload
+  clearTimeout(crossfadeTimer);
   crossfadeTimer = setTimeout(() => {
-    trackIndex = (trackIndex + 1) % tracks.length;
-    nextAudio = new Audio(tracks[trackIndex]);
-    nextAudio.crossOrigin = 'anonymous';
-    nextAudio.volume = 0.0;
-    nextAudio.play().then(() => {
-      console.log(`🎧 Preloading & crossfading to: ${tracks[trackIndex]}`);
-      fadeVolume(audio, audio.volume, 0.0, fadeDuration);
-      fadeVolume(nextAudio, 0.0, 1.0, fadeDuration);
-
-      // 🆕 Schedule the following track only after current preload success
-      scheduleNextTrack();
-    }).catch(err => console.warn('🚨 Next track preload error:', err));
+    crossfadeToNextTrack();
   }, crossfadeStart);
 }
 
@@ -104,11 +101,11 @@ async function startPlayback() {
   initAudio();
   if (audio.paused) {
     audio.src = tracks[trackIndex];
-    audio.volume = 0.0; // 🆕 Start muted for fade-in
+    audio.volume = 0.0; // Start muted for fade-in
     audio.play().then(() => {
-      console.log(`▶️ Resumed playback: ${tracks[trackIndex]}`);
+      console.log(`▶️ Started playback: ${tracks[trackIndex]}`);
       fadeVolume(audio, 0.0, 1.0, fadeDuration);
-      scheduleNextTrack(); // 🆕 Start preloading loop
+      scheduleNextCrossfade();
     }).catch(err => console.warn('🚨 Playback error:', err));
   }
 }
@@ -117,17 +114,11 @@ function fadeOutAudio() {
   if (audio && !audio.paused) {
     fadeVolume(audio, audio.volume, 0.0, fadeDuration);
   }
-  if (nextAudio && !nextAudio.paused) {
-    fadeVolume(nextAudio, nextAudio.volume, 0.0, fadeDuration);
-  }
 }
 
 function fadeInAudio() {
   if (audio && !audio.paused) {
     fadeVolume(audio, audio.volume, 1.0, fadeDuration);
-  }
-  if (nextAudio && !nextAudio.paused) {
-    fadeVolume(nextAudio, nextAudio.volume, 1.0, fadeDuration);
   }
 }
 
@@ -141,7 +132,6 @@ export default function AudioPlayer({ blackMode }) {
     const newMuted = !muted;
     setMuted(newMuted);
     if (audio) audio.muted = newMuted;
-    if (nextAudio) nextAudio.muted = newMuted;
     keepButtonVisible();
   };
 
@@ -159,8 +149,6 @@ export default function AudioPlayer({ blackMode }) {
   useEffect(() => {
     startPlayback().then(() => {
       if (audio) audio.muted = muted;
-      if (nextAudio) nextAudio.muted = muted;
-
       if (blackMode) {
         fadeInAudio();
       } else {
