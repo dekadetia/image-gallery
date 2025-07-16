@@ -126,32 +126,56 @@ export default function FadeGallery() {
     };
 
     const toggleBlackMode = async () => {
-        if (!blackMode) {
-            document.body.style.backgroundColor = '#000000';
-            if (document.documentElement.requestFullscreen) {
-                try {
-                    await document.documentElement.requestFullscreen();
-                } catch (err) {
-                    console.warn('Fullscreen request failed:', err);
-                }
-            }
+  if (!blackMode) {
+    document.body.style.backgroundColor = '#000000';
+    if (document.documentElement.requestFullscreen) {
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (err) {
+        console.warn('Fullscreen request failed:', err);
+      }
+    }
 
-            // 🎧 Dispatch event to trigger AudioPlayer immediately
-            window.dispatchEvent(new Event('tndrStartAudio'));
-            console.log('🟢 Entering blackMode – AudioPlayer triggered');
-        } else {
-            document.body.style.backgroundColor = '';
-            if (document.fullscreenElement && document.exitFullscreen) {
-                try {
-                    await document.exitFullscreen();
-                } catch (err) {
-                    console.warn('Exiting fullscreen failed:', err);
-                }
-            }
-            console.log('🔴 Exiting blackMode – AudioPlayer will stop playback');
-        }
-        setBlackMode(!blackMode);
-    };
+    console.log('🟢 Entering blackMode – starting first audio track');
+
+    // Fetch audio URLs and play first track immediately
+    try {
+      const apiUrl = `https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o?prefix=audio%2F`;
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      const tracks = data.items
+        .filter(item => item.name.endsWith('.mp3'))
+        .map(item => `https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/${encodeURIComponent(item.name)}?alt=media`);
+
+      if (tracks.length) {
+        const firstTrack = new Audio(tracks[0]);
+        firstTrack.crossOrigin = "anonymous";
+        firstTrack.volume = 1.0;
+        firstTrack.play().then(() => {
+          console.log('🎧 First track playing:', tracks[0]);
+        }).catch(err => {
+          console.error('🚨 First track play blocked:', err);
+        });
+      } else {
+        console.warn('🚨 No tracks found to play');
+      }
+    } catch (err) {
+      console.error('🚨 Error fetching audio tracks:', err);
+    }
+  } else {
+    document.body.style.backgroundColor = '';
+    if (document.fullscreenElement && document.exitFullscreen) {
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
+        console.warn('Exiting fullscreen failed:', err);
+      }
+    }
+    console.log('🔴 Exiting blackMode – AudioPlayer will stop playback');
+  }
+  setBlackMode(!blackMode);
+};
+
 
     useEffect(() => {
         const handleMouseMove = () => {
