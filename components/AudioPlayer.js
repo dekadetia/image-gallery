@@ -10,7 +10,7 @@ let tracks = [];
 let trackIndex = 0;
 let initialized = false;
 let crossfadeTimer = null;
-const fadeDuration = 5000; // ms
+const fadeDuration = 10000; // 🕊️ 10 seconds crossfade
 
 async function fetchAudioFiles() {
   const folder = 'audio';
@@ -34,19 +34,23 @@ function shuffle(array) {
 
 function fadeVolume(audioEl, from, to, duration, onComplete) {
   if (!audioEl) return;
-  const steps = 30;
-  const stepTime = duration / steps;
-  let currentStep = 0;
 
-  const fadeInterval = setInterval(() => {
-    const progress = currentStep / steps;
+  const startTime = performance.now();
+
+  function step(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
     audioEl.volume = from + (to - from) * progress;
-    currentStep++;
-    if (currentStep > steps) {
-      clearInterval(fadeInterval);
-      if (onComplete) onComplete();
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else if (onComplete) {
+      onComplete();
     }
-  }, stepTime);
+  }
+
+  requestAnimationFrame(step);
 }
 
 function initAudio() {
@@ -137,6 +141,7 @@ export default function AudioPlayer({ blackMode }) {
   const [muted, setMuted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
+  const [fadeIn, setFadeIn] = useState(false); // 🆕 subtle fade-in flag
   const hideTimer = useRef(null);
 
   const toggleMute = () => {
@@ -170,7 +175,8 @@ export default function AudioPlayer({ blackMode }) {
       if (audio) audio.muted = muted;
       if (blackMode) {
         fadeInAudio();
-        keepButtonVisible(); // 🆕 Auto-show controls for 10s on blackMode enter
+        setFadeIn(true); // 🆕 trigger subtle fade-in
+        keepButtonVisible(); // 🆕 auto-show controls for 10s
       } else {
         fadeOutAudio();
       }
@@ -208,7 +214,7 @@ export default function AudioPlayer({ blackMode }) {
             gap: '10px',
             zIndex: 9999,
             opacity: fadingOut ? 0 : 0.8,
-            transition: 'opacity 0.5s ease-in-out', // 🆕 Smooth fade in/out
+            transition: fadeIn ? 'opacity 1s ease-out' : 'opacity 0.5s ease-in-out',
           }}
         >
           <button onClick={skipPrev} style={buttonStyle}><FaBackward size={16} /></button>
