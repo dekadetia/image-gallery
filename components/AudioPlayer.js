@@ -109,7 +109,7 @@ async function startPlayback() {
   if (!initialized) {
     await fetchAudioFiles();
     if (!tracks.length) {
-      console.warn('🚨 No tracks available; aborting playback');
+      console.warn('🚨 No tracks available; skipping playback');
       return;
     }
     initialized = true;
@@ -145,6 +145,8 @@ function fadeInAudio() {
 }
 
 export default function AudioPlayer({ blackMode }) {
+  if (!blackMode) return null; // 🛑 Early bail prevents grid hang
+
   const [muted, setMuted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
@@ -178,24 +180,23 @@ export default function AudioPlayer({ blackMode }) {
   };
 
   useEffect(() => {
-    if (blackMode) {
-      startPlayback().then(() => {
+    (async () => {
+      try {
+        await startPlayback();
         if (audio) audio.muted = muted;
         fadeInAudio();
         setFadeIn(true);
         keepButtonVisible();
-      }).catch(err => console.error('AudioPlayer error:', err));
-    } else {
-      fadeOutAudio();
-    }
+      } catch (err) {
+        console.error('AudioPlayer error:', err);
+      }
+    })();
 
     return () => {
       fadeOutAudio();
       clearTimeout(hideTimer.current);
     };
-  }, [blackMode]);
-
-  if (!blackMode) return null;
+  }, []);
 
   return (
     <>
@@ -218,7 +219,7 @@ export default function AudioPlayer({ blackMode }) {
             bottom: '20px',
             right: '20px',
             display: 'flex',
-            gap: '1.25rem', // 📏 Spacing matches main nav
+            gap: '1.25rem', // 📏 Matches nav icon spacing
             zIndex: 9999,
             opacity: fadingOut ? 0 : 0.9,
             transform: fadeIn ? 'scale(1)' : 'scale(0.95)',
@@ -248,6 +249,6 @@ const buttonStyle = {
   cursor: 'pointer',
   opacity: 0.9,
   transition: 'opacity 0.3s ease-in-out, transform 0.2s ease-in-out',
-  padding: '0.5rem', // 📱 Ensures good tap target
+  padding: '0.5rem',
   borderRadius: '9999px'
 };
