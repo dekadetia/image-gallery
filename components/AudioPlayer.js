@@ -42,7 +42,6 @@ function fadeVolume(audioEl, from, to, duration, onComplete) {
     const elapsed = currentTime - startTime;
     const progress = Math.min(elapsed / duration, 1);
 
-    // 🩹 Clamp volume between 0 and 1
     const targetVolume = from + (to - from) * progress;
     audioEl.volume = Math.max(0, Math.min(1, targetVolume));
 
@@ -133,7 +132,7 @@ function fadeOutAudio() {
     fadeVolume(audio, audio.volume, 0.0, normalFadeDuration, () => {
       console.log('🛑 Fully faded out; stopping audio.');
       audio.pause();
-      audio.src = ''; // 💥 Clear source to prevent zombie resume
+      audio.src = '';
     });
   }
   clearTimeout(crossfadeTimer);
@@ -191,7 +190,7 @@ export default function AudioPlayer({ blackMode }) {
     }
 
     return () => {
-      fadeOutAudio(); // Ensure we fade out on unmount too
+      fadeOutAudio();
       clearTimeout(hideTimer.current);
     };
   }, [blackMode]);
@@ -219,20 +218,24 @@ export default function AudioPlayer({ blackMode }) {
             bottom: '20px',
             right: '20px',
             display: 'flex',
-            gap: '10px',
+            gap: '1.25rem', // 📏 Spacing matches main nav
             zIndex: 9999,
-            opacity: fadingOut ? 0 : 0.8,
+            opacity: fadingOut ? 0 : 0.9,
             transform: fadeIn ? 'scale(1)' : 'scale(0.95)',
             transition: fadeIn
               ? 'opacity 0.8s ease-out, transform 0.4s ease-out'
               : 'opacity 0.5s ease-in-out'
           }}
         >
-          <button onClick={skipPrev} style={buttonStyle}><FaBackward size={16} /></button>
-          <button onClick={toggleMute} style={buttonStyle}>
-            {muted ? <FaVolumeMute size={16} /> : <FaVolumeUp size={16} />}
+          <button onClick={skipPrev} style={buttonStyle}>
+            <FaBackward size={24} />
           </button>
-          <button onClick={skipNext} style={buttonStyle}><FaForward size={16} /></button>
+          <button onClick={toggleMute} style={buttonStyle}>
+            {muted ? <FaVolumeMute size={24} /> : <FaVolumeUp size={24} />}
+          </button>
+          <button onClick={skipNext} style={buttonStyle}>
+            <FaForward size={24} />
+          </button>
         </div>
       )}
     </>
@@ -243,6 +246,8 @@ const buttonStyle = {
   background: 'transparent',
   border: 'none',
   cursor: 'pointer',
-  opacity: 0.8,
-  transition: 'opacity 0.3s ease-in-out'
+  opacity: 0.9,
+  transition: 'opacity 0.3s ease-in-out, transform 0.2s ease-in-out',
+  padding: '0.5rem', // 📱 Ensures good tap target
+  borderRadius: '9999px'
 };
