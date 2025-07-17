@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion'; // ✅ Added missing import
 import Lightbox from 'yet-another-react-lightbox';
 import Link from 'next/link';
 import { IoMdShuffle } from 'react-icons/io';
@@ -12,7 +13,6 @@ import MoreImageLoader from '../../components/MoreImageLoader';
 import Loader from '../../components/loader/loader';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import AudioPlayer from '../../components/AudioPlayer';
-
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
