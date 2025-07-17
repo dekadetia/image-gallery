@@ -10,7 +10,8 @@ let tracks = [];
 let trackIndex = 0;
 let initialized = false;
 let crossfadeTimer = null;
-const fadeDuration = 10000; // 🕊️ 10 seconds crossfade
+const normalFadeDuration = 10000; // 🕊️ 10s natural crossfade
+const skipFadeDuration = 2000;    // ⚡ 2s for manual skip
 
 async function fetchAudioFiles() {
   const folder = 'audio';
@@ -63,43 +64,43 @@ function initAudio() {
 }
 
 function handleTrackEnd() {
-  console.log('⏭ Track ended, moving to next with crossfade.');
-  crossfadeToNextTrack();
+  console.log('⏭ Track ended, moving to next naturally.');
+  crossfadeToNextTrack(normalFadeDuration);
 }
 
-function crossfadeToNextTrack() {
+function crossfadeToNextTrack(fadeMs = normalFadeDuration) {
   clearTimeout(crossfadeTimer);
-  fadeVolume(audio, audio.volume, 0.0, fadeDuration, () => {
+  fadeVolume(audio, audio.volume, 0.0, fadeMs, () => {
     trackIndex = (trackIndex + 1) % tracks.length;
     audio.src = tracks[trackIndex];
     audio.play().then(() => {
       console.log(`🎧 Crossfaded to: ${tracks[trackIndex]}`);
-      fadeVolume(audio, 0.0, 1.0, fadeDuration);
+      fadeVolume(audio, 0.0, 1.0, fadeMs);
       scheduleNextCrossfade();
-    }).catch(err => console.warn('🚨 Playback error:', err));
+    }).catch(err => console.warn('🚨 Playback error on next track:', err));
   });
 }
 
-function crossfadeToPrevTrack() {
+function crossfadeToPrevTrack(fadeMs = normalFadeDuration) {
   clearTimeout(crossfadeTimer);
-  fadeVolume(audio, audio.volume, 0.0, fadeDuration, () => {
+  fadeVolume(audio, audio.volume, 0.0, fadeMs, () => {
     trackIndex = (trackIndex - 1 + tracks.length) % tracks.length;
     audio.src = tracks[trackIndex];
     audio.play().then(() => {
       console.log(`🎧 Crossfaded to: ${tracks[trackIndex]}`);
-      fadeVolume(audio, 0.0, 1.0, fadeDuration);
+      fadeVolume(audio, 0.0, 1.0, fadeMs);
       scheduleNextCrossfade();
-    }).catch(err => console.warn('🚨 Playback error:', err));
+    }).catch(err => console.warn('🚨 Playback error on previous track:', err));
   });
 }
 
 function scheduleNextCrossfade() {
   const currentDuration = audio.duration * 1000;
-  const crossfadeStart = currentDuration - fadeDuration;
+  const crossfadeStart = currentDuration - normalFadeDuration;
 
   clearTimeout(crossfadeTimer);
   crossfadeTimer = setTimeout(() => {
-    crossfadeToNextTrack();
+    crossfadeToNextTrack(normalFadeDuration);
   }, crossfadeStart);
 }
 
@@ -119,21 +120,21 @@ async function startPlayback() {
     audio.volume = 0.0;
     audio.play().then(() => {
       console.log(`▶️ Started playback: ${tracks[trackIndex]}`);
-      fadeVolume(audio, 0.0, 1.0, fadeDuration);
+      fadeVolume(audio, 0.0, 1.0, normalFadeDuration);
       scheduleNextCrossfade();
-    }).catch(err => console.warn('🚨 Playback error:', err));
+    }).catch(err => console.warn('🚨 Playback error on start:', err));
   }
 }
 
 function fadeOutAudio() {
   if (audio && !audio.paused) {
-    fadeVolume(audio, audio.volume, 0.0, fadeDuration);
+    fadeVolume(audio, audio.volume, 0.0, normalFadeDuration);
   }
 }
 
 function fadeInAudio() {
   if (audio && !audio.paused) {
-    fadeVolume(audio, audio.volume, 1.0, fadeDuration);
+    fadeVolume(audio, audio.volume, 1.0, normalFadeDuration);
   }
 }
 
@@ -141,7 +142,7 @@ export default function AudioPlayer({ blackMode }) {
   const [muted, setMuted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
-  const [fadeIn, setFadeIn] = useState(false); // 🆕 subtle fade-in flag
+  const [fadeIn, setFadeIn] = useState(false);
   const hideTimer = useRef(null);
 
   const toggleMute = () => {
@@ -152,11 +153,11 @@ export default function AudioPlayer({ blackMode }) {
   };
 
   const skipNext = () => {
-    if (audio) crossfadeToNextTrack();
+    if (audio) crossfadeToNextTrack(skipFadeDuration);
   };
 
   const skipPrev = () => {
-    if (audio) crossfadeToPrevTrack();
+    if (audio) crossfadeToPrevTrack(skipFadeDuration);
   };
 
   const keepButtonVisible = () => {
@@ -171,16 +172,16 @@ export default function AudioPlayer({ blackMode }) {
   };
 
   useEffect(() => {
-    startPlayback().then(() => {
-      if (audio) audio.muted = muted;
-      if (blackMode) {
+    if (blackMode) {
+      startPlayback().then(() => {
+        if (audio) audio.muted = muted;
         fadeInAudio();
-        setFadeIn(true); // 🆕 trigger subtle fade-in
-        keepButtonVisible(); // 🆕 auto-show controls for 10s
-      } else {
-        fadeOutAudio();
-      }
-    }).catch(err => console.error('AudioPlayer error:', err));
+        setFadeIn(true);
+        keepButtonVisible();
+      }).catch(err => console.error('AudioPlayer error:', err));
+    } else {
+      fadeOutAudio();
+    }
 
     return () => {
       if (audio) fadeOutAudio();
