@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import Lightbox from 'yet-another-react-lightbox';
 import Link from 'next/link';
 import { IoMdShuffle } from 'react-icons/io';
-import { RxDoubleArrowUp } from 'react-icons/rx';
+import { RxDoubleArrowUp, RxCross1 } from 'react-icons/rx';
+import { IoMoonOutline } from 'react-icons/io5';
 import Footer from '../../components/Footer';
 import RootLayout from '../layout';
 import MoreImageLoader from '../../components/MoreImageLoader';
 import Loader from '../../components/loader/loader';
 import InfiniteScroll from 'react-infinite-scroll-component';
-import AudioPlayer from '../../components/AudioPlayer'; // 🎧 Import AudioPlayer
+import AudioPlayer from '../../components/AudioPlayer';
 
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -25,8 +26,10 @@ export default function Scrl() {
   const [loader, __loader] = useState(true);
   const [autosMode, setAutosMode] = useState(false);
   const [hideCursor, setHideCursor] = useState(false);
+  const [showControls, setShowControls] = useState(false); // 🆕 For Moon/X fade
   const scrollRef = useRef(null);
   const cursorTimerRef = useRef(null);
+  const activityTimerRef = useRef(null);
   const wasCalled = useRef(false);
   const seenImageIds = useRef(new Set());
 
@@ -114,7 +117,6 @@ export default function Scrl() {
     getImages();
   }, []);
 
-  // Start auto-scrolling immediately
   useEffect(() => {
     let scrollSpeed = 0.5;
     const scrollStep = () => {
@@ -129,7 +131,27 @@ export default function Scrl() {
     return () => cancelAnimationFrame(scrollRef.current);
   }, []);
 
-  // Handle autosMode fullscreen + cursor hide
+  // 🆕 User activity to show Moon/X
+  const handleUserActivity = () => {
+    clearTimeout(activityTimerRef.current);
+    setShowControls(true);
+    activityTimerRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 5000);
+  };
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('touchstart', handleUserActivity);
+
+    return () => {
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+      clearTimeout(activityTimerRef.current);
+    };
+  }, []);
+
+  // AutosMode fullscreen + cursor hide
   useEffect(() => {
     if (autosMode) {
       document.body.classList.add('autosmode');
@@ -151,18 +173,6 @@ export default function Scrl() {
 
       window.addEventListener('mousemove', handleMouseMove);
 
-      const exitBtn = document.createElement('button');
-      exitBtn.style.position = 'fixed';
-      exitBtn.style.top = '10px';
-      exitBtn.style.right = '10px';
-      exitBtn.style.width = '30px';
-      exitBtn.style.height = '30px';
-      exitBtn.style.opacity = '0';
-      exitBtn.style.cursor = 'pointer';
-      exitBtn.style.zIndex = '9999';
-      exitBtn.onclick = () => setAutosMode(false);
-      document.body.appendChild(exitBtn);
-
       return () => {
         document.body.classList.remove('autosmode');
         if (document.fullscreenElement && document.exitFullscreen) {
@@ -173,7 +183,6 @@ export default function Scrl() {
 
         clearTimeout(cursorTimerRef.current);
         window.removeEventListener('mousemove', handleMouseMove);
-        exitBtn.remove();
       };
     }
   }, [autosMode]);
@@ -191,23 +200,44 @@ export default function Scrl() {
     if (idx !== -1) setIndex(idx);
   };
 
+  const toggleAutosMode = async () => {
+    if (!autosMode) {
+      document.body.style.backgroundColor = '#000000';
+      if (document.documentElement.requestFullscreen) {
+        try {
+          await document.documentElement.requestFullscreen();
+        } catch (err) {
+          console.warn('Fullscreen request failed:', err);
+        }
+      }
+      console.log('🟢 Entering autosMode');
+    } else {
+      document.body.style.backgroundColor = '';
+      if (document.fullscreenElement && document.exitFullscreen) {
+        try {
+          await document.exitFullscreen();
+        } catch (err) {
+          console.warn('Exiting fullscreen failed:', err);
+        }
+      }
+      console.log('🔴 Exiting autosMode');
+    }
+    setAutosMode(!autosMode);
+  };
+
   return (
     <RootLayout>
-      <button
-        onClick={() => setAutosMode(true)}
-        style={{
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          width: '30px',
-          height: '30px',
-          opacity: 0,
-          cursor: 'pointer',
-          zIndex: 9999
-        }}
-        aria-hidden="true"
-        tabIndex={-1}
-      />
+      {/* 🌙 Moon / X Toggle */}
+      <motion.button
+        onClick={toggleAutosMode}
+        initial={{ opacity: 0.2 }}
+        animate={{ opacity: showControls ? 1 : 0.2 }}
+        transition={{ duration: 2 }}
+        className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
+        aria-label={autosMode ? "Exit AutosMode" : "Enter AutosMode"}
+      >
+        {autosMode ? <RxCross1 /> : <IoMoonOutline />}
+      </motion.button>
 
       {!autosMode && (
         <div className="w-full flex justify-center items-center py-9">
@@ -296,7 +326,7 @@ export default function Scrl() {
         />
       )}
 
-      {autosMode && <AudioPlayer blackMode={autosMode} />} {/* 🎧 Add audio */}
+      {autosMode && <AudioPlayer blackMode={autosMode} />}
       {!loader && !autosMode && <Footer />}
     </RootLayout>
   );
