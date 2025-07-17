@@ -42,7 +42,9 @@ function fadeVolume(audioEl, from, to, duration, onComplete) {
     const elapsed = currentTime - startTime;
     const progress = Math.min(elapsed / duration, 1);
 
-    audioEl.volume = from + (to - from) * progress;
+    // 🩹 Clamp volume between 0 and 1
+    const targetVolume = from + (to - from) * progress;
+    audioEl.volume = Math.max(0, Math.min(1, targetVolume));
 
     if (progress < 1) {
       requestAnimationFrame(step);
@@ -176,7 +178,7 @@ export default function AudioPlayer({ blackMode }) {
       startPlayback().then(() => {
         if (audio) audio.muted = muted;
         fadeInAudio();
-        setFadeIn(true);
+        setFadeIn(true); // 🆕 Enable fade-in animation
         keepButtonVisible();
       }).catch(err => console.error('AudioPlayer error:', err));
     } else {
@@ -215,7 +217,10 @@ export default function AudioPlayer({ blackMode }) {
             gap: '10px',
             zIndex: 9999,
             opacity: fadingOut ? 0 : 0.8,
-            transition: fadeIn ? 'opacity 1s ease-out' : 'opacity 0.5s ease-in-out',
+            transform: fadeIn ? 'scale(1)' : 'scale(0.95)', // 🆕 subtle scale
+            transition: fadeIn
+              ? 'opacity 0.8s ease-out, transform 0.4s ease-out'
+              : 'opacity 0.5s ease-in-out',
           }}
         >
           <button onClick={skipPrev} style={buttonStyle}><FaBackward size={16} /></button>
