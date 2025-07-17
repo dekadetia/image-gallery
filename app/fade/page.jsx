@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import RootLayout from '../layout';
 import Link from 'next/link';
-import { RxDoubleArrowUp } from "react-icons/rx";
-import { IoMdShuffle } from 'react-icons/io';
+import { RxDoubleArrowUp, RxCross1 } from "react-icons/rx";
+import { IoMdShuffle, IoMoonOutline } from 'react-icons/io5';
 import Loader from '../../components/loader/loader';
 import Footer from '../../components/Footer';
 import Lightbox from 'yet-another-react-lightbox';
@@ -21,6 +21,8 @@ export default function FadeGallery() {
 
     const [blackMode, setBlackMode] = useState(false);
     const [hideCursor, setHideCursor] = useState(false);
+    const [showControls, setShowControls] = useState(true); // 🆕 Visibility state for moon/X
+    const activityTimerRef = useRef(null);
     const cursorTimerRef = useRef(null);
 
     const [index, setIndex] = useState(-1);
@@ -150,32 +152,24 @@ export default function FadeGallery() {
         setBlackMode(!blackMode);
     };
 
+    const handleUserActivity = () => {
+        clearTimeout(activityTimerRef.current);
+        setShowControls(true);
+        activityTimerRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 5000);
+    };
+
     useEffect(() => {
-        const handleMouseMove = () => {
-            clearTimeout(cursorTimerRef.current);
-            setHideCursor(false);
-
-            if (blackMode) {
-                cursorTimerRef.current = setTimeout(() => {
-                    setHideCursor(true);
-                }, 3000);
-            }
-        };
-
-        if (blackMode) {
-            window.addEventListener('mousemove', handleMouseMove);
-        } else {
-            clearTimeout(cursorTimerRef.current);
-            setHideCursor(false);
-            document.body.classList.remove('blackmode-hide-cursor');
-        }
+        window.addEventListener('mousemove', handleUserActivity);
+        window.addEventListener('touchstart', handleUserActivity);
 
         return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            clearTimeout(cursorTimerRef.current);
-            document.body.classList.remove('blackmode-hide-cursor');
+            window.removeEventListener('mousemove', handleUserActivity);
+            window.removeEventListener('touchstart', handleUserActivity);
+            clearTimeout(activityTimerRef.current);
         };
-    }, [blackMode]);
+    }, []);
 
     useEffect(() => {
         if (hideCursor && blackMode) {
@@ -187,21 +181,18 @@ export default function FadeGallery() {
 
     return (
         <RootLayout>
-            <button
+            {/* 🌙 Moon / X Toggle */}
+            <motion.button
                 onClick={toggleBlackMode}
-                style={{
-                    position: 'fixed',
-                    top: '10px',
-                    right: '10px',
-                    width: '30px',
-                    height: '30px',
-                    opacity: 0,
-                    cursor: 'pointer',
-                    zIndex: 9999
-                }}
-                aria-hidden="true"
-                tabIndex={-1}
-            />
+                initial={{ opacity: 0 }}
+                animate={{ opacity: showControls ? 1 : 0 }}
+                transition={{ duration: 2 }}
+                className="fixed top-4 right-4 text-2xl z-50 cursor-pointer"
+                aria-label={blackMode ? "Exit Blackmode" : "Enter Blackmode"}
+            >
+                {blackMode ? <RxCross1 /> : <IoMoonOutline />}
+            </motion.button>
+
             <div className={`${blackMode ? 'fixed inset-0 flex justify-center items-center bg-black z-50' : 'px-4 lg:px-16 pb-10'}`}>
                 {!blackMode && (
                     <div className='w-full flex justify-center items-center py-9'>
