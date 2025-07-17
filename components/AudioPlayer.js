@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
+import { FaVolumeUp, FaVolumeMute, FaForward, FaBackward } from 'react-icons/fa';
 
 const bucket = 'tndrbtns.appspot.com';
 
-// 🎧 Single Audio Player Instance With True Crossfades
 let audio = null;
 let tracks = [];
 let trackIndex = 0;
@@ -66,9 +65,21 @@ function handleTrackEnd() {
 
 function crossfadeToNextTrack() {
   clearTimeout(crossfadeTimer);
-
   fadeVolume(audio, audio.volume, 0.0, fadeDuration, () => {
     trackIndex = (trackIndex + 1) % tracks.length;
+    audio.src = tracks[trackIndex];
+    audio.play().then(() => {
+      console.log(`🎧 Crossfaded to: ${tracks[trackIndex]}`);
+      fadeVolume(audio, 0.0, 1.0, fadeDuration);
+      scheduleNextCrossfade();
+    }).catch(err => console.warn('🚨 Playback error:', err));
+  });
+}
+
+function crossfadeToPrevTrack() {
+  clearTimeout(crossfadeTimer);
+  fadeVolume(audio, audio.volume, 0.0, fadeDuration, () => {
+    trackIndex = (trackIndex - 1 + tracks.length) % tracks.length;
     audio.src = tracks[trackIndex];
     audio.play().then(() => {
       console.log(`🎧 Crossfaded to: ${tracks[trackIndex]}`);
@@ -101,7 +112,7 @@ async function startPlayback() {
   initAudio();
   if (audio.paused) {
     audio.src = tracks[trackIndex];
-    audio.volume = 0.0; // Start muted for fade-in
+    audio.volume = 0.0;
     audio.play().then(() => {
       console.log(`▶️ Started playback: ${tracks[trackIndex]}`);
       fadeVolume(audio, 0.0, 1.0, fadeDuration);
@@ -135,6 +146,14 @@ export default function AudioPlayer({ blackMode }) {
     keepButtonVisible();
   };
 
+  const skipNext = () => {
+    if (audio) crossfadeToNextTrack();
+  };
+
+  const skipPrev = () => {
+    if (audio) crossfadeToPrevTrack();
+  };
+
   const keepButtonVisible = () => {
     clearTimeout(hideTimer.current);
     setVisible(true);
@@ -151,6 +170,7 @@ export default function AudioPlayer({ blackMode }) {
       if (audio) audio.muted = muted;
       if (blackMode) {
         fadeInAudio();
+        keepButtonVisible(); // 🆕 Auto-show controls for 10s on blackMode enter
       } else {
         fadeOutAudio();
       }
@@ -179,23 +199,33 @@ export default function AudioPlayer({ blackMode }) {
         }}
       />
       {visible && (
-        <button
-          onClick={toggleMute}
+        <div
           style={{
             position: 'fixed',
             bottom: '20px',
             right: '20px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            opacity: fadingOut ? 0 : 0.8,
-            transition: 'opacity 1s ease-in-out',
+            display: 'flex',
+            gap: '10px',
             zIndex: 9999,
+            opacity: fadingOut ? 0 : 0.8,
+            transition: 'opacity 0.5s ease-in-out', // 🆕 Smooth fade in/out
           }}
         >
-          {muted ? <FaVolumeMute size={20} /> : <FaVolumeUp size={20} />}
-        </button>
+          <button onClick={skipPrev} style={buttonStyle}><FaBackward size={16} /></button>
+          <button onClick={toggleMute} style={buttonStyle}>
+            {muted ? <FaVolumeMute size={16} /> : <FaVolumeUp size={16} />}
+          </button>
+          <button onClick={skipNext} style={buttonStyle}><FaForward size={16} /></button>
+        </div>
       )}
     </>
   );
 }
+
+const buttonStyle = {
+  background: 'transparent',
+  border: 'none',
+  cursor: 'pointer',
+  opacity: 0.8,
+  transition: 'opacity 0.3s ease-in-out',
+};
