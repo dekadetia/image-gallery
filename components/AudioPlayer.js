@@ -109,7 +109,7 @@ async function startPlayback() {
   if (!initialized) {
     await fetchAudioFiles();
     if (!tracks.length) {
-      console.warn('🚨 No tracks available; skipping playback');
+      console.warn('🚨 No tracks available; aborting playback');
       return;
     }
     initialized = true;
@@ -132,7 +132,7 @@ function fadeOutAudio() {
     fadeVolume(audio, audio.volume, 0.0, normalFadeDuration, () => {
       console.log('🛑 Fully faded out; stopping audio.');
       audio.pause();
-      audio.src = '';
+      audio.src = ''; // 💥 Clear source to prevent zombie resume
     });
   }
   clearTimeout(crossfadeTimer);
@@ -145,8 +145,6 @@ function fadeInAudio() {
 }
 
 export default function AudioPlayer({ blackMode }) {
-  if (!blackMode) return null; // 🛑 Early bail prevents grid hang
-
   const [muted, setMuted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
@@ -180,23 +178,24 @@ export default function AudioPlayer({ blackMode }) {
   };
 
   useEffect(() => {
-    (async () => {
-      try {
-        await startPlayback();
+    if (blackMode) {
+      startPlayback().then(() => {
         if (audio) audio.muted = muted;
         fadeInAudio();
         setFadeIn(true);
         keepButtonVisible();
-      } catch (err) {
-        console.error('AudioPlayer error:', err);
-      }
-    })();
+      }).catch(err => console.error('AudioPlayer error:', err));
+    } else {
+      fadeOutAudio();
+    }
 
     return () => {
-      fadeOutAudio();
+      fadeOutAudio(); // Ensure we fade out on unmount too
       clearTimeout(hideTimer.current);
     };
-  }, []);
+  }, [blackMode]);
+
+  if (!blackMode) return null;
 
   return (
     <>
@@ -219,9 +218,9 @@ export default function AudioPlayer({ blackMode }) {
             bottom: '20px',
             right: '20px',
             display: 'flex',
-            gap: '1.25rem', // 📏 Matches nav icon spacing
+            gap: '1.25rem', // 📏 Updated spacing matches nav icons
             zIndex: 9999,
-            opacity: fadingOut ? 0 : 0.9,
+            opacity: fadingOut ? 0 : 0.8,
             transform: fadeIn ? 'scale(1)' : 'scale(0.95)',
             transition: fadeIn
               ? 'opacity 0.8s ease-out, transform 0.4s ease-out'
@@ -229,7 +228,7 @@ export default function AudioPlayer({ blackMode }) {
           }}
         >
           <button onClick={skipPrev} style={buttonStyle}>
-            <FaBackward size={24} />
+            <FaBackward size={24} /> {/* 📐 Updated size */}
           </button>
           <button onClick={toggleMute} style={buttonStyle}>
             {muted ? <FaVolumeMute size={24} /> : <FaVolumeUp size={24} />}
@@ -247,8 +246,8 @@ const buttonStyle = {
   background: 'transparent',
   border: 'none',
   cursor: 'pointer',
-  opacity: 0.9,
+  opacity: 0.8,
   transition: 'opacity 0.3s ease-in-out, transform 0.2s ease-in-out',
-  padding: '0.5rem',
+  padding: '0.5rem', // 📱 Better tap targets
   borderRadius: '9999px'
 };
