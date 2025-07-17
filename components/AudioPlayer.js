@@ -130,8 +130,13 @@ async function startPlayback() {
 
 function fadeOutAudio() {
   if (audio && !audio.paused) {
-    fadeVolume(audio, audio.volume, 0.0, normalFadeDuration);
+    fadeVolume(audio, audio.volume, 0.0, normalFadeDuration, () => {
+      console.log('🛑 Fully faded out; stopping audio.');
+      audio.pause();
+      audio.src = ''; // 💥 Clear source to prevent zombie resume
+    });
   }
+  clearTimeout(crossfadeTimer);
 }
 
 function fadeInAudio() {
@@ -178,7 +183,7 @@ export default function AudioPlayer({ blackMode }) {
       startPlayback().then(() => {
         if (audio) audio.muted = muted;
         fadeInAudio();
-        setFadeIn(true); // 🆕 Enable fade-in animation
+        setFadeIn(true);
         keepButtonVisible();
       }).catch(err => console.error('AudioPlayer error:', err));
     } else {
@@ -186,7 +191,7 @@ export default function AudioPlayer({ blackMode }) {
     }
 
     return () => {
-      if (audio) fadeOutAudio();
+      fadeOutAudio(); // Ensure we fade out on unmount too
       clearTimeout(hideTimer.current);
     };
   }, [blackMode]);
@@ -204,7 +209,7 @@ export default function AudioPlayer({ blackMode }) {
           right: '10px',
           width: '50px',
           height: '50px',
-          zIndex: 9998,
+          zIndex: 9998
         }}
       />
       {visible && (
@@ -217,10 +222,10 @@ export default function AudioPlayer({ blackMode }) {
             gap: '10px',
             zIndex: 9999,
             opacity: fadingOut ? 0 : 0.8,
-            transform: fadeIn ? 'scale(1)' : 'scale(0.95)', // 🆕 subtle scale
+            transform: fadeIn ? 'scale(1)' : 'scale(0.95)',
             transition: fadeIn
               ? 'opacity 0.8s ease-out, transform 0.4s ease-out'
-              : 'opacity 0.5s ease-in-out',
+              : 'opacity 0.5s ease-in-out'
           }}
         >
           <button onClick={skipPrev} style={buttonStyle}><FaBackward size={16} /></button>
@@ -239,5 +244,5 @@ const buttonStyle = {
   border: 'none',
   cursor: 'pointer',
   opacity: 0.8,
-  transition: 'opacity 0.3s ease-in-out',
+  transition: 'opacity 0.3s ease-in-out'
 };
