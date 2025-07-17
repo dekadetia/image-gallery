@@ -190,7 +190,7 @@ export default function FadeGallery() {
                 initial={{ opacity: 0.2 }}
                 animate={{ opacity: showControls ? 1 : 0.2 }}
                 transition={{ duration: 2 }}
-                className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
+                className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white" // 🆕 HIGH z-index
                 aria-label={blackMode ? "Exit Blackmode" : "Enter Blackmode"}
             >
                 {blackMode ? <RxCross1 /> : <IoMoonOutline />}
