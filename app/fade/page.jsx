@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import RootLayout from '../layout';
 import Link from 'next/link';
 import { RxDoubleArrowUp, RxCross1 } from "react-icons/rx";
-import { IoMdShuffle, IoMoonOutline } from 'react-icons/io5';
+import { IoMdShuffle } from 'react-icons/io'; // ✅ Correct version
+import { IoMoonOutline } from 'react-icons/io5'; // ✅ Correct version for Ionicons v5
 import Loader from '../../components/loader/loader';
 import Footer from '../../components/Footer';
 import Lightbox from 'yet-another-react-lightbox';
@@ -21,7 +22,7 @@ export default function FadeGallery() {
 
     const [blackMode, setBlackMode] = useState(false);
     const [hideCursor, setHideCursor] = useState(false);
-    const [showControls, setShowControls] = useState(true); // 🆕 Visibility state for moon/X
+    const [showControls, setShowControls] = useState(true);
     const activityTimerRef = useRef(null);
     const cursorTimerRef = useRef(null);
 
