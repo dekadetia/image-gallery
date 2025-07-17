@@ -5,8 +5,8 @@ import { motion } from 'framer-motion';
 import RootLayout from '../layout';
 import Link from 'next/link';
 import { RxDoubleArrowUp, RxCross1 } from "react-icons/rx";
-import { IoMdShuffle } from 'react-icons/io'; // ✅ Correct version
-import { IoMoonOutline } from 'react-icons/io5'; // ✅ Correct version for Ionicons v5
+import { IoMdShuffle } from 'react-icons/io';
+import { IoMoonOutline } from 'react-icons/io5';
 import Loader from '../../components/loader/loader';
 import Footer from '../../components/Footer';
 import Lightbox from 'yet-another-react-lightbox';
@@ -22,7 +22,7 @@ export default function FadeGallery() {
 
     const [blackMode, setBlackMode] = useState(false);
     const [hideCursor, setHideCursor] = useState(false);
-    const [showControls, setShowControls] = useState(true);
+    const [showControls, setShowControls] = useState(false); // Visibility of Moon/X at full opacity
     const activityTimerRef = useRef(null);
     const cursorTimerRef = useRef(null);
 
@@ -156,9 +156,10 @@ export default function FadeGallery() {
     const handleUserActivity = () => {
         clearTimeout(activityTimerRef.current);
         setShowControls(true);
+
         activityTimerRef.current = setTimeout(() => {
             setShowControls(false);
-        }, 5000);
+        }, 5000); // Return to dim after 5s
     };
 
     useEffect(() => {
@@ -185,10 +186,10 @@ export default function FadeGallery() {
             {/* 🌙 Moon / X Toggle */}
             <motion.button
                 onClick={toggleBlackMode}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: showControls ? 1 : 0 }}
+                initial={{ opacity: 0.2 }} // Start dimmed
+                animate={{ opacity: showControls ? 1 : 0.2 }} // Bright on activity
                 transition={{ duration: 2 }}
-                className="fixed top-4 right-4 text-2xl z-50 cursor-pointer"
+                className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
                 aria-label={blackMode ? "Exit Blackmode" : "Enter Blackmode"}
             >
                 {blackMode ? <RxCross1 /> : <IoMoonOutline />}
