@@ -22,7 +22,7 @@ export default function FadeGallery() {
 
     const [blackMode, setBlackMode] = useState(false);
     const [hideCursor, setHideCursor] = useState(false);
-    const [showControls, setShowControls] = useState(false); // Visibility of Moon/X at full opacity
+    const [showControls, setShowControls] = useState(false);
     const activityTimerRef = useRef(null);
     const cursorTimerRef = useRef(null);
 
@@ -130,6 +130,7 @@ export default function FadeGallery() {
 
     const toggleBlackMode = async () => {
         if (!blackMode) {
+            // Enter blackmode
             document.body.style.backgroundColor = '#000000';
             if (document.documentElement.requestFullscreen) {
                 try {
@@ -140,8 +141,9 @@ export default function FadeGallery() {
             }
             console.log('🟢 Entering blackMode');
         } else {
+            // Exit blackmode
             document.body.style.backgroundColor = '';
-            if (document.fullscreenElement && document.exitFullscreen) {
+            if (document.exitFullscreen) {
                 try {
                     await document.exitFullscreen();
                 } catch (err) {
@@ -156,10 +158,9 @@ export default function FadeGallery() {
     const handleUserActivity = () => {
         clearTimeout(activityTimerRef.current);
         setShowControls(true);
-
         activityTimerRef.current = setTimeout(() => {
             setShowControls(false);
-        }, 5000); // Return to dim after 5s
+        }, 5000);
     };
 
     useEffect(() => {
@@ -186,8 +187,8 @@ export default function FadeGallery() {
             {/* 🌙 Moon / X Toggle */}
             <motion.button
                 onClick={toggleBlackMode}
-                initial={{ opacity: 0.2 }} // Start dimmed
-                animate={{ opacity: showControls ? 1 : 0.2 }} // Bright on activity
+                initial={{ opacity: 0.2 }}
+                animate={{ opacity: showControls ? 1 : 0.2 }}
                 transition={{ duration: 2 }}
                 className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
                 aria-label={blackMode ? "Exit Blackmode" : "Enter Blackmode"}
