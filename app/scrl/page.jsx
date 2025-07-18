@@ -222,7 +222,19 @@ export default function Scrl() {
     }
     setAutosMode(!autosMode);
   };
+// 🩹 MutationObserver to remove title="Close"
+useEffect(() => {
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+            btn.removeAttribute('title');
+        });
+    });
 
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+}, []);
+  
   return (
     <RootLayout>
       {/* 🌙 Moon */}
