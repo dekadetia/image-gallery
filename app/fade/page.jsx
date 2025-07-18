@@ -185,8 +185,12 @@ export default function FadeGallery() {
             {/* 🌙 Moon / X Toggle */}
             <motion.button
                 onClick={toggleBlackMode}
-                initial={{ opacity: 0.2 }}
-                animate={{ opacity: blackMode && showControls ? 1 : blackMode ? 0 : 0.2 }}
+                initial={{ opacity: blackMode ? 1 : 0.2 }}
+                animate={{
+                    opacity: blackMode
+                        ? showControls ? 1 : 0  // X fades out fully
+                        : 0.2                  // Moon idles at 20%
+                }}
                 whileHover={{ opacity: 1 }}
                 transition={{ duration: 2 }}
                 className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
