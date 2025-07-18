@@ -160,6 +160,11 @@ export default function FadeGallery() {
         }
     }, [hideCursor, blackMode]);
 
+    const handleImageClick = (imageSrc) => {
+        const idx = slides.findIndex(slide => slide.src === imageSrc);
+        if (idx !== -1) setIndex(idx);
+    };
+
     return (
         <RootLayout>
             {/* 🌙 Moon */}
@@ -231,7 +236,7 @@ export default function FadeGallery() {
                             <div
                                 key={idx}
                                 className='w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in'
-                                onClick={() => openLightboxByImage(image)}
+                                onClick={() => handleImageClick(image?.src)}
                             >
                                 <FadeSlot image={image} />
                             </div>
