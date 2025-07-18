@@ -24,7 +24,6 @@ export default function FadeGallery() {
     const [hideCursor, setHideCursor] = useState(false);
     const [showControls, setShowControls] = useState(false);
     const activityTimerRef = useRef(null);
-    const cursorTimerRef = useRef(null);
 
     const [index, setIndex] = useState(-1);
     const [slides, setSlides] = useState([]);
@@ -109,25 +108,6 @@ export default function FadeGallery() {
         return () => clearInterval(intervalRef.current);
     }, []);
 
-    useEffect(() => {
-        const observer = new MutationObserver(() => {
-            document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
-                btn.removeAttribute('title');
-            });
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
-
-        return () => observer.disconnect();
-    }, []);
-
-    const openLightboxByImage = (photo) => {
-        const matchedIndex = slides.findIndex((slide) => slide.src === photo.src);
-        if (matchedIndex !== -1) {
-            setIndex(matchedIndex);
-        }
-    };
-
     const toggleBlackMode = async () => {
         if (!blackMode) {
             document.body.style.backgroundColor = '#000000';
@@ -182,22 +162,35 @@ export default function FadeGallery() {
 
     return (
         <RootLayout>
-            {/* 🌙 Moon / X Toggle */}
-            <motion.button
-                onClick={toggleBlackMode}
-                initial={{ opacity: blackMode ? 1 : 0.2 }}
-                animate={{
-                    opacity: blackMode
-                        ? showControls ? 1 : 0  // X fades out fully
-                        : 0.2                  // Moon idles at 20%
-                }}
-                whileHover={{ opacity: 1 }}
-                transition={{ duration: 2 }}
-                className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
-                aria-label={blackMode ? "Exit Blackmode" : "Enter Blackmode"}
-            >
-                {blackMode ? <RxCross1 /> : <IoMoonOutline />}
-            </motion.button>
+            {/* 🌙 Moon */}
+            {!blackMode && (
+                <motion.button
+                    onClick={toggleBlackMode}
+                    initial={{ opacity: 0.2 }}
+                    animate={{ opacity: 0.2 }}
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 2 }}
+                    className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
+                    aria-label="Enter Blackmode"
+                >
+                    <IoMoonOutline />
+                </motion.button>
+            )}
+
+            {/* ❌ X */}
+            {blackMode && (
+                <motion.button
+                    onClick={toggleBlackMode}
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: showControls ? 1 : 0 }}
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 2 }}
+                    className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
+                    aria-label="Exit Blackmode"
+                >
+                    <RxCross1 />
+                </motion.button>
+            )}
 
             <div className={`${blackMode ? 'fixed inset-0 flex justify-center items-center bg-black z-50' : 'px-4 lg:px-16 pb-10'}`}>
                 {!blackMode && (
