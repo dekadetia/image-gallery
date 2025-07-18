@@ -130,7 +130,6 @@ export default function FadeGallery() {
 
     const toggleBlackMode = async () => {
         if (!blackMode) {
-            // Enter blackmode
             document.body.style.backgroundColor = '#000000';
             if (document.documentElement.requestFullscreen) {
                 try {
@@ -141,7 +140,6 @@ export default function FadeGallery() {
             }
             console.log('🟢 Entering blackMode');
         } else {
-            // Exit blackmode
             document.body.style.backgroundColor = '';
             if (document.exitFullscreen) {
                 try {
@@ -188,7 +186,7 @@ export default function FadeGallery() {
             <motion.button
                 onClick={toggleBlackMode}
                 initial={{ opacity: 0.2 }}
-                animate={{ opacity: showControls ? 1 : 0 }}
+                animate={{ opacity: blackMode && showControls ? 1 : blackMode ? 0 : 0.2 }}
                 whileHover={{ opacity: 1 }}
                 transition={{ duration: 2 }}
                 className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
