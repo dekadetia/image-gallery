@@ -291,7 +291,18 @@ function FadeSlot({ image }) {
             setCurrentImage(image);
         };
     }, [image?.id]);
+// 🩹 MutationObserver to remove title="Close"
+useEffect(() => {
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+            btn.removeAttribute('title');
+        });
+    });
 
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+}, []);
     return (
         <div className='relative w-full h-full'>
             {previousImage && (
