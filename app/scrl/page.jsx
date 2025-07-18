@@ -225,18 +225,35 @@ export default function Scrl() {
 
   return (
     <RootLayout>
-      {/* 🌙 Moon / X Toggle */}
-      <motion.button
-        onClick={toggleAutosMode}
-        initial={{ opacity: 0.2 }}
-        animate={{ opacity: showControls ? 1 : 0 }}
-        whileHover={{ opacity: 1 }}
-        transition={{ duration: 2 }}
-        className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
-        aria-label={autosMode ? "Exit AutosMode" : "Enter AutosMode"}
-      >
-        {autosMode ? <RxCross1 /> : <IoMoonOutline />}
-      </motion.button>
+      {/* 🌙 Moon */}
+      {!autosMode && (
+        <motion.button
+          onClick={toggleAutosMode}
+          initial={{ opacity: 0.2 }}
+          animate={{ opacity: 0.2 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 2 }}
+          className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
+          aria-label="Enter AutosMode"
+        >
+          <IoMoonOutline />
+        </motion.button>
+      )}
+
+      {/* ❌ X */}
+      {autosMode && (
+        <motion.button
+          onClick={toggleAutosMode}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: showControls ? 1 : 0 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 2 }}
+          className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
+          aria-label="Exit AutosMode"
+        >
+          <RxCross1 />
+        </motion.button>
+      )}
 
       {!autosMode && (
         <div className="w-full flex justify-center items-center py-9">
