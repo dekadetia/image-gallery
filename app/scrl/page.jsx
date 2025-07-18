@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion'; // ✅ Added missing import
+import { motion } from 'framer-motion';
 import Lightbox from 'yet-another-react-lightbox';
 import Link from 'next/link';
 import { IoMdShuffle } from 'react-icons/io';
@@ -26,7 +26,7 @@ export default function Scrl() {
   const [loader, __loader] = useState(true);
   const [autosMode, setAutosMode] = useState(false);
   const [hideCursor, setHideCursor] = useState(false);
-  const [showControls, setShowControls] = useState(false); // 🆕 For Moon/X fade
+  const [showControls, setShowControls] = useState(false);
   const scrollRef = useRef(null);
   const cursorTimerRef = useRef(null);
   const activityTimerRef = useRef(null);
@@ -131,7 +131,6 @@ export default function Scrl() {
     return () => cancelAnimationFrame(scrollRef.current);
   }, []);
 
-  // 🆕 User activity to show Moon/X
   const handleUserActivity = () => {
     clearTimeout(activityTimerRef.current);
     setShowControls(true);
@@ -151,7 +150,6 @@ export default function Scrl() {
     };
   }, []);
 
-  // AutosMode fullscreen + cursor hide
   useEffect(() => {
     if (autosMode) {
       document.body.classList.add('autosmode');
@@ -231,7 +229,8 @@ export default function Scrl() {
       <motion.button
         onClick={toggleAutosMode}
         initial={{ opacity: 0.2 }}
-        animate={{ opacity: showControls ? 1 : 0.2 }}
+        animate={{ opacity: showControls ? 1 : 0 }}
+        whileHover={{ opacity: 1 }}
         transition={{ duration: 2 }}
         className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
         aria-label={autosMode ? "Exit AutosMode" : "Enter AutosMode"}
