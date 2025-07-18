@@ -188,9 +188,10 @@ export default function FadeGallery() {
             <motion.button
                 onClick={toggleBlackMode}
                 initial={{ opacity: 0.2 }}
-                animate={{ opacity: showControls ? 1 : 0.2 }}
+                animate={{ opacity: showControls ? 1 : 0 }}
+                whileHover={{ opacity: 1 }}
                 transition={{ duration: 2 }}
-                className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white" // 🆕 HIGH z-index
+                className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
                 aria-label={blackMode ? "Exit Blackmode" : "Enter Blackmode"}
             >
                 {blackMode ? <RxCross1 /> : <IoMoonOutline />}
