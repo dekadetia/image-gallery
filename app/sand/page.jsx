@@ -74,6 +74,7 @@ export default function Order() {
 
         const newSlides = images.map(photo => ({
           src: photo.src,
+          type: photo.src.endsWith('.webm') ? 'video' : 'image',
           width: 1080 * 4,
           height: 1620 * 4,
           title: photo.caption,
@@ -146,6 +147,7 @@ export default function Order() {
 
         const newSlides = images.map(photo => ({
           src: photo.src,
+          type: photo.src.endsWith('.webm') ? 'video' : 'image',
           width: 1080 * 4,
           height: 1620 * 4,
           title: photo.caption,
@@ -199,7 +201,6 @@ export default function Order() {
     setSorted(true)
   }, [])
 
-  // 🩹 MutationObserver to remove title="Close"
   useEffect(() => {
     if (!slides.length) return
     const observer = new MutationObserver(() => {
@@ -254,6 +255,7 @@ export default function Order() {
       setImages(fuseResults)
       setSlides(fuseResults.map(photo => ({
         src: photo.src,
+        type: photo.src.endsWith('.webm') ? 'video' : 'image',
         width: 1080 * 4,
         height: 1620 * 4,
         title: photo.caption,
@@ -275,6 +277,7 @@ export default function Order() {
       setImages(data.results)
       setSlides(data.results.map(photo => ({
         src: photo.src,
+        type: photo.src.endsWith('.webm') ? 'video' : 'image',
         width: 1080 * 4,
         height: 1620 * 4,
         title: photo.caption,
@@ -330,19 +333,34 @@ export default function Order() {
               close={() => setIndex(-1)}
               render={{
                 slide: ({ slide, rect }) => {
-                  console.log("✅ render.slide CALLED");
-                  return (
-                    <div
+                  const isWebm = slide.type === 'video'
+                  return isWebm ? (
+                    <video
+                      src={slide.src}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="auto"
+                      className="yarl__slide_image"
                       style={{
-                        color: "red",
-                        fontSize: "2rem",
-                        textAlign: "center",
-                        padding: "2rem",
+                        maxWidth: rect.width,
+                        maxHeight: rect.height,
+                        objectFit: 'contain'
                       }}
-                    >
-                      RENDER.SLIDE
-                    </div>
-                  );
+                    />
+                  ) : (
+                    <img
+                      src={slide.src}
+                      alt={slide.title || ''}
+                      className="yarl__slide_image"
+                      style={{
+                        maxWidth: rect.width,
+                        maxHeight: rect.height,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  )
                 },
                 slideFooter: ({ slide }) => (
                   <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
@@ -360,22 +378,7 @@ export default function Order() {
                       )}
                     </div>
                   </div>
-                ),
-              }}
-              renderSlide={({ slide, rect }) => {
-                console.log("🔵 renderSlide CALLED");
-                return (
-                  <div
-                    style={{
-                      color: "blue",
-                      fontSize: "2rem",
-                      textAlign: "center",
-                      padding: "2rem",
-                    }}
-                  >
-                    RENDERSLIDE
-                  </div>
-                );
+                )
               }}
             />
           )}
