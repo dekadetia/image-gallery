@@ -7,12 +7,14 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [currentIndex, setCurrentIndex] = useState(index)
   const containerRef = useRef(null)
   const metadataRef = useRef(null)
+  const touchStartX = useRef(null)
   const [metadataHeight, setMetadataHeight] = useState(150) // fallback height
 
   useEffect(() => {
     if (open) setCurrentIndex(index)
   }, [index, open])
 
+  // Key navigation
   useEffect(() => {
     if (!open) return
 
@@ -26,12 +28,29 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [open, currentIndex])
 
+  // Update metadata height for layout
   useEffect(() => {
     if (metadataRef.current) {
-      // Measure height without unnecessary padding
       setMetadataHeight(metadataRef.current.offsetHeight)
     }
   }, [currentIndex, slides])
+
+  // Swipe detection
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return
+    const touchEndX = e.changedTouches[0].clientX
+    const deltaX = touchEndX - touchStartX.current
+    const swipeThreshold = 50 // minimum px to trigger swipe
+
+    if (deltaX > swipeThreshold) prevSlide()
+    else if (deltaX < -swipeThreshold) nextSlide()
+
+    touchStartX.current = null
+  }
 
   const nextSlide = () => {
     if (currentIndex < slides.length - 1) {
@@ -60,10 +79,12 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         <motion.div
           ref={containerRef}
           onClick={handleClickOutside}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-hidden"
+          className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-hidden flex items-center justify-center"
         >
           <div className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen">
             <AnimatePresence mode="wait">
