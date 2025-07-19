@@ -158,7 +158,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
                 style={{
                   marginLeft: '-85px',
-                  marginTop: '-8px',
+                  marginTop: '17px', // Restored lost buffer below media
                 }}
               >
                 {currentSlide.title && (
