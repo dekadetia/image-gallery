@@ -6,9 +6,16 @@ import { AnimatePresence, motion } from 'framer-motion'
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [currentIndex, setCurrentIndex] = useState(index)
   const [direction, setDirection] = useState(0) // -1 for left, 1 for right
+  const [shouldScaleUp, setShouldScaleUp] = useState(false)
+  const [isUltraWide, setIsUltraWide] = useState(false)
   const containerRef = useRef(null)
   const metadataRef = useRef(null)
   const mediaRef = useRef(null)
+  const [metadataHeight, setMetadataHeight] = useState(150)
+
+  const containerWidth = typeof window !== 'undefined' ? window.innerWidth * 0.96 : 1200
+  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800
+  const containerAspectRatio = containerWidth / containerHeight
 
   useEffect(() => {
     if (open) setCurrentIndex(index)
@@ -34,6 +41,17 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
     setIndex(newIndex)
   }
 
+  const handleMediaLoad = () => {
+    if (mediaRef.current) {
+      const naturalWidth = mediaRef.current.naturalWidth || mediaRef.current.videoWidth || 0
+      const naturalHeight = mediaRef.current.naturalHeight || mediaRef.current.videoHeight || 0
+      const aspectRatio = naturalWidth / naturalHeight
+
+      setShouldScaleUp(naturalHeight < containerHeight)
+      setIsUltraWide(aspectRatio > containerAspectRatio)
+    }
+  }
+
   const handleClickOutside = (e) => {
     if (e.target === containerRef.current) onClose()
   }
@@ -41,21 +59,33 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const safeIndex = Math.max(0, Math.min(currentIndex, slides.length - 1))
   const currentSlide = slides[safeIndex]
 
+  const commonStyles = shouldScaleUp
+    ? {
+        height: '100%',
+        width: 'auto',
+        maxWidth: '100%',
+        marginBottom: '11px',
+        objectFit: 'contain',
+      }
+    : {
+        maxHeight: 'calc(-140px + 100vh)',
+        width: 'auto',
+        marginBottom: '11px',
+        objectFit: 'contain',
+      }
+
   const variants = {
     enter: (dir) => ({
       x: dir > 0 ? '100%' : '-100%',
       opacity: 0,
-      position: 'absolute',
     }),
     center: {
       x: 0,
       opacity: 1,
-      position: 'relative',
     },
     exit: (dir) => ({
       x: dir < 0 ? '100%' : '-100%',
       opacity: 0,
-      position: 'absolute',
     }),
   }
 
@@ -81,7 +111,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 exit="exit"
                 transition={{
                   x: { type: 'spring', stiffness: 300, damping: 30 },
-                  opacity: { duration: 0.2 }
+                  opacity: { duration: 0.2 },
                 }}
                 drag="x"
                 dragElastic={0.2}
@@ -92,29 +122,32 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                     changeSlide(-1)
                   }
                 }}
-                className="flex flex-col items-center w-full max-w-full"
-                style={{
-                  height: 'calc(-140px + 100vh)',
-                  maxWidth: '96vw',
-                  objectFit: 'contain',
-                  margin: '0 auto',
-                }}
+                className="flex flex-col items-center"
+                style={commonStyles} // 👈 Keeps your sizing logic intact
               >
-                {currentSlide.src.endsWith('.webm') ? (
-                  <video
-                    ref={mediaRef}
-                    src={currentSlide.src}
-                    controls
-                    autoPlay
-                    className="object-contain max-w-full"
-                  />
+                {currentSlide ? (
+                  currentSlide.src.endsWith('.webm') ? (
+                    <video
+                      ref={mediaRef}
+                      src={currentSlide.src}
+                      controls
+                      autoPlay
+                      onLoadedMetadata={handleMediaLoad}
+                      className="object-contain max-w-full"
+                      style={commonStyles}
+                    />
+                  ) : (
+                    <img
+                      ref={mediaRef}
+                      src={currentSlide.src}
+                      alt={currentSlide.title || ''}
+                      onLoad={handleMediaLoad}
+                      className="object-contain max-w-full"
+                      style={commonStyles}
+                    />
+                  )
                 ) : (
-                  <img
-                    ref={mediaRef}
-                    src={currentSlide.src}
-                    alt={currentSlide.title || ''}
-                    className="object-contain max-w-full"
-                  />
+                  <div className="text-white">Loading...</div>
                 )}
               </motion.div>
             </AnimatePresence>
@@ -138,12 +171,14 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                     {currentSlide.title}
                   </div>
                 )}
-                {currentSlide.director && (
-                  <div className="!text-[#99AABB]">{currentSlide.director}</div>
-                )}
-                {currentSlide.description && (
-                  <div>{currentSlide.description}</div>
-                )}
+                <div className="!space-y-0">
+                  {currentSlide.director && (
+                    <div className="!text-[#99AABB]">{currentSlide.director}</div>
+                  )}
+                  {currentSlide.description && (
+                    <div>{currentSlide.description}</div>
+                  )}
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>
