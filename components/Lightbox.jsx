@@ -6,7 +6,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [currentIndex, setCurrentIndex] = useState(index)
   const containerRef = useRef(null)
-  const metadataHeight = 150 // Estimated height for metadata + padding
+  const metadataRef = useRef(null)
+  const [metadataHeight, setMetadataHeight] = useState(150) // fallback height
 
   useEffect(() => {
     if (open) setCurrentIndex(index)
@@ -24,6 +25,12 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [open, currentIndex])
+
+  useEffect(() => {
+    if (metadataRef.current) {
+      setMetadataHeight(metadataRef.current.offsetHeight + 40) // Add some padding
+    }
+  }, [currentIndex, slides])
 
   const nextSlide = () => {
     if (currentIndex < slides.length - 1) {
@@ -55,9 +62,9 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="yarl__container fixed inset-0 z-50 flex justify-center items-center bg-black/90"
+          className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-auto"
         >
-          <div className="yarl__slide relative max-w-[96vw] max-h-[96vh] flex flex-col justify-center items-center">
+          <div className="yarl__slide relative max-w-[96vw] mx-auto pt-8 pb-4">
             <AnimatePresence mode="wait">
               <motion.div
                 key={safeIndex}
@@ -65,7 +72,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.3 }}
-                className="flex flex-col justify-center items-center"
+                className="flex flex-col items-center"
               >
                 {currentSlide ? (
                   currentSlide.src.endsWith('.webm') ? (
@@ -73,58 +80,45 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       src={currentSlide.src}
                       controls
                       autoPlay
-                      className="max-h-[calc(100vh-150px)] max-w-full object-contain"
+                      className="object-contain max-w-full"
+                      style={{ maxHeight: `calc(100vh - ${metadataHeight}px - 4rem)` }}
                     />
                   ) : (
                     <img
                       src={currentSlide.src}
                       alt={currentSlide.title || ''}
-                      className="max-h-[calc(100vh-150px)] max-w-full object-contain"
+                      className="object-contain max-w-full"
+                      style={{ maxHeight: `calc(100vh - ${metadataHeight}px - 4rem)` }}
                     />
                   )
                 ) : (
                   <div className="text-white">Loading...</div>
                 )}
-
-                {/* Metadata */}
-                {currentSlide && (
-                  <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-                    {currentSlide.title && (
-                      <div className="yarl__slide_title">{currentSlide.title}</div>
-                    )}
-                    <div className="!space-y-0">
-                      {currentSlide.director && (
-                        <div className="yarl__slide_description !text-[#99AABB]">
-                          <span className="font-medium">{currentSlide.director}</span>
-                        </div>
-                      )}
-                      {currentSlide.description && (
-                        <div className="yarl__slide_description">
-                          {currentSlide.description}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation Arrows */}
-            {safeIndex > 0 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); prevSlide() }}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-3xl"
+            {/* Metadata anchored below */}
+            {currentSlide && (
+              <div
+                ref={metadataRef}
+                className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content"
               >
-                ‹
-              </button>
-            )}
-            {safeIndex < slides.length - 1 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); nextSlide() }}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-3xl"
-              >
-                ›
-              </button>
+                {currentSlide.title && (
+                  <div className="yarl__slide_title">{currentSlide.title}</div>
+                )}
+                <div className="!space-y-0">
+                  {currentSlide.director && (
+                    <div className="yarl__slide_description !text-[#99AABB]">
+                      <span className="font-medium">{currentSlide.director}</span>
+                    </div>
+                  )}
+                  {currentSlide.description && (
+                    <div className="yarl__slide_description">
+                      {currentSlide.description}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </motion.div>
