@@ -75,6 +75,50 @@ export default function Order() {
   const [loader, __loader] = useState(true)
   const [sort_loader, __sort_loader] = useState(true)
 
+    // 🩹 Monkey-patch Lightbox here
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Lightbox.defaultProps) {
+      if (!Lightbox.defaultProps._patchedForWebm) {
+        console.log("⚡ Applying monkey-patch for Lightbox")
+        Lightbox.defaultProps.renderSlide = ({ slide, rect }) => {
+          console.log("🔥 Monkey-patched renderSlide CALLED for", slide.src)
+          const isWebm = slide.src.endsWith('.webm')
+          return isWebm ? (
+            <video
+              src={slide.src}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              className="yarl__slide_image"
+              style={{
+                maxWidth: rect.width,
+                maxHeight: rect.height,
+                objectFit: 'contain',
+                display: 'block',
+                margin: '0 auto',
+                backgroundColor: 'black'
+              }}
+            />
+          ) : (
+            <img
+              src={slide.src}
+              alt={slide.title || ''}
+              className="yarl__slide_image"
+              style={{
+                maxWidth: rect.width,
+                maxHeight: rect.height,
+                objectFit: 'contain'
+              }}
+            />
+          )
+        }
+        Lightbox.defaultProps._patchedForWebm = true
+      }
+    }
+  }, [])
+  
   const [order_key, __order_key] = useState(null)
   const [order_value, __order_value] = useState(null)
   const [order_key_2, __order_key_2] = useState(null)
