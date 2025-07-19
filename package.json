@@ -37,7 +37,6 @@
     "tailwind-merge": "^3.3.0",
     "tinify": "^1.7.1",
     "yet-another-react-lightbox": "^3.24.0",
-    "yet-another-react-lightbox/plugins/video": "^3.24.0",
     "yup": "^1.4.0",
     "lightgallery": "^2.7.1",
       "howler": "^2.2.4"
