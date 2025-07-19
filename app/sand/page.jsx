@@ -6,7 +6,7 @@ import { RxCross1 } from 'react-icons/rx'
 import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
-import Lightbox from 'yet-another-react-lightbox'
+import Lightbox from '../../components/Lightbox' // 👈 Your handrolled lightbox
 import Footer from '../../components/Footer'
 import Fuse from 'fuse.js'
 import MoreImageLoader from '../../components/MoreImageLoader'
@@ -199,18 +199,6 @@ export default function Order() {
     setSorted(true)
   }, [])
 
-  // 🩹 MutationObserver to remove title="Close"
-  useEffect(() => {
-    if (!slides.length) return
-    const observer = new MutationObserver(() => {
-      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
-        btn.removeAttribute('title')
-      })
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
-  }, [slides])
-
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => {
@@ -388,29 +376,11 @@ export default function Order() {
 
           {slides && (
             <Lightbox
-              index={index}
-              slides={slides}
               open={index >= 0}
-              close={() => setIndex(-1)}
-              render={{
-                slideFooter: ({ slide }) => (
-                  <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-                    {slide.title && (
-                      <div className="yarl__slide_title">{slide.title}</div>
-                    )}
-                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
-                      {slide.director && (
-                        <div className="yarl__slide_description !text-[#99AABB]">
-                          <span className="font-medium">{slide.director}</span>
-                        </div>
-                      )}
-                      {slide.description && (
-                        <div className="yarl__slide_description">{slide.description}</div>
-                      )}
-                    </div>
-                  </div>
-                )
-              }}
+              slides={slides}
+              index={index}
+              onClose={() => setIndex(-1)}
+              setIndex={setIndex}
             />
           )}
         </div>
