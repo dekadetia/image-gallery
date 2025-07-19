@@ -6,12 +6,16 @@ import { AnimatePresence, motion } from 'framer-motion'
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [currentIndex, setCurrentIndex] = useState(index)
   const [shouldScaleUp, setShouldScaleUp] = useState(false)
+  const [isUltraWide, setIsUltraWide] = useState(false)
   const containerRef = useRef(null)
   const metadataRef = useRef(null)
   const mediaRef = useRef(null)
   const touchStartX = useRef(null)
   const [metadataHeight, setMetadataHeight] = useState(150)
-  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800
+
+  const containerWidth = typeof window !== 'undefined' ? window.innerWidth * 0.96 : 1200 // 96vw fallback
+  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800 // fallback for SSR
+  const containerAspectRatio = containerWidth / containerHeight
 
   useEffect(() => {
     if (open) setCurrentIndex(index)
@@ -38,9 +42,12 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
 
   const handleMediaLoad = () => {
     if (mediaRef.current) {
-      const naturalHeight =
-        mediaRef.current.naturalHeight || mediaRef.current.videoHeight || 0
+      const naturalWidth = mediaRef.current.naturalWidth || mediaRef.current.videoWidth || 0
+      const naturalHeight = mediaRef.current.naturalHeight || mediaRef.current.videoHeight || 0
+      const aspectRatio = naturalWidth / naturalHeight
+
       setShouldScaleUp(naturalHeight < containerHeight)
+      setIsUltraWide(aspectRatio > containerAspectRatio)
     }
   }
 
@@ -119,7 +126,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.3 }}
-                className="flex flex-col items-center"
+                className={`flex flex-col ${isUltraWide ? 'justify-center' : 'items-center'}`}
                 style={{
                   height: 'calc(-140px + 100vh)',
                 }}
@@ -158,7 +165,6 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
                 style={{
                   marginLeft: '-85px',
-                  // No marginTop here
                 }}
               >
                 {currentSlide.title && (
