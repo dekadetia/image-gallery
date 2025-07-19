@@ -95,6 +95,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.3 }}
                 className="flex flex-col items-center"
+                style={{ marginTop: '-11px' }} // Image shifted up 11px
               >
                 {currentSlide ? (
                   currentSlide.src.endsWith('.webm') ? (
@@ -129,8 +130,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 ref={metadataRef}
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
                 style={{
-                  marginLeft: '-75px', // deep nudge left
-                  marginTop: '-8px',   // slight vertical shift up
+                  marginLeft: '-85px', // metadata shifted left
+                  marginTop: '-8px',   // metadata nudged up
                 }}
               >
                 {currentSlide.title && (
