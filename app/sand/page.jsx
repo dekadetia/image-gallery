@@ -7,6 +7,7 @@ import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
+console.log("🔥 Using YARL version:", Lightbox.version || "unknown");
 import Video from 'yet-another-react-lightbox/plugins/video'
 import Footer from '../../components/Footer'
 import Fuse from 'fuse.js'
