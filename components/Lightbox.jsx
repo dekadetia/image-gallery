@@ -104,7 +104,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       autoPlay
                       className="object-contain max-w-full"
                       style={{
-                        maxHeight: 'calc(-136px + 100vh)',
+                        maxHeight: 'calc(-140px + 100vh)',
                       }}
                     />
                   ) : (
@@ -113,7 +113,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       alt={currentSlide.title || ''}
                       className="object-contain max-w-full"
                       style={{
-                        maxHeight: 'calc(-136px + 100vh)',
+                        maxHeight: 'calc(-140px + 100vh)',
                       }}
                     />
                   )
@@ -129,8 +129,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 ref={metadataRef}
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
                 style={{
-                  marginLeft: '-40px', // move all metadata left 40px
-                  marginTop: '-5px',   // move metadata up 5px
+                  marginLeft: '-45px', // shifted 5px more left
+                  marginTop: '-8px',   // shifted 3px more up
                 }}
               >
                 {currentSlide.title && (
