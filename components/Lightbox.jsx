@@ -107,7 +107,11 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       className="object-contain max-w-full"
                       style={{
                         maxHeight: 'calc(-140px + 100vh)',
-                        marginBottom: '11px', // Adjusted from 15px to 11px
+                        width: 'auto',
+                        height: '100%', // Force scale-up vertically
+                        maxWidth: '100%',
+                        marginBottom: '11px', // Keep buffer below image
+                        objectFit: 'contain', // Preserve aspect ratio, no cropping
                       }}
                     />
                   ) : (
@@ -117,7 +121,11 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       className="object-contain max-w-full"
                       style={{
                         maxHeight: 'calc(-140px + 100vh)',
-                        marginBottom: '11px', // Adjusted from 15px to 11px
+                        width: 'auto',
+                        height: '100%', // Force scale-up vertically
+                        maxWidth: '100%',
+                        marginBottom: '11px', // Keep buffer below image
+                        objectFit: 'contain', // Preserve aspect ratio, no cropping
                       }}
                     />
                   )
