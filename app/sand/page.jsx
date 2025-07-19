@@ -20,7 +20,7 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-// 🩹 Monkey-patch YARL renderSlide
+// 🩹 Monkey-patch YARL renderSlide for .webm support
 if (!Lightbox.defaultProps._patchedForWebm) {
   Lightbox.defaultProps.renderSlide = ({ slide, rect }) => {
     console.log("🔥 Monkey-patched renderSlide CALLED for", slide.src)
@@ -332,7 +332,71 @@ export default function Order() {
 
   return (
     <RootLayout>
-      {/* Your existing layout, grid, InfiniteScroll, Footer */}
+      {/* Navigation */}
+      <div className="w-full flex justify-center items-center pt-9 pb-[1.69rem]">
+        <div className="w-full grid place-items-center space-y-6">
+          <Link href={'/'}>
+            <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
+          </Link>
+        </div>
+      </div>
+
+      {!loader ? (
+        <div className="px-4 lg:px-16 pb-10 relative top-[.5px]">
+          <InfiniteScroll
+            className='mt-[-2px]'
+            dataLength={Images.length}
+            next={loadMoreByCondition}
+            hasMore={hasMore}
+            loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
+          >
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
+              {Images.map((photo, i) => (
+                <div key={i}>
+                  <img
+                    alt={photo.name}
+                    src={photo.src}
+                    onClick={() => setIndex(i)}
+                    className="aspect-[16/9] object-cover cursor-zoom-in"
+                  />
+                </div>
+              ))}
+            </div>
+          </InfiniteScroll>
+
+          {slides && (
+            <Lightbox
+              index={index}
+              slides={slides}
+              open={index >= 0}
+              close={() => setIndex(-1)}
+              render={{
+                slideFooter: ({ slide }) => (
+                  <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                    {slide.title && (
+                      <div className="yarl__slide_title">{slide.title}</div>
+                    )}
+                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                      {slide.director && (
+                        <div className="yarl__slide_description !text-[#99AABB]">
+                          <span className="font-medium">{slide.director}</span>
+                        </div>
+                      )}
+                      {slide.description && (
+                        <div className="yarl__slide_description">{slide.description}</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }}
+            />
+          )}
+        </div>
+      ) : (
+        <Loader />
+      )}
+
+      {!loader && <Footer />}
     </RootLayout>
   )
 }
