@@ -57,24 +57,43 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const variants = {
     enter: (dir) => ({
       x: dir > 0 ? 300 : -300,
-      opacity: 0
+      opacity: 0,
+      scale: 0.95
     }),
     center: {
       zIndex: 1,
       x: 0,
-      opacity: 1
+      opacity: 1,
+      scale: 1
     },
     exit: (dir) => ({
       zIndex: 0,
       x: dir < 0 ? 300 : -300,
-      opacity: 0
+      opacity: 0,
+      scale: 0.95
     })
   };
 
-  const mediaStyles = {
-    maxWidth: '96vw',
-    maxHeight: `calc(100vh - ${metaHeight}px - 60px)`, // subtract metadata + margins
-    objectFit: 'contain'
+  const getMediaStyle = (naturalWidth, naturalHeight) => {
+    if (!window) return {}; // SSR guard
+    const viewportWidth = window.innerWidth * 0.96; // minus margins
+    const viewportHeight = window.innerHeight - metaHeight - 60; // minus metadata + margins
+    const viewportRatio = viewportWidth / viewportHeight;
+    const mediaRatio = naturalWidth / naturalHeight;
+
+    if (mediaRatio > viewportRatio) {
+      // Wider than viewport
+      return {
+        width: `${viewportWidth}px`,
+        height: 'auto'
+      };
+    } else {
+      // Taller than viewport
+      return {
+        width: 'auto',
+        height: `${viewportHeight}px`
+      };
+    }
   };
 
   return (
@@ -92,7 +111,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         <div className="flex justify-center items-center flex-1">
           <AnimatePresence initial={false} custom={direction}>
             <motion.div
-              key={slide.src} // 👈 KEYED FOR TRANSITIONS
+              key={slide.src}
               custom={direction}
               variants={variants}
               initial="enter"
@@ -100,7 +119,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
               exit="exit"
               transition={{
                 x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 }
+                opacity: { duration: 0.2 },
+                scale: { duration: 0.3 }
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -111,15 +131,27 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                   autoPlay
                   loop
                   muted
-                  style={mediaStyles}
                   className="yarl__slide_image"
+                  style={{ objectFit: 'contain', ...getMediaStyle(1920, 1080) }} // fallback size
+                  onLoadedMetadata={(e) =>
+                    Object.assign(
+                      e.target.style,
+                      getMediaStyle(e.target.videoWidth, e.target.videoHeight)
+                    )
+                  }
                 />
               ) : (
                 <img
                   src={slide.src}
                   alt={slide.title || ""}
-                  style={mediaStyles}
                   className="yarl__slide_image"
+                  style={{ objectFit: 'contain', ...getMediaStyle(1920, 1080) }}
+                  onLoad={(e) =>
+                    Object.assign(
+                      e.target.style,
+                      getMediaStyle(e.target.naturalWidth, e.target.naturalHeight)
+                    )
+                  }
                 />
               )}
             </motion.div>
