@@ -111,9 +111,6 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         >
           <div
             className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen"
-            style={{
-              minHeight: 'calc(-140px + 100vh)', // Force full vertical space
-            }}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -123,6 +120,9 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.3 }}
                 className="flex flex-col items-center"
+                style={{
+                  height: 'calc(-140px + 100vh)', // Hard height lock for scaling
+                }}
               >
                 {currentSlide ? (
                   currentSlide.src.endsWith('.webm') ? (
