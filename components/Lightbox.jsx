@@ -28,7 +28,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
 
   useEffect(() => {
     if (metadataRef.current) {
-      setMetadataHeight(metadataRef.current.offsetHeight + 40) // Add some padding
+      // Measure height without unnecessary padding
+      setMetadataHeight(metadataRef.current.offsetHeight)
     }
   }, [currentIndex, slides])
 
@@ -62,9 +63,9 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-auto"
+          className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-hidden"
         >
-          <div className="yarl__slide relative max-w-[96vw] mx-auto pt-8 pb-4">
+          <div className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen">
             <AnimatePresence mode="wait">
               <motion.div
                 key={safeIndex}
@@ -81,14 +82,18 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       controls
                       autoPlay
                       className="object-contain max-w-full"
-                      style={{ maxHeight: `calc(100vh - ${metadataHeight}px - 4rem)` }}
+                      style={{
+                        maxHeight: `calc(100vh - ${metadataHeight}px)`,
+                      }}
                     />
                   ) : (
                     <img
                       src={currentSlide.src}
                       alt={currentSlide.title || ''}
                       className="object-contain max-w-full"
-                      style={{ maxHeight: `calc(100vh - ${metadataHeight}px - 4rem)` }}
+                      style={{
+                        maxHeight: `calc(100vh - ${metadataHeight}px)`,
+                      }}
                     />
                   )
                 ) : (
@@ -97,14 +102,16 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
               </motion.div>
             </AnimatePresence>
 
-            {/* Metadata anchored below */}
+            {/* Metadata */}
             {currentSlide && (
               <div
                 ref={metadataRef}
-                className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content"
+                className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
               >
                 {currentSlide.title && (
-                  <div className="yarl__slide_title">{currentSlide.title}</div>
+                  <div className="yarl__slide_title text-lg font-bold">
+                    {currentSlide.title}
+                  </div>
                 )}
                 <div className="!space-y-0">
                   {currentSlide.director && (
