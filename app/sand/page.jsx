@@ -73,14 +73,15 @@ export default function Order() {
           return [...prevImages, ...uniqueImages]
         })
 
-        const newSlides = images.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director
-        }))
+const newSlides = images.map(photo => ({
+  src: photo.src,
+  type: photo.src.endsWith('.webm') ? 'video' : 'image',
+  width: 1080 * 4,
+  height: 1620 * 4,
+  title: photo.caption,
+  description: photo.dimensions,
+  director: photo.director
+}))
 
         setSlides(prevSlides => {
           const existingSrcs = new Set(prevSlides.map(slide => slide.src))
