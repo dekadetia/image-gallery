@@ -77,7 +77,7 @@ export default function Order() {
 const newSlides = images.map(photo => {
   if (photo.src.endsWith('.webm')) {
     return {
-      type: 'video',
+      type: 'video', // 🟢 Crucial for YARL to hand it off to the Video plugin
       width: 1080 * 4,
       height: 1620 * 4,
       title: photo.caption,
@@ -89,7 +89,7 @@ const newSlides = images.map(photo => {
           type: 'video/webm'
         }
       ],
-      poster: '' // optional placeholder image if you want
+      poster: '' // Optional placeholder image
     }
   } else {
     return {
@@ -103,6 +103,7 @@ const newSlides = images.map(photo => {
     }
   }
 })
+
 
 
         setSlides(prevSlides => {
