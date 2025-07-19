@@ -129,8 +129,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 ref={metadataRef}
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
                 style={{
-                  marginLeft: '-45px', // shifted 5px more left
-                  marginTop: '-8px',   // shifted 3px more up
+                  marginLeft: '-75px', // deep nudge left
+                  marginTop: '-8px',   // slight vertical shift up
                 }}
               >
                 {currentSlide.title && (
