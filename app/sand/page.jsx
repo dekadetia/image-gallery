@@ -433,7 +433,7 @@ export default function Order() {
     slide: ({ slide, rect }) => {
       const isWebm = slide.src.endsWith('.webm')
       if (isWebm) {
-        console.log("🔥 FORCED render.slide CALLED for", slide.src)
+        console.log("🔥 render.slide CALLED for", slide.src)
         return (
           <video
             src={slide.src}
