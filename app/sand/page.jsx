@@ -1,387 +1,125 @@
 'use client'
 
-import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
-import { RxCross1 } from 'react-icons/rx'
-import { BsSortAlphaDown } from 'react-icons/bs'
-import { TbClockDown, TbClockUp } from 'react-icons/tb'
-import { FaMagnifyingGlass } from 'react-icons/fa6'
-import Lightbox from '../../components/Lightbox' // ✅ Handrolled version
-import Footer from '../../components/Footer'
-import Fuse from 'fuse.js'
-import MoreImageLoader from '../../components/MoreImageLoader'
-import RootLayout from '../layout'
-import InfiniteScroll from 'react-infinite-scroll-component'
-import Loader from '../../components/loader/loader'
-import { clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 
-export function cn(...inputs) {
-  return twMerge(clsx(inputs))
-}
-
-export default function Sand() {
-  const searchInputRef = useRef(null)
-  const [isSorted, setSorted] = useState(false)
-  const [index, setIndex] = useState(-1)
-  const [slides, setSlides] = useState([])
-  const [Images, setImages] = useState([])
-  const [FullImages, setFullImages] = useState([])
-  const wasCalled = useRef(false)
-  const [nextPageToken, setNextPageToken] = useState(null)
-  const [hasMore, setHasMore] = useState(true)
-  const [loader, __loader] = useState(true)
-  const [sort_loader, __sort_loader] = useState(true)
-
-  const [order_key, __order_key] = useState(null)
-  const [order_value, __order_value] = useState(null)
-  const [order_key_2, __order_key_2] = useState(null)
-  const [order_value_2, __order_value_2] = useState(null)
-
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const debounceRef = useRef(null)
-
-  const getImages = async (token) => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_by_key: 'alphaname',
-          order_by_value: 'asc',
-          size_limit: 99,
-          lastVisibleDocId: token
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const images = data.images
-
-        if (images.length === 0) {
-          setHasMore(false)
-          return
-        }
-
-        setNextPageToken(data.nextPageToken)
-
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id))
-          const uniqueImages = images.filter(img => !existingIds.has(img.id))
-          return [...prevImages, ...uniqueImages]
-        })
-
-        const newSlides = images.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director
-        }))
-
-        setSlides(prevSlides => {
-          const existingSrcs = new Set(prevSlides.map(slide => slide.src))
-          const uniqueSlides = newSlides.filter(slide => !existingSrcs.has(slide.src))
-          return [...prevSlides, ...uniqueSlides]
-        })
-      }
-    } catch (error) {
-      console.error('Error fetching files:', error)
-    }
-    __loader(false)
-  }
-
-  const getAllImagesNoLimit = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images-no-limit`)
-      const data = await res.json()
-      if (data.success) {
-        setFullImages(data.images)
-      }
-    } catch (error) {
-      console.error('Error preloading all images:', error)
-    }
-  }
-
-  const sortImages = async (order_key, order_value, order_key_2, order_value_2, size, token) => {
-    try {
-      __order_key(order_key)
-      __order_value(order_value)
-      __order_key_2(order_key_2)
-      __order_value_2(order_value_2)
-      __sort_loader(true)
-      setSorted(!isSorted)
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_by_key: order_key,
-          order_by_value: order_value,
-          order_by_key_2: order_key_2,
-          order_by_value_2: order_value_2,
-          size_limit: size,
-          lastVisibleDocId: token
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const images = data.images
-
-        if (images.length === 0) {
-          setHasMore(false)
-          return
-        }
-
-        setNextPageToken(data.nextPageToken)
-
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id))
-          const uniqueImages = images.filter(img => !existingIds.has(img.id))
-          return [...prevImages, ...uniqueImages]
-        })
-
-        const newSlides = images.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director
-        }))
-
-        setSlides(prevSlides => {
-          const existingSrcs = new Set(prevSlides.map(slide => slide.src))
-          const uniqueSlides = newSlides.filter(slide => !existingSrcs.has(slide.src))
-          return [...prevSlides, ...uniqueSlides]
-        })
-      }
-    } catch (error) {
-      console.error('Sort fetch error:', error)
-    } finally {
-      __sort_loader(false)
-      __loader(false)
-    }
-  }
-
-  const clearValues = () =>
-    new Promise(resolve => {
-      setImages([])
-      setNextPageToken(null)
-      setSlides([])
-      setHasMore(true)
-      resolve()
-    })
-
-  const loadMoreByCondition = () => {
-    if (searchQuery.trim()) return;
-    if (order_key === 'alphaname') {
-      sortImages(order_key, order_value, null, null, 99, nextPageToken)
-    } else if (
-      order_key === 'year' &&
-      order_key_2 === 'alphaname'
-    ) {
-      sortImages(order_key, order_value, order_key_2, order_value_2, 99, nextPageToken)
-    } else {
-      getImages(nextPageToken)
-    }
-  }
+export default function Lightbox({ open, slides, index, onClose, setIndex }) {
+  const [currentIndex, setCurrentIndex] = useState(index)
+  const containerRef = useRef(null)
+  const touchStartX = useRef(null)
+  const velocityThreshold = 500 // px/sec
+  const swipeConfidenceThreshold = 0.3 // fraction of screen width
 
   useEffect(() => {
-    if (wasCalled.current) return
-    wasCalled.current = true
-    __loader(true)
-    getAllImagesNoLimit()
-    getImages(nextPageToken)
-    setSorted(true)
-  }, [])
+    if (open) setCurrentIndex(index)
+  }, [index, open])
 
   useEffect(() => {
-    if (searchOpen && searchInputRef.current) {
-      setTimeout(() => {
-        searchInputRef.current.focus();
-      }, 0);
+    if (!open) return
+
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight') nextSlide()
+      if (e.key === 'ArrowLeft') prevSlide()
     }
-  }, [searchOpen]);
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [open, currentIndex])
 
-    debounceRef.current = setTimeout(async () => {
-      const rawQuery = searchQuery.trim().toLowerCase()
-      if (!rawQuery) {
-        clearValues().then(() => getImages(null))
-        return
-      }
-
-      const fuse = new Fuse(FullImages, {
-        keys: [
-          { name: 'caption', weight: 0.7 },
-          { name: 'alphaname', weight: 0.2 },
-          { name: 'director', weight: 0.1 }
-        ],
-        threshold: 0.3,
-        distance: 100,
-        includeScore: true
-      });
-      const fuseResults = fuse.search(rawQuery).map(r => r.item)
-
-      if (fuseResults.length < 5) {
-        fetchBackendSearch(rawQuery);
-        return;
-      }
-
-      setImages(fuseResults)
-      setSlides(fuseResults.map(photo => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-        director: photo.director
-      })))
-    }, 300)
-  }, [searchQuery])
-
-  async function fetchBackendSearch(queryText) {
-    try {
-      __loader(true)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queryText })
-      })
-      const data = await res.json()
-      setImages(data.results)
-      setSlides(data.results.map(photo => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-        director: photo.director
-      })))
-    } catch (err) {
-      console.error('Backend search failed:', err)
-    } finally {
-      __loader(false)
+  const nextSlide = () => {
+    if (currentIndex < slides.length - 1) {
+      setCurrentIndex(currentIndex + 1)
+      setIndex(currentIndex + 1)
     }
   }
+
+  const prevSlide = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1)
+      setIndex(currentIndex - 1)
+    }
+  }
+
+  const handleDragEnd = (event, info) => {
+    const offset = info.offset.x
+    const velocity = info.velocity.x
+    const width = window.innerWidth
+
+    if (offset < -width * swipeConfidenceThreshold || velocity < -velocityThreshold) {
+      nextSlide()
+    } else if (offset > width * swipeConfidenceThreshold || velocity > velocityThreshold) {
+      prevSlide()
+    }
+  }
+
+  const safeIndex = Math.max(0, Math.min(currentIndex, slides.length - 1))
 
   return (
-    <RootLayout>
-      {/* Nav + Logo restored */}
-      <div className="w-full flex justify-center items-center pt-9 pb-[1.69rem]">
-        <div className="w-full grid place-items-center space-y-6">
-          <Link href={'/'}>
-            <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
-          </Link>
-          <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
-            {searchOpen ? (
-              <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
-                <div className="relative w-full">
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder=""
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        searchInputRef.current.blur()
-                        setSearchOpen(false)
-                        setSearchQuery('')
-                      }
-                    }}
-                    className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          ref={containerRef}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black/90 overflow-hidden flex justify-center items-center"
+        >
+          <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            onDragEnd={handleDragEnd}
+            animate={{ x: -currentIndex * window.innerWidth }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="flex w-full h-full"
+            style={{ touchAction: 'pan-y' }}
+          >
+            {slides.map((slide, i) => (
+              <div
+                key={i}
+                className="w-screen h-full flex flex-col justify-center items-center flex-shrink-0"
+              >
+                {slide.src.endsWith('.webm') ? (
+                  <video
+                    src={slide.src}
+                    controls
+                    autoPlay
+                    className="object-contain max-w-full max-h-full"
                   />
-                  <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
-                    <RxCross1 className="absolute right-3 top-2.5 text-white" />
+                ) : (
+                  <img
+                    src={slide.src}
+                    alt={slide.title || ''}
+                    className="object-contain max-w-full max-h-full"
+                  />
+                )}
+                <div
+                  className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
+                  style={{ marginLeft: '-85px' }}
+                >
+                  {slide.title && (
+                    <div className="yarl__slide_title text-lg" style={{ fontWeight: 'normal' }}>
+                      {slide.title}
+                    </div>
+                  )}
+                  <div className="!space-y-0">
+                    {slide.director && (
+                      <div className="yarl__slide_description !text-[#99AABB]">
+                        {slide.director}
+                      </div>
+                    )}
+                    {slide.description && (
+                      <div className="yarl__slide_description">
+                        {slide.description}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="flex gap-[2.3rem] items-center -mt-[2px]">
-                <BsSortAlphaDown
-                  className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                  onClick={() => {
-                    clearValues().then(() => {
-                      __loader(true)
-                      sortImages('alphaname', 'asc', null, null, Images.length, null)
-                    })
-                  }}
-                />
-                <div onClick={() => setSearchOpen(true)}>
-                  <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
-                </div>
-                {!isSorted ? (
-                  <TbClockDown
-                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                    onClick={() => {
-                      clearValues().then(() => {
-                        __loader(true)
-                        sortImages('year', 'desc', 'alphaname', 'asc', Images.length, null)
-                      })
-                    }}
-                  />
-                ) : (
-                  <TbClockUp
-                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                    onClick={() => {
-                      clearValues().then(() => {
-                        __loader(true)
-                        sortImages('year', 'asc', 'alphaname', 'asc', Images.length, null)
-                      })
-                    }}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {!loader ? (
-        <div className="px-4 lg:px-16 pb-10 relative top-[.5px]">
-          <InfiniteScroll
-            className='mt-[-2px]'
-            dataLength={Images.length}
-            next={loadMoreByCondition}
-            hasMore={hasMore}
-            loader={
-              !searchQuery.trim() && hasMore ? <MoreImageLoader /> : null
-            }
-          >
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-              {Images.map((photo, i) => (
-                <div key={i}>
-                  <img
-                    alt={photo.name}
-                    src={photo.src}
-                    onClick={() => setIndex(i)}
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                  />
-                </div>
-              ))}
-            </div>
-          </InfiniteScroll>
-
-          <Lightbox
-            open={index >= 0}
-            slides={slides}
-            index={index}
-            onClose={() => setIndex(-1)}
-            setIndex={setIndex}
-          />
-        </div>
-      ) : (
-        <Loader />
+            ))}
+          </motion.div>
+        </motion.div>
       )}
-
-      {!loader && <Footer />}
-    </RootLayout>
+    </AnimatePresence>
   )
 }
