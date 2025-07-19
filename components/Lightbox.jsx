@@ -8,6 +8,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [direction, setDirection] = useState(0);
   const metadataRef = useRef(null);
   const [metaHeight, setMetaHeight] = useState(0);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   const paginate = (newDirection) => {
     setDirection(newDirection);
@@ -69,6 +71,12 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
     })
   };
 
+  const mediaStyles = {
+    maxWidth: '96vw',
+    maxHeight: `calc(100vh - ${metaHeight}px - 60px)`, // subtract metadata + margins
+    objectFit: 'contain'
+  };
+
   return (
     <AnimatePresence initial={false} custom={direction}>
       <motion.div
@@ -81,47 +89,42 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         onTouchEnd={handleTouchEnd}
       >
         {/* Media */}
-        <motion.div
-          key={slide.src} // 👈 KEYED FOR ANIMATION
-          className="flex justify-center items-center flex-1"
-          custom={direction}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            x: { type: "spring", stiffness: 300, damping: 30 },
-            opacity: { duration: 0.2 }
-          }}
-          onClick={(e) => e.stopPropagation()} // prevent close on inner clicks
-        >
-          {slide.src.match(/\.(webm|mp4)$/i) ? (
-            <video
-              src={slide.src}
-              controls
-              autoPlay
-              loop
-              muted
-              style={{
-                maxWidth: '96vw',
-                maxHeight: `calc(100vh - ${metaHeight}px - 60px)`, // subtract metadata + margins
-                objectFit: 'contain'
+        <div className="flex justify-center items-center flex-1">
+          <AnimatePresence initial={false} custom={direction}>
+            <motion.div
+              key={slide.src} // 👈 KEYED FOR TRANSITIONS
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.2 }
               }}
-              className="yarl__slide_image"
-            />
-          ) : (
-            <img
-              src={slide.src}
-              alt={slide.title || ""}
-              style={{
-                maxWidth: '96vw',
-                maxHeight: `calc(100vh - ${metaHeight}px - 60px)`,
-                objectFit: 'contain'
-              }}
-              className="yarl__slide_image"
-            />
-          )}
-        </motion.div>
+              onClick={(e) => e.stopPropagation()}
+            >
+              {slide.src.match(/\.(webm|mp4)$/i) ? (
+                <video
+                  src={slide.src}
+                  controls
+                  autoPlay
+                  loop
+                  muted
+                  style={mediaStyles}
+                  className="yarl__slide_image"
+                />
+              ) : (
+                <img
+                  src={slide.src}
+                  alt={slide.title || ""}
+                  style={mediaStyles}
+                  className="yarl__slide_image"
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
         {/* Metadata */}
         <div
