@@ -1,103 +1,82 @@
 'use client'
 
-import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { RxCross1 } from 'react-icons/rx';
+import { useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { RxCross1 } from 'react-icons/rx'
 
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
-  const [direction, setDirection] = useState(0);
-  const metadataRef = useRef(null);
-  const [metaHeight, setMetaHeight] = useState(0);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  const [direction, setDirection] = useState(0)
+  const [mediaSize, setMediaSize] = useState({ width: 'auto', height: 'auto' })
+  const metadataRef = useRef(null)
+  const [metaHeight, setMetaHeight] = useState(0)
+  const containerRef = useRef(null)
+  const touchStartX = useRef(0)
+  const touchEndX = useRef(0)
 
-  const paginate = (newDirection) => {
-    setDirection(newDirection);
-    setIndex((prev) =>
-      (prev + newDirection + slides.length) % slides.length
-    );
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') onClose();
-    if (e.key === 'ArrowRight') paginate(1);
-    if (e.key === 'ArrowLeft') paginate(-1);
-  };
-
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.changedTouches[0].screenX;
-  };
-
-  const handleTouchEnd = (e) => {
-    touchEndX.current = e.changedTouches[0].screenX;
-    if (touchStartX.current - touchEndX.current > 50) {
-      paginate(1);
-    }
-    if (touchEndX.current - touchStartX.current > 50) {
-      paginate(-1);
-    }
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  const slide = slides[index]
 
   useEffect(() => {
     if (metadataRef.current) {
-      setMetaHeight(metadataRef.current.offsetHeight);
+      setMetaHeight(metadataRef.current.offsetHeight)
     }
-  }, [index]);
+  }, [index])
 
-  if (!open || !slides || index < 0 || index >= slides.length) return null;
+  useEffect(() => {
+    if (!open) return
+    const handleKey = e => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight') setDirection(1) || setIndex((index + 1) % slides.length)
+      if (e.key === 'ArrowLeft') setDirection(-1) || setIndex((index - 1 + slides.length) % slides.length)
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [open, index, slides.length, setIndex, onClose])
 
-  const slide = slides[index];
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.changedTouches[0].screenX
+  }
 
-  const variants = {
-    enter: (dir) => ({
-      x: dir > 0 ? 300 : -300,
-      opacity: 0,
-      scale: 0.95
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1,
-      scale: 1
-    },
-    exit: (dir) => ({
-      zIndex: 0,
-      x: dir < 0 ? 300 : -300,
-      opacity: 0,
-      scale: 0.95
-    })
-  };
+  const handleTouchEnd = (e) => {
+    touchEndX.current = e.changedTouches[0].screenX
+    const dx = touchEndX.current - touchStartX.current
+    if (dx > 50) setDirection(-1) || setIndex((index - 1 + slides.length) % slides.length)
+    if (dx < -50) setDirection(1) || setIndex((index + 1) % slides.length)
+  }
 
-  const getMediaStyle = (naturalWidth, naturalHeight) => {
-    if (!window) return {}; // SSR guard
-    const viewportWidth = window.innerWidth * 0.96; // minus margins
-    const viewportHeight = window.innerHeight - metaHeight - 60; // minus metadata + margins
-    const viewportRatio = viewportWidth / viewportHeight;
-    const mediaRatio = naturalWidth / naturalHeight;
+  const computeDisplaySize = (naturalWidth, naturalHeight) => {
+    const margin = 60
+    const maxWidth = window.innerWidth * 0.96
+    const maxHeight = window.innerHeight - metaHeight - margin
+    const aspect = naturalWidth / naturalHeight
+    const containerAspect = maxWidth / maxHeight
 
-    if (mediaRatio > viewportRatio) {
-      // Wider than viewport
+    if (aspect > containerAspect) {
       return {
-        width: `${viewportWidth}px`,
+        width: `${maxWidth}px`,
         height: 'auto'
-      };
+      }
     } else {
-      // Taller than viewport
       return {
-        width: 'auto',
-        height: `${viewportHeight}px`
-      };
+        height: `${maxHeight}px`,
+        width: 'auto'
+      }
     }
-  };
+  }
+
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target
+    setMediaSize(computeDisplaySize(naturalWidth, naturalHeight))
+  }
+
+  const handleVideoLoad = (e) => {
+    const { videoWidth, videoHeight } = e.target
+    setMediaSize(computeDisplaySize(videoWidth, videoHeight))
+  }
+
+  if (!open || !slide) return null
 
   return (
-    <AnimatePresence initial={false} custom={direction}>
+    <AnimatePresence>
       <motion.div
         className="fixed inset-0 yarl__container flex flex-col justify-between z-50"
         initial={{ opacity: 0 }}
@@ -107,75 +86,39 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Media */}
-        <div className="flex justify-center items-center flex-1">
-          <AnimatePresence initial={false} custom={direction}>
-            <motion.div
-              key={slide.src}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 },
-                scale: { duration: 0.3 }
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {slide.src.match(/\.(webm|mp4)$/i) ? (
-                <video
-                  src={slide.src}
-                  controls
-                  autoPlay
-                  loop
-                  muted
-                  className="yarl__slide_image"
-                  style={{ objectFit: 'contain', ...getMediaStyle(1920, 1080) }} // fallback size
-                  onLoadedMetadata={(e) =>
-                    Object.assign(
-                      e.target.style,
-                      getMediaStyle(e.target.videoWidth, e.target.videoHeight)
-                    )
-                  }
-                />
-              ) : (
-                <img
-                  src={slide.src}
-                  alt={slide.title || ""}
-                  className="yarl__slide_image"
-                  style={{ objectFit: 'contain', ...getMediaStyle(1920, 1080) }}
-                  onLoad={(e) =>
-                    Object.assign(
-                      e.target.style,
-                      getMediaStyle(e.target.naturalWidth, e.target.naturalHeight)
-                    )
-                  }
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+        <div ref={containerRef} className="flex justify-center items-center flex-1" onClick={e => e.stopPropagation()}>
+          {slide.src.match(/\.(webm|mp4)$/i) ? (
+            <video
+              src={slide.src}
+              controls
+              autoPlay
+              muted
+              loop
+              onLoadedMetadata={handleVideoLoad}
+              style={{ ...mediaSize, objectFit: 'contain' }}
+              className="yarl__slide_image"
+            />
+          ) : (
+            <img
+              src={slide.src}
+              alt=""
+              onLoad={handleImageLoad}
+              style={{ ...mediaSize, objectFit: 'contain' }}
+              className="yarl__slide_image"
+            />
+          )}
         </div>
 
-        {/* Metadata */}
         <div
           ref={metadataRef}
           className="yarl-slide-content pb-4"
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
         >
-          {slide.title && (
-            <div className="yarl__slide_title">{slide.title}</div>
-          )}
-          {slide.director && (
-            <div className="yarl__slide_description">{slide.director}</div>
-          )}
-          {slide.description && (
-            <div className="yarl__slide_description">{slide.description}</div>
-          )}
+          {slide.title && <div className="yarl__slide_title">{slide.title}</div>}
+          {slide.director && <div className="yarl__slide_description">{slide.director}</div>}
+          {slide.description && <div className="yarl__slide_description">{slide.description}</div>}
         </div>
 
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-3xl text-white"
@@ -184,5 +127,5 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         </button>
       </motion.div>
     </AnimatePresence>
-  );
+  )
 }
