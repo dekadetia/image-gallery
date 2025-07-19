@@ -393,6 +393,35 @@ export default function Order() {
               open={index >= 0}
               close={() => setIndex(-1)}
               render={{
+                slide: ({ slide, rect }) => {
+                  const isWebm = slide.src.endsWith('.webm')
+                  return isWebm ? (
+                    <video
+                      src={slide.src}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="yarl__slide_image"
+                      style={{
+                        maxWidth: rect.width,
+                        maxHeight: rect.height,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={slide.src}
+                      alt={slide.title || ''}
+                      className="yarl__slide_image"
+                      style={{
+                        maxWidth: rect.width,
+                        maxHeight: rect.height,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  )
+                },
                 slideFooter: ({ slide }) => (
                   <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
                     {slide.title && (
