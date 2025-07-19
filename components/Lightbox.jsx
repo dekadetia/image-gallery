@@ -5,16 +5,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [currentIndex, setCurrentIndex] = useState(index)
-  const [shouldScaleUp, setShouldScaleUp] = useState(false)
-  const [isUltraWide, setIsUltraWide] = useState(false)
+  const [direction, setDirection] = useState(0) // -1 for left, 1 for right
   const containerRef = useRef(null)
   const metadataRef = useRef(null)
   const mediaRef = useRef(null)
-  const [metadataHeight, setMetadataHeight] = useState(150)
-
-  const containerWidth = typeof window !== 'undefined' ? window.innerWidth * 0.96 : 1200
-  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800
-  const containerAspectRatio = containerWidth / containerHeight
 
   useEffect(() => {
     if (open) setCurrentIndex(index)
@@ -25,43 +19,19 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
 
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowRight') nextSlide()
-      if (e.key === 'ArrowLeft') prevSlide()
+      if (e.key === 'ArrowRight') changeSlide(1)
+      if (e.key === 'ArrowLeft') changeSlide(-1)
     }
 
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [open, currentIndex])
 
-  useEffect(() => {
-    if (metadataRef.current) {
-      setMetadataHeight(metadataRef.current.offsetHeight)
-    }
-  }, [currentIndex, slides])
-
-  const handleMediaLoad = () => {
-    if (mediaRef.current) {
-      const naturalWidth = mediaRef.current.naturalWidth || mediaRef.current.videoWidth || 0
-      const naturalHeight = mediaRef.current.naturalHeight || mediaRef.current.videoHeight || 0
-      const aspectRatio = naturalWidth / naturalHeight
-
-      setShouldScaleUp(naturalHeight < containerHeight)
-      setIsUltraWide(aspectRatio > containerAspectRatio)
-    }
-  }
-
-  const nextSlide = () => {
-    if (currentIndex < slides.length - 1) {
-      setCurrentIndex(currentIndex + 1)
-      setIndex(currentIndex + 1)
-    }
-  }
-
-  const prevSlide = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1)
-      setIndex(currentIndex - 1)
-    }
+  const changeSlide = (dir) => {
+    setDirection(dir)
+    const newIndex = (currentIndex + dir + slides.length) % slides.length
+    setCurrentIndex(newIndex)
+    setIndex(newIndex)
   }
 
   const handleClickOutside = (e) => {
@@ -71,23 +41,23 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const safeIndex = Math.max(0, Math.min(currentIndex, slides.length - 1))
   const currentSlide = slides[safeIndex]
 
-  const commonStyles = shouldScaleUp
-    ? {
-        height: '100%',
-        width: 'auto',
-        maxWidth: '100%',
-        marginBottom: '11px',
-        objectFit: 'contain',
-      }
-    : {
-        maxHeight: 'calc(-140px + 100vh)',
-        width: 'auto',
-        marginBottom: '11px',
-        objectFit: 'contain',
-      }
+  const variants = {
+    enter: (dir) => ({
+      x: dir > 0 ? 300 : -300,
+      opacity: 0
+    }),
+    center: {
+      x: 0,
+      opacity: 1
+    },
+    exit: (dir) => ({
+      x: dir < 0 ? 300 : -300,
+      opacity: 0
+    }),
+  }
 
   return (
-    <AnimatePresence>
+    <AnimatePresence custom={direction}>
       {open && (
         <motion.div
           ref={containerRef}
@@ -95,89 +65,81 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-hidden flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/90 overflow-hidden flex items-center justify-center"
         >
-          <div className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen">
-            <AnimatePresence mode="wait">
+          <div className="relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen">
+            <AnimatePresence custom={direction} mode="wait">
               <motion.div
                 key={safeIndex}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{
+                  x: { type: 'spring', stiffness: 300, damping: 30 },
+                  opacity: { duration: 0.2 }
+                }}
                 drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.2}
                 onDragEnd={(e, info) => {
-                  const swipe = info.offset.x
-                  const velocity = info.velocity.x
-
-                  if (swipe < -100 || velocity < -500) {
-                    nextSlide()
-                  } else if (swipe > 100 || velocity > 500) {
-                    prevSlide()
+                  if (info.offset.x < -100 || info.velocity.x < -500) {
+                    changeSlide(1)
+                  } else if (info.offset.x > 100 || info.velocity.x > 500) {
+                    changeSlide(-1)
                   }
                 }}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.3 }}
                 className="flex flex-col items-center"
                 style={{
                   height: 'calc(-140px + 100vh)',
                 }}
               >
-                {currentSlide ? (
-                  currentSlide.src.endsWith('.webm') ? (
-                    <video
-                      ref={mediaRef}
-                      src={currentSlide.src}
-                      controls
-                      autoPlay
-                      onLoadedMetadata={handleMediaLoad}
-                      className="object-contain max-w-full"
-                      style={commonStyles}
-                    />
-                  ) : (
-                    <img
-                      ref={mediaRef}
-                      src={currentSlide.src}
-                      alt={currentSlide.title || ''}
-                      onLoad={handleMediaLoad}
-                      className="object-contain max-w-full"
-                      style={commonStyles}
-                    />
-                  )
+                {currentSlide.src.endsWith('.webm') ? (
+                  <video
+                    ref={mediaRef}
+                    src={currentSlide.src}
+                    controls
+                    autoPlay
+                    className="object-contain max-w-full"
+                  />
                 ) : (
-                  <div className="text-white">Loading...</div>
+                  <img
+                    ref={mediaRef}
+                    src={currentSlide.src}
+                    alt={currentSlide.title || ''}
+                    className="object-contain max-w-full"
+                  />
                 )}
               </motion.div>
             </AnimatePresence>
 
-            {/* Metadata */}
-            {currentSlide && (
-              <div
+            {/* Metadata crossfade */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`meta-${safeIndex}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 ref={metadataRef}
-                className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
+                className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem]"
                 style={{
                   marginLeft: '-85px',
                 }}
               >
                 {currentSlide.title && (
-                  <div className="yarl__slide_title text-lg" style={{ fontWeight: 'normal' }}>
+                  <div className="text-lg" style={{ fontWeight: 'normal' }}>
                     {currentSlide.title}
                   </div>
                 )}
-                <div className="!space-y-0">
-                  {currentSlide.director && (
-                    <div className="yarl__slide_description !text-[#99AABB]">
-                      {currentSlide.director}
-                    </div>
-                  )}
-                  {currentSlide.description && (
-                    <div className="yarl__slide_description">
-                      {currentSlide.description}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                {currentSlide.director && (
+                  <div className="!text-[#99AABB]">{currentSlide.director}</div>
+                )}
+                {currentSlide.description && (
+                  <div>{currentSlide.description}</div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </motion.div>
       )}
