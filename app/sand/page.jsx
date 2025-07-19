@@ -1,5 +1,5 @@
-'use client' 
- 
+'use client'
+
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { RxCross1 } from 'react-icons/rx'
@@ -20,7 +20,7 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-export default function Order() {
+export default function Sand() {
   const searchInputRef = useRef(null)
   const [isSorted, setSorted] = useState(false)
   const [index, setIndex] = useState(-1)
@@ -217,11 +217,6 @@ export default function Order() {
         return
       }
 
-      if (/^\d{4}$/.test(rawQuery) || /^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
-        fetchBackendSearch(rawQuery);
-        return;
-      }
-
       const fuse = new Fuse(FullImages, {
         keys: [
           { name: 'caption', weight: 0.7 },
@@ -278,8 +273,76 @@ export default function Order() {
 
   return (
     <RootLayout>
-      {/* Navigation */}
-      {/* ...existing navigation JSX unchanged... */}
+      {/* Nav + Logo restored */}
+      <div className="w-full flex justify-center items-center pt-9 pb-[1.69rem]">
+        <div className="w-full grid place-items-center space-y-6">
+          <Link href={'/'}>
+            <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
+          </Link>
+          <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
+            {searchOpen ? (
+              <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
+                <div className="relative w-full">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder=""
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        searchInputRef.current.blur()
+                        setSearchOpen(false)
+                        setSearchQuery('')
+                      }
+                    }}
+                    className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
+                  />
+                  <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
+                    <RxCross1 className="absolute right-3 top-2.5 text-white" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-[2.3rem] items-center -mt-[2px]">
+                <BsSortAlphaDown
+                  className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                  onClick={() => {
+                    clearValues().then(() => {
+                      __loader(true)
+                      sortImages('alphaname', 'asc', null, null, Images.length, null)
+                    })
+                  }}
+                />
+                <div onClick={() => setSearchOpen(true)}>
+                  <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+                </div>
+                {!isSorted ? (
+                  <TbClockDown
+                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                    onClick={() => {
+                      clearValues().then(() => {
+                        __loader(true)
+                        sortImages('year', 'desc', 'alphaname', 'asc', Images.length, null)
+                      })
+                    }}
+                  />
+                ) : (
+                  <TbClockUp
+                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                    onClick={() => {
+                      clearValues().then(() => {
+                        __loader(true)
+                        sortImages('year', 'asc', 'alphaname', 'asc', Images.length, null)
+                      })
+                    }}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {!loader ? (
         <div className="px-4 lg:px-16 pb-10 relative top-[.5px]">
@@ -316,7 +379,7 @@ export default function Order() {
         </div>
       ) : (
         <Loader />
-      )} 
+      )}
 
       {!loader && <Footer />}
     </RootLayout>
