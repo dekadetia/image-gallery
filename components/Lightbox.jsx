@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [currentIndex, setCurrentIndex] = useState(index)
   const containerRef = useRef(null)
+  const metadataHeight = 150 // Estimated height for metadata + padding
 
   useEffect(() => {
     if (open) setCurrentIndex(index)
@@ -56,7 +57,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
           exit={{ opacity: 0 }}
           className="yarl__container fixed inset-0 z-50 flex justify-center items-center bg-black/90"
         >
-          <div className="yarl__slide relative max-w-[96vw] max-h-[96vh] flex flex-col items-center">
+          <div className="yarl__slide relative max-w-[96vw] max-h-[96vh] flex flex-col justify-center items-center">
             <AnimatePresence mode="wait">
               <motion.div
                 key={safeIndex}
@@ -64,7 +65,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.3 }}
-                className="flex flex-col items-center"
+                className="flex flex-col justify-center items-center"
               >
                 {currentSlide ? (
                   currentSlide.src.endsWith('.webm') ? (
@@ -72,13 +73,13 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       src={currentSlide.src}
                       controls
                       autoPlay
-                      className="max-h-[80vh] max-w-full object-contain"
+                      className="max-h-[calc(100vh-150px)] max-w-full object-contain"
                     />
                   ) : (
                     <img
                       src={currentSlide.src}
                       alt={currentSlide.title || ''}
-                      className="max-h-[80vh] max-w-full object-contain"
+                      className="max-h-[calc(100vh-150px)] max-w-full object-contain"
                     />
                   )
                 ) : (
