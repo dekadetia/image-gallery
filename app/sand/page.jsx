@@ -21,43 +21,46 @@ export function cn(...inputs) {
 }
 
 // 🩹 Monkey-patch YARL renderSlide for .webm support
-if (!Lightbox.defaultProps._patchedForWebm) {
-  Lightbox.defaultProps.renderSlide = ({ slide, rect }) => {
-    console.log("🔥 Monkey-patched renderSlide CALLED for", slide.src)
-    const isWebm = slide.src.endsWith('.webm')
-    return isWebm ? (
-      <video
-        src={slide.src}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        className="yarl__slide_image"
-        style={{
-          maxWidth: rect.width,
-          maxHeight: rect.height,
-          objectFit: 'contain',
-          display: 'block',
-          margin: '0 auto',
-          backgroundColor: 'black'
-        }}
-      />
-    ) : (
-      <img
-        src={slide.src}
-        alt={slide.title || ''}
-        className="yarl__slide_image"
-        style={{
-          maxWidth: rect.width,
-          maxHeight: rect.height,
-          objectFit: 'contain'
-        }}
-      />
-    )
+if (typeof window !== 'undefined' && Lightbox.defaultProps) {
+  if (!Lightbox.defaultProps._patchedForWebm) {
+    Lightbox.defaultProps.renderSlide = ({ slide, rect }) => {
+      console.log("🔥 Monkey-patched renderSlide CALLED for", slide.src)
+      const isWebm = slide.src.endsWith('.webm')
+      return isWebm ? (
+        <video
+          src={slide.src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          className="yarl__slide_image"
+          style={{
+            maxWidth: rect.width,
+            maxHeight: rect.height,
+            objectFit: 'contain',
+            display: 'block',
+            margin: '0 auto',
+            backgroundColor: 'black'
+          }}
+        />
+      ) : (
+        <img
+          src={slide.src}
+          alt={slide.title || ''}
+          className="yarl__slide_image"
+          style={{
+            maxWidth: rect.width,
+            maxHeight: rect.height,
+            objectFit: 'contain'
+          }}
+        />
+      )
+    }
+    Lightbox.defaultProps._patchedForWebm = true
   }
-  Lightbox.defaultProps._patchedForWebm = true
 }
+
 
 export default function Order() {
   const searchInputRef = useRef(null)
