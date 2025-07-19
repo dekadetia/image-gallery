@@ -316,7 +316,7 @@ export default function Order() {
         </div>
       ) : (
         <Loader />
-      )}
+      )} 
 
       {!loader && <Footer />}
     </RootLayout>
