@@ -6,7 +6,7 @@ import { RxCross1 } from 'react-icons/rx'
 import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
-import Lightbox from '../../components/Lightbox' // 👈 Your handrolled lightbox
+import Lightbox from '../../components/Lightbox' // ✅ Handrolled with smooth transitions
 import Footer from '../../components/Footer'
 import Fuse from 'fuse.js'
 import MoreImageLoader from '../../components/MoreImageLoader'
