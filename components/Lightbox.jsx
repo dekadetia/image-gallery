@@ -5,19 +5,18 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [currentIndex, setCurrentIndex] = useState(index)
-  const [shouldScaleUp, setShouldScaleUp] = useState(false) // New: track if we should scale small images
+  const [shouldScaleUp, setShouldScaleUp] = useState(false)
   const containerRef = useRef(null)
   const metadataRef = useRef(null)
-  const imageRef = useRef(null)
+  const mediaRef = useRef(null)
   const touchStartX = useRef(null)
-  const [metadataHeight, setMetadataHeight] = useState(150) // fallback height
-  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800 // fallback for SSR
+  const [metadataHeight, setMetadataHeight] = useState(150)
+  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800
 
   useEffect(() => {
     if (open) setCurrentIndex(index)
   }, [index, open])
 
-  // Key navigation
   useEffect(() => {
     if (!open) return
 
@@ -31,23 +30,20 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [open, currentIndex])
 
-  // Update metadata height for layout
   useEffect(() => {
     if (metadataRef.current) {
       setMetadataHeight(metadataRef.current.offsetHeight)
     }
   }, [currentIndex, slides])
 
-  // Check if current image is smaller than container height
-  const handleImageLoad = () => {
-    if (imageRef.current) {
-      const naturalHeight = imageRef.current.naturalHeight || imageRef.current.videoHeight
-      const scaleUp = naturalHeight < containerHeight
-      setShouldScaleUp(scaleUp)
+  const handleMediaLoad = () => {
+    if (mediaRef.current) {
+      const naturalHeight =
+        mediaRef.current.naturalHeight || mediaRef.current.videoHeight || 0
+      setShouldScaleUp(naturalHeight < containerHeight)
     }
   }
 
-  // Swipe detection
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX
   }
@@ -56,7 +52,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
     if (touchStartX.current === null) return
     const touchEndX = e.changedTouches[0].clientX
     const deltaX = touchEndX - touchStartX.current
-    const swipeThreshold = 50 // minimum px to trigger swipe
+    const swipeThreshold = 50
 
     if (deltaX > swipeThreshold) prevSlide()
     else if (deltaX < -swipeThreshold) nextSlide()
@@ -87,14 +83,14 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
 
   const commonStyles = shouldScaleUp
     ? {
-        height: '100%',           // Scale up small images
+        height: '100%',
         width: 'auto',
         maxWidth: '100%',
         marginBottom: '11px',
-        objectFit: 'contain',     // Preserve aspect ratio
+        objectFit: 'contain',
       }
     : {
-        maxHeight: 'calc(-140px + 100vh)', // Original styling for large images
+        maxHeight: 'calc(-140px + 100vh)',
         width: 'auto',
         marginBottom: '11px',
         objectFit: 'contain',
@@ -115,6 +111,9 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         >
           <div
             className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen"
+            style={{
+              minHeight: 'calc(-140px + 100vh)', // Force full vertical space
+            }}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -128,20 +127,20 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 {currentSlide ? (
                   currentSlide.src.endsWith('.webm') ? (
                     <video
-                      ref={imageRef}
+                      ref={mediaRef}
                       src={currentSlide.src}
                       controls
                       autoPlay
-                      onLoadedMetadata={handleImageLoad}
+                      onLoadedMetadata={handleMediaLoad}
                       className="object-contain max-w-full"
                       style={commonStyles}
                     />
                   ) : (
                     <img
-                      ref={imageRef}
+                      ref={mediaRef}
                       src={currentSlide.src}
                       alt={currentSlide.title || ''}
-                      onLoad={handleImageLoad}
+                      onLoad={handleMediaLoad}
                       className="object-contain max-w-full"
                       style={commonStyles}
                     />
@@ -158,8 +157,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 ref={metadataRef}
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
                 style={{
-                  marginLeft: '-85px', // metadata shifted left
-                  marginTop: '-8px',   // metadata nudged up
+                  marginLeft: '-85px',
+                  marginTop: '-8px',
                 }}
               >
                 {currentSlide.title && (
