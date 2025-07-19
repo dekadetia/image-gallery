@@ -75,9 +75,12 @@ export default function Order() {
         })
 
 const newSlides = images.map(photo => {
-  if (photo.src.endsWith('.webm')) {
+  console.log("🪵 Processing photo.src:", photo.src)
+
+  if (photo.src.includes('.webm')) { // 🔥 Match anywhere in URL
+    console.log("🎥 Detected as video:", photo.src)
     return {
-      type: 'video', // 🟢 Crucial for YARL to hand it off to the Video plugin
+      type: 'video',
       width: 1080 * 4,
       height: 1620 * 4,
       title: photo.caption,
@@ -92,6 +95,7 @@ const newSlides = images.map(photo => {
       poster: '' // Optional placeholder image
     }
   } else {
+    console.log("🖼️ Detected as image:", photo.src)
     return {
       type: 'image',
       src: photo.src,
@@ -103,6 +107,8 @@ const newSlides = images.map(photo => {
     }
   }
 })
+
+
 
 
 
