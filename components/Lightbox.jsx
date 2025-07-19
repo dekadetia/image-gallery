@@ -5,10 +5,13 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [currentIndex, setCurrentIndex] = useState(index)
+  const [shouldScaleUp, setShouldScaleUp] = useState(false) // New: track if we should scale small images
   const containerRef = useRef(null)
   const metadataRef = useRef(null)
+  const imageRef = useRef(null)
   const touchStartX = useRef(null)
   const [metadataHeight, setMetadataHeight] = useState(150) // fallback height
+  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800 // fallback for SSR
 
   useEffect(() => {
     if (open) setCurrentIndex(index)
@@ -34,6 +37,15 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
       setMetadataHeight(metadataRef.current.offsetHeight)
     }
   }, [currentIndex, slides])
+
+  // Check if current image is smaller than container height
+  const handleImageLoad = () => {
+    if (imageRef.current) {
+      const naturalHeight = imageRef.current.naturalHeight || imageRef.current.videoHeight
+      const scaleUp = naturalHeight < containerHeight
+      setShouldScaleUp(scaleUp)
+    }
+  }
 
   // Swipe detection
   const handleTouchStart = (e) => {
@@ -73,6 +85,21 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const safeIndex = Math.max(0, Math.min(currentIndex, slides.length - 1))
   const currentSlide = slides[safeIndex]
 
+  const commonStyles = shouldScaleUp
+    ? {
+        height: '100%',           // Scale up small images
+        width: 'auto',
+        maxWidth: '100%',
+        marginBottom: '11px',
+        objectFit: 'contain',     // Preserve aspect ratio
+      }
+    : {
+        maxHeight: 'calc(-140px + 100vh)', // Original styling for large images
+        width: 'auto',
+        marginBottom: '11px',
+        objectFit: 'contain',
+      }
+
   return (
     <AnimatePresence>
       {open && (
@@ -88,9 +115,6 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         >
           <div
             className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen"
-            style={{
-              height: 'calc(-140px + 100vh)', // Explicit height for scaling
-            }}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -104,30 +128,22 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 {currentSlide ? (
                   currentSlide.src.endsWith('.webm') ? (
                     <video
+                      ref={imageRef}
                       src={currentSlide.src}
                       controls
                       autoPlay
+                      onLoadedMetadata={handleImageLoad}
                       className="object-contain max-w-full"
-                      style={{
-                        height: '100%',             // Fill parent height
-                        width: 'auto',
-                        maxWidth: '100%',
-                        marginBottom: '11px',
-                        objectFit: 'contain',      // Preserve aspect ratio, no cropping
-                      }}
+                      style={commonStyles}
                     />
                   ) : (
                     <img
+                      ref={imageRef}
                       src={currentSlide.src}
                       alt={currentSlide.title || ''}
+                      onLoad={handleImageLoad}
                       className="object-contain max-w-full"
-                      style={{
-                        height: '100%',             // Fill parent height
-                        width: 'auto',
-                        maxWidth: '100%',
-                        marginBottom: '11px',
-                        objectFit: 'contain',      // Preserve aspect ratio, no cropping
-                      }}
+                      style={commonStyles}
                     />
                   )
                 ) : (
