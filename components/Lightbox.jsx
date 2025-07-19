@@ -107,7 +107,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       className="object-contain max-w-full"
                       style={{
                         maxHeight: 'calc(-140px + 100vh)',
-                        marginBottom: '15px', // Add buffer below image
+                        marginBottom: '11px', // Adjusted from 15px to 11px
                       }}
                     />
                   ) : (
@@ -117,7 +117,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       className="object-contain max-w-full"
                       style={{
                         maxHeight: 'calc(-140px + 100vh)',
-                        marginBottom: '15px', // Add buffer below image
+                        marginBottom: '11px', // Adjusted from 15px to 11px
                       }}
                     />
                   )
