@@ -121,7 +121,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 transition={{ duration: 0.3 }}
                 className="flex flex-col items-center"
                 style={{
-                  height: 'calc(-140px + 100vh)', // Hard height lock for scaling
+                  height: 'calc(-140px + 100vh)',
                 }}
               >
                 {currentSlide ? (
@@ -158,7 +158,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
                 style={{
                   marginLeft: '-85px',
-                  marginTop: '13px', // Fine-tuned gap restoration
+                  // No marginTop here
                 }}
               >
                 {currentSlide.title && (
