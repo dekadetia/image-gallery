@@ -1,7 +1,9 @@
+'use client'
+  
 if (typeof window !== 'undefined') {
   alert("🔥 components/Lightbox.jsx is being used!")
 }
-'use client'
+
 
 import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
