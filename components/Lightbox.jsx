@@ -88,9 +88,6 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         >
           <div
             className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen"
-            style={{
-              paddingBottom: '11px', // Keeps previous parent adjustment
-            }}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -109,7 +106,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       autoPlay
                       className="object-contain max-w-full"
                       style={{
-                        maxHeight: 'calc(-155px + 100vh)', // Shrunk by 15px
+                        maxHeight: 'calc(-140px + 100vh)',
+                        marginBottom: '15px', // Add buffer below image
                       }}
                     />
                   ) : (
@@ -118,7 +116,8 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       alt={currentSlide.title || ''}
                       className="object-contain max-w-full"
                       style={{
-                        maxHeight: 'calc(-155px + 100vh)', // Shrunk by 15px
+                        maxHeight: 'calc(-140px + 100vh)',
+                        marginBottom: '15px', // Add buffer below image
                       }}
                     />
                   )
