@@ -6,8 +6,8 @@ import { RxCross1 } from 'react-icons/rx';
 
 export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const [direction, setDirection] = useState(0);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  const metadataRef = useRef(null);
+  const [metaHeight, setMetaHeight] = useState(0);
 
   const paginate = (newDirection) => {
     setDirection(newDirection);
@@ -29,10 +29,10 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const handleTouchEnd = (e) => {
     touchEndX.current = e.changedTouches[0].screenX;
     if (touchStartX.current - touchEndX.current > 50) {
-      paginate(1); // swipe left
+      paginate(1);
     }
     if (touchEndX.current - touchStartX.current > 50) {
-      paginate(-1); // swipe right
+      paginate(-1);
     }
   };
 
@@ -41,6 +41,12 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open]);
+
+  useEffect(() => {
+    if (metadataRef.current) {
+      setMetaHeight(metadataRef.current.offsetHeight);
+    }
+  }, [index]);
 
   if (!open || !slides || index < 0 || index >= slides.length) return null;
 
@@ -66,7 +72,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   return (
     <AnimatePresence initial={false} custom={direction}>
       <motion.div
-        className="fixed inset-0 yarl__container flex justify-center items-center z-50"
+        className="fixed inset-0 yarl__container flex flex-col justify-between z-50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -74,8 +80,10 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Media */}
         <motion.div
-          className="yarl__slide relative flex flex-col justify-center items-center"
+          key={slide.src} // 👈 KEYED FOR ANIMATION
+          className="flex justify-center items-center flex-1"
           custom={direction}
           variants={variants}
           initial="enter"
@@ -87,7 +95,6 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
           }}
           onClick={(e) => e.stopPropagation()} // prevent close on inner clicks
         >
-          {/* Media rendering */}
           {slide.src.match(/\.(webm|mp4)$/i) ? (
             <video
               src={slide.src}
@@ -95,37 +102,51 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
               autoPlay
               loop
               muted
-              className="yarl__slide_image max-w-[96vw] max-h-[96vh] object-contain"
+              style={{
+                maxWidth: '96vw',
+                maxHeight: `calc(100vh - ${metaHeight}px - 60px)`, // subtract metadata + margins
+                objectFit: 'contain'
+              }}
+              className="yarl__slide_image"
             />
           ) : (
             <img
               src={slide.src}
               alt={slide.title || ""}
-              className="yarl__slide_image max-w-[96vw] max-h-[96vh] object-contain"
+              style={{
+                maxWidth: '96vw',
+                maxHeight: `calc(100vh - ${metaHeight}px - 60px)`,
+                objectFit: 'contain'
+              }}
+              className="yarl__slide_image"
             />
           )}
-
-          {/* Footer */}
-          <div className="yarl-slide-content">
-            {slide.title && (
-              <div className="yarl__slide_title">{slide.title}</div>
-            )}
-            {slide.director && (
-              <div className="yarl__slide_description">{slide.director}</div>
-            )}
-            {slide.description && (
-              <div className="yarl__slide_description">{slide.description}</div>
-            )}
-          </div>
-
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-3xl text-white"
-          >
-            <RxCross1 />
-          </button>
         </motion.div>
+
+        {/* Metadata */}
+        <div
+          ref={metadataRef}
+          className="yarl-slide-content pb-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {slide.title && (
+            <div className="yarl__slide_title">{slide.title}</div>
+          )}
+          {slide.director && (
+            <div className="yarl__slide_description">{slide.director}</div>
+          )}
+          {slide.description && (
+            <div className="yarl__slide_description">{slide.description}</div>
+          )}
+        </div>
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-3xl text-white"
+        >
+          <RxCross1 />
+        </button>
       </motion.div>
     </AnimatePresence>
   );
