@@ -346,13 +346,52 @@ const newSlides = images.map(photo => {
           </InfiniteScroll>
 
           {slides && (
-          <Lightbox
+         <Lightbox
   index={index}
   slides={slides}
   open={index >= 0}
   close={() => setIndex(-1)}
   plugins={[Video]}
   render={{
+    slide: ({ slide, rect }) => {
+      console.log('🪵 YARL slide object:', slide); // 🔥 Debug full slide object
+
+      if (slide.type === 'video') {
+        console.log('🎥 Detected video slide:', slide);
+        return (
+          <video
+            src={slide.sources?.[0]?.src || slide.src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="yarl__slide_image"
+            style={{
+              maxWidth: rect.width,
+              maxHeight: rect.height,
+              objectFit: 'contain',
+              display: 'block',
+              margin: '0 auto',
+              backgroundColor: 'black'
+            }}
+          />
+        );
+      }
+
+      return (
+        <img
+          src={slide.src}
+          alt={slide.title || ''}
+          className="yarl__slide_image"
+          style={{
+            maxWidth: rect.width,
+            maxHeight: rect.height,
+            objectFit: 'contain'
+          }}
+        />
+      );
+    },
     slideFooter: ({ slide }) => (
       <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
         {slide.title && (
@@ -372,6 +411,7 @@ const newSlides = images.map(photo => {
     )
   }}
 />
+
 
           )}
         </div>
