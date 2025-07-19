@@ -20,43 +20,6 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-// 🧨 Nuclear override here
-if (typeof window !== 'undefined') {
-  const LightboxProto = Object.getPrototypeOf(Lightbox)
-  if (!LightboxProto._patchedForWebm) {
-    console.log("⚡ Overriding YARL internal render function for .webm support")
-    const originalRender = LightboxProto.renderSlide
-    LightboxProto.renderSlide = function (props) {
-      const { slide, rect } = props
-      const isWebm = slide.src.endsWith('.webm')
-      if (isWebm) {
-        console.log("🔥 OVERRIDDEN renderSlide CALLED for", slide.src)
-        return (
-          <video
-            src={slide.src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="yarl__slide_image"
-            style={{
-              maxWidth: rect.width,
-              maxHeight: rect.height,
-              objectFit: 'contain',
-              display: 'block',
-              margin: '0 auto',
-              backgroundColor: 'black'
-            }}
-          />
-        )
-      }
-      return originalRender.call(this, props)
-    }
-    LightboxProto._patchedForWebm = true
-  }
-}
-
 export default function Order() {
   const searchInputRef = useRef(null)
   const [isSorted, setSorted] = useState(false)
@@ -236,7 +199,6 @@ export default function Order() {
     setSorted(true)
   }, [])
 
-  // 🩹 MutationObserver to remove title="Close"
   useEffect(() => {
     if (!slides.length) return
     const observer = new MutationObserver(() => {
@@ -333,68 +295,6 @@ export default function Order() {
           <Link href={'/'}>
             <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
           </Link>
-          <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
-            {searchOpen ? (
-              <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
-                <div className="relative w-full">
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder=""
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        searchInputRef.current.blur()
-                        setSearchOpen(false)
-                        setSearchQuery('')
-                      }
-                    }}
-                    className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
-                  />
-                  <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
-                    <RxCross1 className="absolute right-3 top-2.5 text-white" />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-[2.3rem] items-center -mt-[2px]">
-                <BsSortAlphaDown
-                  className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                  onClick={() => {
-                    clearValues().then(() => {
-                      __loader(true)
-                      sortImages('alphaname', 'asc', null, null, Images.length, null)
-                    })
-                  }}
-                />
-                <div onClick={() => setSearchOpen(true)}>
-                  <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
-                </div>
-                {!isSorted ? (
-                  <TbClockDown
-                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                    onClick={() => {
-                      clearValues().then(() => {
-                        __loader(true)
-                        sortImages('year', 'desc', 'alphaname', 'asc', Images.length, null)
-                      })
-                    }}
-                  />
-                ) : (
-                  <TbClockUp
-                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                    onClick={() => {
-                      clearValues().then(() => {
-                        __loader(true)
-                        sortImages('year', 'asc', 'alphaname', 'asc', Images.length, null)
-                      })
-                    }}
-                  />
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -405,9 +305,7 @@ export default function Order() {
             dataLength={Images.length}
             next={loadMoreByCondition}
             hasMore={hasMore}
-            loader={
-              !searchQuery.trim() && hasMore ? <MoreImageLoader /> : null
-            }
+            loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
@@ -424,69 +322,68 @@ export default function Order() {
           </InfiniteScroll>
 
           {slides && (
-           <Lightbox
-  index={index}
-  slides={slides}
-  open={index >= 0}
-  close={() => setIndex(-1)}
-  render={{
-    slide: ({ slide, rect }) => {
-      const isWebm = slide.src.endsWith('.webm')
-      if (isWebm) {
-        console.log("🔥 render.slide CALLED for", slide.src)
-        return (
-          <video
-            src={slide.src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="yarl__slide_image"
-            style={{
-              maxWidth: rect.width,
-              maxHeight: rect.height,
-              objectFit: 'contain',
-              display: 'block',
-              margin: '0 auto',
-              backgroundColor: 'black'
-            }}
-          />
-        )
-      }
-      return (
-        <img
-          src={slide.src}
-          alt={slide.title || ''}
-          className="yarl__slide_image"
-          style={{
-            maxWidth: rect.width,
-            maxHeight: rect.height,
-            objectFit: 'contain'
-          }}
-        />
-      )
-    },
-    slideFooter: ({ slide }) => (
-      <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-        {slide.title && (
-          <div className="yarl__slide_title">{slide.title}</div>
-        )}
-        <div className={cn("!space-y-0", slide.director && "!mb-5")}>
-          {slide.director && (
-            <div className="yarl__slide_description !text-[#99AABB]">
-              <span className="font-medium">{slide.director}</span>
-            </div>
-          )}
-          {slide.description && (
-            <div className="yarl__slide_description">{slide.description}</div>
-          )}
-        </div>
-      </div>
-    )
-  }}
-/>
-
+            <Lightbox
+              index={index}
+              slides={slides}
+              open={index >= 0}
+              close={() => setIndex(-1)}
+              render={{
+                slide: ({ slide, rect }) => {
+                  const isWebm = slide.src.endsWith('.webm')
+                  if (isWebm) {
+                    console.log("🔥 render.slide CALLED for", slide.src)
+                    return (
+                      <video
+                        src={slide.src}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        preload="auto"
+                        className="yarl__slide_image"
+                        style={{
+                          maxWidth: rect.width,
+                          maxHeight: rect.height,
+                          objectFit: 'contain',
+                          display: 'block',
+                          margin: '0 auto',
+                          backgroundColor: 'black'
+                        }}
+                      />
+                    )
+                  }
+                  return (
+                    <img
+                      src={slide.src}
+                      alt={slide.title || ''}
+                      className="yarl__slide_image"
+                      style={{
+                        maxWidth: rect.width,
+                        maxHeight: rect.height,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  )
+                },
+                slideFooter: ({ slide }) => (
+                  <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                    {slide.title && (
+                      <div className="yarl__slide_title">{slide.title}</div>
+                    )}
+                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                      {slide.director && (
+                        <div className="yarl__slide_description !text-[#99AABB]">
+                          <span className="font-medium">{slide.director}</span>
+                        </div>
+                      )}
+                      {slide.description && (
+                        <div className="yarl__slide_description">{slide.description}</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }}
+            />
           )}
         </div>
       ) : (
