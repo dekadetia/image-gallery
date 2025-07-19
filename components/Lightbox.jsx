@@ -88,6 +88,9 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         >
           <div
             className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen"
+            style={{
+              height: 'calc(-140px + 100vh)', // Explicit height for scaling
+            }}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -106,12 +109,11 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       autoPlay
                       className="object-contain max-w-full"
                       style={{
-                        maxHeight: 'calc(-140px + 100vh)',
+                        height: '100%',             // Fill parent height
                         width: 'auto',
-                        height: '100%', // Force scale-up vertically
                         maxWidth: '100%',
-                        marginBottom: '11px', // Keep buffer below image
-                        objectFit: 'contain', // Preserve aspect ratio, no cropping
+                        marginBottom: '11px',
+                        objectFit: 'contain',      // Preserve aspect ratio, no cropping
                       }}
                     />
                   ) : (
@@ -120,12 +122,11 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       alt={currentSlide.title || ''}
                       className="object-contain max-w-full"
                       style={{
-                        maxHeight: 'calc(-140px + 100vh)',
+                        height: '100%',             // Fill parent height
                         width: 'auto',
-                        height: '100%', // Force scale-up vertically
                         maxWidth: '100%',
-                        marginBottom: '11px', // Keep buffer below image
-                        objectFit: 'contain', // Preserve aspect ratio, no cropping
+                        marginBottom: '11px',
+                        objectFit: 'contain',      // Preserve aspect ratio, no cropping
                       }}
                     />
                   )
