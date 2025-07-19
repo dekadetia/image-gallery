@@ -10,11 +10,10 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
   const containerRef = useRef(null)
   const metadataRef = useRef(null)
   const mediaRef = useRef(null)
-  const touchStartX = useRef(null)
   const [metadataHeight, setMetadataHeight] = useState(150)
 
-  const containerWidth = typeof window !== 'undefined' ? window.innerWidth * 0.96 : 1200 // 96vw fallback
-  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800 // fallback for SSR
+  const containerWidth = typeof window !== 'undefined' ? window.innerWidth * 0.96 : 1200
+  const containerHeight = typeof window !== 'undefined' ? window.innerHeight - 140 : 800
   const containerAspectRatio = containerWidth / containerHeight
 
   useEffect(() => {
@@ -49,22 +48,6 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
       setShouldScaleUp(naturalHeight < containerHeight)
       setIsUltraWide(aspectRatio > containerAspectRatio)
     }
-  }
-
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX
-  }
-
-  const handleTouchEnd = (e) => {
-    if (touchStartX.current === null) return
-    const touchEndX = e.changedTouches[0].clientX
-    const deltaX = touchEndX - touchStartX.current
-    const swipeThreshold = 50
-
-    if (deltaX > swipeThreshold) prevSlide()
-    else if (deltaX < -swipeThreshold) nextSlide()
-
-    touchStartX.current = null
   }
 
   const nextSlide = () => {
@@ -109,19 +92,28 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
         <motion.div
           ref={containerRef}
           onClick={handleClickOutside}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-hidden flex items-center justify-center"
         >
-          <div
-            className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen"
-          >
+          <div className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen">
             <AnimatePresence mode="wait">
               <motion.div
                 key={safeIndex}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(e, info) => {
+                  const swipe = info.offset.x
+                  const velocity = info.velocity.x
+
+                  if (swipe < -100 || velocity < -500) {
+                    nextSlide()
+                  } else if (swipe > 100 || velocity > 500) {
+                    prevSlide()
+                  }
+                }}
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
