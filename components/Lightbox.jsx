@@ -43,21 +43,24 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
 
   const variants = {
     enter: (dir) => ({
-      x: dir > 0 ? 300 : -300,
-      opacity: 0
+      x: dir > 0 ? '100%' : '-100%',
+      opacity: 0,
+      position: 'absolute',
     }),
     center: {
       x: 0,
-      opacity: 1
+      opacity: 1,
+      position: 'relative',
     },
     exit: (dir) => ({
-      x: dir < 0 ? 300 : -300,
-      opacity: 0
+      x: dir < 0 ? '100%' : '-100%',
+      opacity: 0,
+      position: 'absolute',
     }),
   }
 
   return (
-    <AnimatePresence custom={direction}>
+    <AnimatePresence>
       {open && (
         <motion.div
           ref={containerRef}
@@ -65,9 +68,9 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/90 overflow-hidden flex items-center justify-center"
+          className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-hidden flex items-center justify-center"
         >
-          <div className="relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen">
+          <div className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen">
             <AnimatePresence custom={direction} mode="wait">
               <motion.div
                 key={safeIndex}
@@ -89,9 +92,12 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                     changeSlide(-1)
                   }
                 }}
-                className="flex flex-col items-center"
+                className="flex flex-col items-center w-full max-w-full"
                 style={{
                   height: 'calc(-140px + 100vh)',
+                  maxWidth: '96vw',
+                  objectFit: 'contain',
+                  margin: '0 auto',
                 }}
               >
                 {currentSlide.src.endsWith('.webm') ? (
