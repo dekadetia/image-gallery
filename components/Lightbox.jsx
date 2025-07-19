@@ -128,25 +128,17 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
               <div
                 ref={metadataRef}
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
+                style={{ marginLeft: '-30px' }}
               >
                 {currentSlide.title && (
-                  <div
-                    className="yarl__slide_title text-lg"
-                    style={{
-                      marginLeft: '-30px',
-                      fontWeight: 'normal', // remove bold
-                    }}
-                  >
+                  <div className="yarl__slide_title text-lg" style={{ fontWeight: 'normal' }}>
                     {currentSlide.title}
                   </div>
                 )}
-                <div
-                  className="!space-y-0"
-                  style={{ marginLeft: '-30px' }}
-                >
+                <div className="!space-y-0">
                   {currentSlide.director && (
                     <div className="yarl__slide_description !text-[#99AABB]">
-                      <span className="font-medium">{currentSlide.director}</span>
+                      {currentSlide.director}
                     </div>
                   )}
                   {currentSlide.description && (
