@@ -86,7 +86,12 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
           exit={{ opacity: 0 }}
           className="yarl__container fixed inset-0 z-50 bg-black/90 overflow-hidden flex items-center justify-center"
         >
-          <div className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen">
+          <div
+            className="yarl__slide relative max-w-[96vw] mx-auto flex flex-col items-center justify-center min-h-screen"
+            style={{
+              paddingBottom: '11px', // Push metadata down by 11px
+            }}
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={safeIndex}
@@ -95,7 +100,6 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.3 }}
                 className="flex flex-col items-center"
-                style={{ marginTop: '-11px' }} // Image shifted up 11px
               >
                 {currentSlide ? (
                   currentSlide.src.endsWith('.webm') ? (
