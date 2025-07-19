@@ -104,7 +104,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       autoPlay
                       className="object-contain max-w-full"
                       style={{
-                        maxHeight: `calc(100vh - ${metadataHeight}px)`,
+                        maxHeight: 'calc(-136px + 100vh)',
                       }}
                     />
                   ) : (
@@ -113,7 +113,7 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                       alt={currentSlide.title || ''}
                       className="object-contain max-w-full"
                       style={{
-                        maxHeight: `calc(100vh - ${metadataHeight}px)`,
+                        maxHeight: 'calc(-136px + 100vh)',
                       }}
                     />
                   )
@@ -130,11 +130,20 @@ export default function Lightbox({ open, slides, index, onClose, setIndex }) {
                 className="lg:!w-[96%] text-left text-sm space-y-1 text-white px-0 lg:pt-[.25rem] lg:mb-[.25rem] yarl-slide-content"
               >
                 {currentSlide.title && (
-                  <div className="yarl__slide_title text-lg font-bold">
+                  <div
+                    className="yarl__slide_title text-lg"
+                    style={{
+                      marginLeft: '-30px',
+                      fontWeight: 'normal', // remove bold
+                    }}
+                  >
                     {currentSlide.title}
                   </div>
                 )}
-                <div className="!space-y-0">
+                <div
+                  className="!space-y-0"
+                  style={{ marginLeft: '-30px' }}
+                >
                   {currentSlide.director && (
                     <div className="yarl__slide_description !text-[#99AABB]">
                       <span className="font-medium">{currentSlide.director}</span>
