@@ -74,48 +74,57 @@ export default function Order() {
           return [...prevImages, ...uniqueImages]
         })
 
-        const newSlides = images.map(photo => {
-          if (photo.src.includes('.webm')) {
-            return {
-              type: 'video',
-              width: 1080 * 4,
-              height: 1620 * 4,
-              title: photo.caption,
-              description: photo.dimensions,
-              director: photo.director,
-              sources: [
-                {
-                  src: photo.src,
-                  type: 'video/webm'
-                }
-              ],
-              poster: '/assets/transparent.png', // 🔥 Transparent placeholder
-              autoPlay: true,
-              muted: true,
-              loop: true,
-              controls: false,
-              className: 'yarl__slide_image',
-              style: {
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                display: 'block',
-                margin: '0 auto',
-                backgroundColor: 'transparent' // 🔥 No black fallback
-              }
-            }
-          } else {
-            return {
-              type: 'image',
-              src: photo.src,
-              width: 1080 * 4,
-              height: 1620 * 4,
-              title: photo.caption,
-              description: photo.dimensions,
-              director: photo.director
-            }
-          }
-        })
+const newSlides = images.map(photo => {
+  console.log("🪵 Processing photo.src:", photo.src)
+
+  if (photo.src.includes('.webm')) { // 🔥 Match anywhere in URL
+    console.log("🎥 Detected as video:", photo.src)
+    return {
+      type: 'video',
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: photo.caption,
+      description: photo.dimensions,
+      director: photo.director,
+      sources: [
+        {
+          src: photo.src,
+          type: 'video/webm'
+        }
+      ],
+      poster: '',      // Optional placeholder image
+      autoPlay: true,  // 🔥 Auto-play video
+      muted: true,     // 🔥 Start muted for autoplay compliance
+      loop: true,      // 🔥 Loop video playback
+      controls: false, // 🔥 Hide controls
+      className: 'yarl__slide_image', // 🔥 Force same styles as images
+      style: {         // 🔥 Match image sizing
+        maxWidth: '100%',
+        maxHeight: '100%',
+        objectFit: 'contain',
+        display: 'block',
+        margin: '0 auto',
+        backgroundColor: 'black'
+      }
+    }
+  } else {
+    console.log("🖼️ Detected as image:", photo.src)
+    return {
+      type: 'image',
+      src: photo.src,
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: photo.caption,
+      description: photo.dimensions,
+      director: photo.director
+    }
+  }
+})
+
+
+
+
+
 
         setSlides(prevSlides => {
           const existingSrcs = new Set(prevSlides.map(slide => slide.src))
@@ -141,6 +150,68 @@ export default function Order() {
     }
   }
 
+  const sortImages = async (order_key, order_value, order_key_2, order_value_2, size, token) => {
+    try {
+      __order_key(order_key)
+      __order_value(order_value)
+      __order_key_2(order_key_2)
+      __order_value_2(order_value_2)
+      __sort_loader(true)
+      setSorted(!isSorted)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_by_key: order_key,
+          order_by_value: order_value,
+          order_by_key_2: order_key_2,
+          order_by_value_2: order_value_2,
+          size_limit: size,
+          lastVisibleDocId: token
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const images = data.images
+
+        if (images.length === 0) {
+          setHasMore(false)
+          return
+        }
+
+        setNextPageToken(data.nextPageToken)
+
+        setImages(prevImages => {
+          const existingIds = new Set(prevImages.map(img => img.id))
+          const uniqueImages = images.filter(img => !existingIds.has(img.id))
+          return [...prevImages, ...uniqueImages]
+        })
+
+        const newSlides = images.map(photo => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+          director: photo.director
+        }))
+
+        setSlides(prevSlides => {
+          const existingSrcs = new Set(prevSlides.map(slide => slide.src))
+          const uniqueSlides = newSlides.filter(slide => !existingSrcs.has(slide.src))
+          return [...prevSlides, ...uniqueSlides]
+        })
+      }
+    } catch (error) {
+      console.error('Sort fetch error:', error)
+    } finally {
+      __sort_loader(false)
+      __loader(false)
+    }
+  }
+
   const clearValues = () =>
     new Promise(resolve => {
       setImages([])
@@ -152,7 +223,16 @@ export default function Order() {
 
   const loadMoreByCondition = () => {
     if (searchQuery.trim()) return;
-    getImages(nextPageToken)
+    if (order_key === 'alphaname') {
+      sortImages(order_key, order_value, null, null, 99, nextPageToken)
+    } else if (
+      order_key === 'year' &&
+      order_key_2 === 'alphaname'
+    ) {
+      sortImages(order_key, order_value, order_key_2, order_value_2, 99, nextPageToken)
+    } else {
+      getImages(nextPageToken)
+    }
   }
 
   useEffect(() => {
@@ -183,8 +263,78 @@ export default function Order() {
     }
   }, [searchOpen]);
 
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    debounceRef.current = setTimeout(async () => {
+      const rawQuery = searchQuery.trim().toLowerCase()
+      if (!rawQuery) {
+        clearValues().then(() => getImages(null))
+        return
+      }
+
+      if (/^\d{4}$/.test(rawQuery) || /^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
+        fetchBackendSearch(rawQuery);
+        return;
+      }
+
+      const fuse = new Fuse(FullImages, {
+        keys: [
+          { name: 'caption', weight: 0.7 },
+          { name: 'alphaname', weight: 0.2 },
+          { name: 'director', weight: 0.1 }
+        ],
+        threshold: 0.3,
+        distance: 100,
+        includeScore: true
+      });
+      const fuseResults = fuse.search(rawQuery).map(r => r.item)
+
+      if (fuseResults.length < 5) {
+        fetchBackendSearch(rawQuery);
+        return;
+      }
+
+      setImages(fuseResults)
+      setSlides(fuseResults.map(photo => ({
+        src: photo.src,
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: photo.caption,
+        description: photo.dimensions,
+        director: photo.director
+      })))
+    }, 300)
+  }, [searchQuery])
+
+  async function fetchBackendSearch(queryText) {
+    try {
+      __loader(true)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queryText })
+      })
+      const data = await res.json()
+      setImages(data.results)
+      setSlides(data.results.map(photo => ({
+        src: photo.src,
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: photo.caption,
+        description: photo.dimensions,
+        director: photo.director
+      })))
+    } catch (err) {
+      console.error('Backend search failed:', err)
+    } finally {
+      __loader(false)
+    }
+  }
+
   return (
     <RootLayout>
+      {/* Navigation */}
       <div className="w-full flex justify-center items-center pt-9 pb-[1.69rem]">
         <div className="w-full grid place-items-center space-y-6">
           <Link href={'/'}>
@@ -203,99 +353,107 @@ export default function Order() {
             loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-              {Images.map((photo, i) => (
-                <div key={i}>
-                  {photo.src.includes('.webm') ? (
-                    <video
-                      src={photo.src}
-                      muted
-                      autoPlay
-                      loop
-                      playsInline
-                      preload="metadata"
-                      poster="/assets/transparent.png" // 🔥 Transparent placeholder
-                      onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
-                      style={{
-                        display: 'block',
-                        width: '100%',
-                        height: 'auto',
-                        backgroundColor: 'transparent'
-                      }}
-                    />
-                  ) : (
-                    <img
-                      alt={photo.name}
-                      src={photo.src}
-                      onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
-                    />
-                  )}
-                </div>
-              ))}
+          {Images.map((photo, i) => (
+  <div key={i}>
+    {photo.src.includes('.webm') ? (
+      <video
+        src={photo.src}
+        muted
+        autoPlay
+        loop
+        playsInline
+        preload="metadata"
+        onClick={() => setIndex(i)}
+        className="aspect-[16/9] object-cover cursor-zoom-in"
+        style={{
+          display: 'block',
+          width: '100%',
+          height: 'auto',
+          backgroundColor: 'black' // fallback for transparency
+        }}
+      />
+    ) : (
+      <img
+        alt={photo.name}
+        src={photo.src}
+        onClick={() => setIndex(i)}
+        className="aspect-[16/9] object-cover cursor-zoom-in"
+      />
+    )}
+  </div>
+))}
+
             </div>
           </InfiniteScroll>
 
           {slides && (
-            <Lightbox
-              index={index}
-              slides={slides}
-              open={index >= 0}
-              close={() => setIndex(-1)}
-              plugins={[Video]}
-              render={{
-                slide: ({ slide, rect }) => {
-                  if (slide.type === 'video') {
-                    return (
-                      <video
-                        src={slide.sources?.[0]?.src || slide.src}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        className="yarl__slide_image"
-                        style={{
-                          maxWidth: rect.width,
-                          maxHeight: rect.height,
-                          objectFit: 'contain',
-                          display: 'block',
-                          margin: '0 auto',
-                          backgroundColor: 'transparent'
-                        }}
-                      />
-                    )
-                  }
-                  return (
-                    <img
-                      src={slide.src}
-                      alt={slide.title || ''}
-                      className="yarl__slide_image"
-                      style={{
-                        maxWidth: rect.width,
-                        maxHeight: rect.height,
-                        objectFit: 'contain'
-                      }}
-                    />
-                  )
-                },
-                slideFooter: ({ slide }) => (
-                  <div className="yarl-slide-content px-4 pt-2">
-                    {slide.title && (
-                      <div className="yarl__slide_title">{slide.title}</div>
-                    )}
-                    {slide.director && (
-                      <div className="yarl__slide_description text-[#99AABB]">
-                        <span className="font-medium">{slide.director}</span>
-                      </div>
-                    )}
-                    {slide.description && (
-                      <div className="yarl__slide_description">{slide.description}</div>
-                    )}
-                  </div>
-                )
-              }}
-            />
+         <Lightbox
+  index={index}
+  slides={slides}
+  open={index >= 0}
+  close={() => setIndex(-1)}
+  plugins={[Video]}
+  render={{
+    slide: ({ slide, rect }) => {
+      console.log('🪵 YARL slide object:', slide); // 🔥 Debug full slide object
+
+      if (slide.type === 'video') {
+        console.log('🎥 Detected video slide:', slide);
+        return (
+          <video
+            src={slide.sources?.[0]?.src || slide.src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="yarl__slide_image"
+            style={{
+              maxWidth: rect.width,
+              maxHeight: rect.height,
+              objectFit: 'contain',
+              display: 'block',
+              margin: '0 auto',
+              backgroundColor: 'black'
+            }}
+          />
+        );
+      }
+
+      return (
+        <img
+          src={slide.src}
+          alt={slide.title || ''}
+          className="yarl__slide_image"
+          style={{
+            maxWidth: rect.width,
+            maxHeight: rect.height,
+            objectFit: 'contain'
+          }}
+        />
+      );
+    },
+    slideFooter: ({ slide }) => (
+      <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+        {slide.title && (
+          <div className="yarl__slide_title">{slide.title}</div>
+        )}
+        <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+          {slide.director && (
+            <div className="yarl__slide_description !text-[#99AABB]">
+              <span className="font-medium">{slide.director}</span>
+            </div>
+          )}
+          {slide.description && (
+            <div className="yarl__slide_description">{slide.description}</div>
+          )}
+        </div>
+      </div>
+    )
+  }}
+/>
+
+
           )}
         </div>
       ) : (
