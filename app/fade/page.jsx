@@ -314,9 +314,6 @@ function FadeSlot({ image }) {
     const [currentImage, setCurrentImage] = useState(image);
     const [previousImage, setPreviousImage] = useState(null);
 
-    useEffect(() => {
-        if (!image || image.id === currentImage?.id) return;
-
 useEffect(() => {
     if (!image || image.id === currentImage?.id) return;
 
