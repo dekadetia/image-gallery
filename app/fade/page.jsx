@@ -45,40 +45,40 @@ export default function FadeGallery() {
             if (images.length) {
                 poolRef.current.push(...images);
 
-const newSlides = images.map((photo) => {
-    const src = photo.src ?? '';
-    if (src.toLowerCase().includes('.webm')) {
-        return {
-            type: 'video',
-            width: 1080 * 4,
-            height: 1620 * 4,
-            title: photo.caption,
-            description: photo.dimensions,
-            director: photo.director || null,
-            year: photo.year,
-            sources: [{
-                src,
-                type: 'video/webm'
-            }],
-            poster: '/assets/transparent.png',
-            autoPlay: true,
-            muted: true,
-            loop: true,
-            controls: false
-        };
-    } else {
-        return {
-            type: 'image',
-            src,
-            width: 1080 * 4,
-            height: 1620 * 4,
-            title: photo.caption,
-            description: photo.dimensions,
-            director: photo.director || null,
-            year: photo.year
-        };
-    }
-});
+                const newSlides = images.map((photo) => {
+                    const src = photo.src ?? '';
+                    if (src.toLowerCase().includes('.webm')) {
+                        return {
+                            type: 'video',
+                            width: 1080 * 4,
+                            height: 1620 * 4,
+                            title: photo.caption,
+                            description: photo.dimensions,
+                            director: photo.director || null,
+                            year: photo.year,
+                            sources: [{
+                                src,
+                                type: 'video/webm'
+                            }],
+                            poster: '/assets/transparent.png',
+                            autoPlay: true,
+                            muted: true,
+                            loop: true,
+                            controls: false
+                        };
+                    } else {
+                        return {
+                            type: 'image',
+                            src,
+                            width: 1080 * 4,
+                            height: 1620 * 4,
+                            title: photo.caption,
+                            description: photo.dimensions,
+                            director: photo.director || null,
+                            year: photo.year
+                        };
+                    }
+                });
 
                 setSlides((prev) => [...prev, ...newSlides]);
 
@@ -273,20 +273,17 @@ const newSlides = images.map((photo) => {
             </div>
             {!loader && !blackMode && <Footer />}
             {slides && (
-<Lightbox
-    index={index}
-    slides={slides}
-    open={index >= 0}
-    close={() => setIndex(-1)}
-    plugins={[Video]}
-    render={{
-        slideFooter: ({ slide }) => (
-<div
-  className={cn(
-    "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
-    slide.type === 'video' && 'relative top-auto bottom-unset'
-  )}
->
+                <Lightbox
+                    index={index}
+                    slides={slides}
+                    open={index >= 0}
+                    close={() => setIndex(-1)}
+                    plugins={[Video]}
+                    render={{
+                        slideFooter: ({ slide }) => (
+                            <div
+                                className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content"
+                            >
                                 {slide.title && (
                                     <div className="yarl__slide_title">{slide.title}</div>
                                 )}
@@ -323,23 +320,25 @@ function FadeSlot({ image }) {
         if (!image || !image.src || image.id === currentImage?.id) return;
 
         if ((image?.src ?? '').toLowerCase().includes('.webm')) {
-            // Preload video metadata
             const preload = document.createElement('video');
             preload.src = image.src;
             preload.preload = 'metadata';
             preload.muted = true;
             preload.playsInline = true;
             preload.onloadeddata = () => {
-                setPreviousImage(currentImage);
-                setCurrentImage(image);
+                if (currentImage && image) {
+                    setPreviousImage(currentImage);
+                    setCurrentImage(image);
+                }
             };
         } else {
-            // Preload image
             const preload = new Image();
             preload.src = image.src;
             preload.onload = () => {
-                setPreviousImage(currentImage);
-                setCurrentImage(image);
+                if (currentImage && image) {
+                    setPreviousImage(currentImage);
+                    setCurrentImage(image);
+                }
             };
         }
     }, [image?.id]);
@@ -417,4 +416,3 @@ function FadeSlot({ image }) {
         </div>
     );
 }
-
