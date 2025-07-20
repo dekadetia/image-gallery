@@ -355,12 +355,25 @@ const newSlides = images.map(photo => {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
                 <div key={i}>
-                  <img
-                    alt={photo.name}
-                    src={photo.src}
-                    onClick={() => setIndex(i)}
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                  />
+                  {photo.src.includes('.webm') ? (
+  <video
+    src={photo.src}
+    muted
+    playsInline
+    preload="metadata"
+    onClick={() => setIndex(i)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+    style={{ display: 'block', width: '100%', height: 'auto' }}
+  />
+) : (
+  <img
+    alt={photo.name}
+    src={photo.src}
+    onClick={() => setIndex(i)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+  />
+)}
+
                 </div>
               ))}
             </div>
