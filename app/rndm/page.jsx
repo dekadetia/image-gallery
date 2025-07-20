@@ -27,7 +27,8 @@ export default function Random() {
   const seenImageIds = useRef(new Set()) // ✅ Track loaded image IDs
 
 const slides = Images.map(photo => {
-  if (photo.src.toLowerCase().includes('.webm')) {
+  const src = photo.src ?? '';
+  if (src.toLowerCase().includes('.webm')) {
     return {
       type: 'video',
       width: 1080 * 4,
@@ -37,7 +38,7 @@ const slides = Images.map(photo => {
       director: photo.director || null,
       year: photo.year,
       sources: [{
-        src: photo.src,
+        src,
         type: 'video/webm'
       }],
       poster: '/assets/transparent.png',
@@ -49,7 +50,7 @@ const slides = Images.map(photo => {
   } else {
     return {
       type: 'image',
-      src: photo.src,
+      src,
       width: 1080 * 4,
       height: 1620 * 4,
       title: `${photo.caption}`,
@@ -59,6 +60,7 @@ const slides = Images.map(photo => {
     };
   }
 });
+
 
 
   const getImages = async load => {
@@ -207,7 +209,7 @@ const slides = Images.map(photo => {
             <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
               {Images.map(photo => (
                 <div key={photo.id}>
-{photo.src.toLowerCase().includes('.webm') ? (
+(photo.src ?? '').toLowerCase().includes('.webm') ? (
   <video
     src={photo.src}
     onClick={() => handleImageClick(photo.id)}
