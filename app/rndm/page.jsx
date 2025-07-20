@@ -172,7 +172,7 @@ const slides = Images.map(photo => {
               />
             </Link>
 
-  <div className='flex gap-8 items-center pt-[2.5px]'>
+<div className="flex gap-8 items-center pt-[2.5px]" style={{ marginBottom: '4px' }}>
   <Link href={'/fade'}>
     <img
       src="/assets/crossfade.svg"
