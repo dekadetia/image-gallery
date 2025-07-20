@@ -307,20 +307,30 @@ body.blackmode-hide-cursor * {
   pointer-events: none;
   transition: opacity 0.5s ease;
 }
-/* 🪄 Force YARL videos to behave like images */
+/* 🪄 Fix YARL video container sizing */
 .yarl__video_container {
-  display: block !important;
-  text-align: center;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 auto !important;
+  background-color: black !important; /* Match image bg for consistency */
+  overflow: hidden !important;        /* Prevent stray margins or scrollbars */
 }
 
+/* 🪄 Make video behave like images */
 .yarl__video_container video {
+  width: 100% !important;
+  height: 100% !important;
   max-width: 100% !important;
   max-height: 100% !important;
   object-fit: contain !important;
   display: block !important;
   margin: 0 auto !important;
-  background-color: black;
+  background-color: black !important;
 }
+
 
 .autosmode .blackmode-hide-cursor {
   cursor: none;
