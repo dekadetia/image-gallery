@@ -235,7 +235,7 @@ export default function FadeGallery() {
                                     alt='Logo'
                                 />
                             </Link>
-                            <div className='flex gap-8 items-center pt-[2.5px]' style='margin-bottom: 4px !important;'>
+<div className="flex gap-8 items-center pt-[2.5px]" style={{ marginBottom: '4px' }}>
                                 <img
                                     src="/assets/crossfade.svg"
                                     className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3.75px]"
