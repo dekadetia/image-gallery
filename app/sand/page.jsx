@@ -246,6 +246,7 @@ export default function Order() {
               plugins={[Video]}
               render={{
                 slide: ({ slide, rect }) => {
+                  const slideClass = slide.type === 'video' ? 'yarl__slide yarl__slide--video' : 'yarl__slide'
                   if (slide.type === 'video') {
                     return (
                       <video
@@ -255,7 +256,7 @@ export default function Order() {
                         loop
                         playsInline
                         preload="auto"
-                        className="yarl__slide_image"
+                        className={`${slideClass}_image`}
                         style={{
                           maxWidth: rect.width,
                           maxHeight: rect.height,
@@ -272,7 +273,7 @@ export default function Order() {
                     <img
                       src={slide.src}
                       alt={slide.title || ''}
-                      className="yarl__slide_image"
+                      className={`${slideClass}_image`}
                       style={{
                         maxWidth: rect.width,
                         maxHeight: rect.height,
@@ -281,36 +282,25 @@ export default function Order() {
                     />
                   )
                 },
-                slideFooter: ({ slide }) => {
-                  const isVideo = slide.type === 'video'
-
-                  return (
-                    <div
-                      className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content"
-                      style={{
-                        ...(isVideo && {
-                          position: 'relative',
-                          bottom: 'unset',
-                          top: 'auto'
-                        })
-                      }}
-                    >
-                      {slide.title && (
-                        <div className="yarl__slide_title">{slide.title}</div>
+                slideFooter: ({ slide }) => (
+                  <div
+                    className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content"
+                  >
+                    {slide.title && (
+                      <div className="yarl__slide_title">{slide.title}</div>
+                    )}
+                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                      {slide.director && (
+                        <div className="yarl__slide_description !text-[#99AABB]">
+                          <span className="font-medium">{slide.director}</span>
+                        </div>
                       )}
-                      <div className={cn("!space-y-0", slide.director && "!mb-5")}>
-                        {slide.director && (
-                          <div className="yarl__slide_description !text-[#99AABB]">
-                            <span className="font-medium">{slide.director}</span>
-                          </div>
-                        )}
-                        {slide.description && (
-                          <div className="yarl__slide_description">{slide.description}</div>
-                        )}
-                      </div>
+                      {slide.description && (
+                        <div className="yarl__slide_description">{slide.description}</div>
+                      )}
                     </div>
-                  )
-                },
+                  </div>
+                ),
               }}
             />
           )}
