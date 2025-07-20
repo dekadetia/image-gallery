@@ -312,21 +312,12 @@ body.blackmode-hide-cursor * {
   cursor: none;
 }
 
-/* Match video behavior to images in YARL */
-.yarl__video_container {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  width: 100% !important;
-  height: 100% !important;
-  background-color: black !important;
-}
-
-.yarl__video_container video {
-  display: block !important;
+.yarl__slide video {
   max-width: 100% !important;
   max-height: 100% !important;
-  object-fit: contain !important; /* ✅ Match images' scaling behavior */
+  object-fit: contain !important;
+  display: block !important;
   margin: 0 auto !important;
-  background-color: black !important;
 }
+
+
