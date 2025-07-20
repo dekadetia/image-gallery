@@ -356,22 +356,24 @@ const newSlides = images.map(photo => {
           {Images.map((photo, i) => (
   <div key={i}>
     {photo.src.includes('.webm') ? (
-      <video
-        src={photo.src}
-        muted
-        autoPlay
-        loop
-        playsInline
-        preload="metadata"
-        onClick={() => setIndex(i)}
-        className="aspect-[16/9] object-cover cursor-zoom-in"
-        style={{
-          display: 'block',
-          width: '100%',
-          height: 'auto',
-          backgroundColor: 'black' // fallback for transparency
-        }}
-      />
+<video
+  src={photo.src}
+  muted
+  autoPlay
+  loop
+  playsInline
+  preload="metadata"
+  poster="/assets/transparent.png" // ✅ Add this 1×1 PNG to /public/assets
+  onClick={() => setIndex(i)}
+  className="aspect-[16/9] object-cover cursor-zoom-in"
+  style={{
+    display: 'block',
+    width: '100%',
+    height: 'auto',
+    backgroundColor: 'transparent' // ✅ Kill fallback black
+  }}
+/>
+
     ) : (
       <img
         alt={photo.name}
