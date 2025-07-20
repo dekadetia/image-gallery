@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { storage } from "../utils/firebaseClient";
 import MoreImageLoader from "../../components/MoreImageLoader/index";
 import "react-toastify/dist/ReactToastify.css";
 import { MdDelete, MdEdit } from "react-icons/md";
@@ -125,44 +127,70 @@ export default function Page() {
     }
   };
 
-  const createImage = async (e) => {
-    e.preventDefault();
+ const createImage = async (e) => {
+  e.preventDefault();
 
-    const formData = new FormData();
-    images.forEach((image) => {
-      formData.append("file", image);
-    });
+  if (images.length === 0) {
+    errorToast("Please select a file!");
+    return;
+  }
 
-    formData.append("caption", caption);
-    formData.append("director", director);
+  try {
+    for (const image of images) {
+      const storageRef = ref(storage, `uploads/${image.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, image);
 
-    formData.append("photographer", photographer);
-    formData.append("year", year);
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log(`Upload is ${progress}% done`);
+        },
+        (error) => {
+          errorToast("Upload failed!");
+          console.error(error);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          console.log("File available at", downloadURL);
 
-    formData.append("alphaname", alphaname);
-    formData.append("dimensions", dimensions);
+          // Send metadata + file URL to backend
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/firebase/create`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                caption,
+                director,
+                photographer,
+                year,
+                alphaname,
+                dimensions,
+                fileURL: downloadURL,
+              }),
+            }
+          );
 
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/create`,
-        {
-          method: "POST",
-          body: formData,
+          if (response.ok) {
+            successToast("Metadata saved successfully!");
+            window.location.reload();
+          } else {
+            errorToast("Failed to save metadata!");
+          }
         }
       );
-
-      if (response.ok) {
-        successToast("Files uploaded successfully!");
-        window.location.reload();
-      } else {
-        errorToast("Failed to upload files!");
-      }
-    } catch (error) {
-      errorToast("Failed to upload files!");
     }
+  } catch (err) {
+    console.error(err);
+    errorToast("An unexpected error occurred!");
+  }
 
-    setImages([]);
-  };
+  setImages([]);
+};
+
 
   const updateImageData = async () => {
     const formData = new FormData();
