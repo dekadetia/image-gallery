@@ -44,7 +44,7 @@ export default function Order() {
   const [searchQuery, setSearchQuery] = useState('')
   const debounceRef = useRef(null)
 
-  const transparentPoster = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
+  const transparentPoster = "/transparent.png" // ✅ static file
 
   const getImages = async (token) => {
     try {
@@ -94,7 +94,7 @@ export default function Order() {
                   type: 'video/webm'
                 }
               ],
-              poster: transparentPoster, // ✅ Use transparent poster
+              poster: transparentPoster, // ✅ static poster
               autoPlay: true,
               muted: true,
               loop: true,
@@ -135,8 +135,6 @@ export default function Order() {
     __loader(false)
   }
 
-  // ... (rest of getAllImagesNoLimit, sortImages, clearValues, loadMoreByCondition, useEffects remain unchanged)
-
   return (
     <RootLayout>
       {/* Navigation */}
@@ -170,20 +168,22 @@ export default function Order() {
                         alignItems: 'center'
                       }}
                     >
-                      <video
-                        src={photo.src}
-                        poster={transparentPoster} // ✅ Transparent poster
-                        muted
-                        autoPlay
-                        loop
-                        playsInline
-                        preload="metadata"
-                        className="object-cover w-full h-full"
-                        style={{
-                          display: 'block',
-                          backgroundColor: 'black'
-                        }}
-                      />
+                      {typeof window !== "undefined" && (
+                        <video
+                          src={photo.src}
+                          poster={transparentPoster} // ✅ static poster
+                          muted
+                          autoPlay
+                          loop
+                          playsInline
+                          preload="metadata"
+                          className="object-cover w-full h-full"
+                          style={{
+                            display: 'block',
+                            backgroundColor: 'black'
+                          }}
+                        />
+                      )}
                     </div>
                   ) : (
                     <img
@@ -209,7 +209,7 @@ export default function Order() {
                 container: ({ children }) => (
                   <div
                     style={{
-                      display: 'inline-block', // ✅ Collapse container to content
+                      display: 'inline-block', // ✅ Tighten container
                       textAlign: 'center'
                     }}
                   >
@@ -232,7 +232,7 @@ export default function Order() {
                       >
                         <video
                           src={slide.sources?.[0]?.src || slide.src}
-                          poster={transparentPoster} // ✅ Transparent poster
+                          poster={transparentPoster} // ✅ static poster
                           autoPlay
                           muted
                           loop
