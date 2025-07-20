@@ -84,45 +84,6 @@ export default function FadeGallery() {
 
                 if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
                     const newSlots = poolRef.current.splice(0, 9);
-
-                    // 🛠 Force slot 0 to use your specific webm
-                    const forcedWebm = {
-                        id: 'forced-webm',
-                        src: 'https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/images%2F00000.la.verite.1960.webm?alt=media&token=fa950885-59ff-42a7-9929-67134c7a27ca',
-                        caption: 'La Vérité (1960)',
-                        dimensions: '1920x1080',
-                        director: 'Henri-Georges Clouzot',
-                        year: '1960'
-                    };
-                    newSlots[0] = forcedWebm;
-
-                    // ✅ Add it to slides with full metadata
-                    const videoSlide = {
-                        type: 'video',
-                        width: 1080 * 4,
-                        height: 1620 * 4,
-                        title: forcedWebm.caption,
-                        description: forcedWebm.dimensions,
-                        director: forcedWebm.director,
-                        year: forcedWebm.year,
-                        sources: [{
-                            src: forcedWebm.src,
-                            type: 'video/webm'
-                        }],
-                        poster: '/assets/transparent.png',
-                        autoPlay: true,
-                        muted: true,
-                        loop: true,
-                        controls: false
-                    };
-
-                    setSlides(prev => {
-                        if (!prev.some(s => s.sources?.[0]?.src === forcedWebm.src)) {
-                            return [...prev, videoSlide];
-                        }
-                        return prev;
-                    });
-
                     setSlots(newSlots);
                     isInitialLoad.current = false;
                 }
@@ -219,9 +180,9 @@ export default function FadeGallery() {
     }, [hideCursor, blackMode]);
 
     const handleImageClick = (imageSrc) => {
-        const idx = slides.findIndex(slide => {
-            return slide.src === imageSrc || slide.sources?.[0]?.src === imageSrc;
-        });
+        const idx = slides.findIndex(slide =>
+            slide.src === imageSrc || slide.sources?.[0]?.src === imageSrc
+        );
         if (idx !== -1) {
             setIndex(idx);
         } else {
