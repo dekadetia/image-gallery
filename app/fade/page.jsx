@@ -34,79 +34,102 @@ export default function FadeGallery() {
     let fadeCount = useRef(0);
 
     const fetchImages = async () => {
-        if (loadingRef.current) return;
-        loadingRef.current = true;
+    if (loadingRef.current) return;
+    loadingRef.current = true;
 
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-fade-images`);
-            const data = await res.json();
-            const images = data.images;
+    try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-fade-images`);
+        const data = await res.json();
+        const images = data.images;
 
-            if (images.length) {
-                poolRef.current.push(...images);
+        if (images.length) {
+            poolRef.current.push(...images);
 
-                const newSlides = images.map((photo) => {
-                    const src = photo.src ?? '';
-                    if (src.toLowerCase().includes('.webm')) {
-                        return {
-                            type: 'video',
-                            width: 1080 * 4,
-                            height: 1620 * 4,
-                            title: photo.caption,
-                            description: photo.dimensions,
-                            director: photo.director || null,
-                            year: photo.year,
-                            sources: [{
-                                src,
-                                type: 'video/webm'
-                            }],
-                            poster: '/assets/transparent.png',
-                            autoPlay: true,
-                            muted: true,
-                            loop: true,
-                            controls: false
-                        };
-                    } else {
-                        return {
-                            type: 'image',
+            const newSlides = images.map((photo) => {
+                const src = photo.src ?? '';
+                if (src.toLowerCase().includes('.webm')) {
+                    return {
+                        type: 'video',
+                        width: 1080 * 4,
+                        height: 1620 * 4,
+                        title: photo.caption,
+                        description: photo.dimensions,
+                        director: photo.director || null,
+                        year: photo.year,
+                        sources: [{
                             src,
-                            width: 1080 * 4,
-                            height: 1620 * 4,
-                            title: photo.caption,
-                            description: photo.dimensions,
-                            director: photo.director || null,
-                            year: photo.year
-                        };
-                    }
-                });
+                            type: 'video/webm'
+                        }],
+                        poster: '/assets/transparent.png',
+                        autoPlay: true,
+                        muted: true,
+                        loop: true,
+                        controls: false
+                    };
+                } else {
+                    return {
+                        type: 'image',
+                        src,
+                        width: 1080 * 4,
+                        height: 1620 * 4,
+                        title: photo.caption,
+                        description: photo.dimensions,
+                        director: photo.director || null,
+                        year: photo.year
+                    };
+                }
+            });
 
-                setSlides((prev) => [...prev, ...newSlides]);
+            setSlides((prev) => [...prev, ...newSlides]);
 
-if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
-    const newSlots = poolRef.current.splice(0, 9);
+            if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
+                const newSlots = poolRef.current.splice(0, 9);
 
-    // 🛠 Force slot 0 to use your specific webm
-    newSlots[0] = {
-        id: 'forced-webm',
-        src: 'https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/images%2F00000.la.verite.1960.webm?alt=media&token=fa950885-59ff-42a7-9929-67134c7a27ca',
-        caption: 'La Vérité (1960)',
-        dimensions: '1920x1080',
-        director: 'Henri-Georges Clouzot',
-        year: '1960'
-    };
+                // 🛠 Force slot 0 to use your specific webm
+                newSlots[0] = {
+                    id: 'forced-webm',
+                    src: 'https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/images%2F00000.la.verite.1960.webm?alt=media&token=fa950885-59ff-42a7-9929-67134c7a27ca',
+                    caption: 'La Vérité (1960)',
+                    dimensions: '1920x1080',
+                    director: 'Henri-Georges Clouzot',
+                    year: '1960'
+                };
 
-    setSlots(newSlots);
-    isInitialLoad.current = false;
-}
+                // ✅ Add forced webm to slides if missing
+                if (!slides.some(s => s.src === newSlots[0].src)) {
+                    const videoSlide = {
+                        type: 'video',
+                        width: 1080 * 4,
+                        height: 1620 * 4,
+                        title: newSlots[0].caption,
+                        description: newSlots[0].dimensions,
+                        director: newSlots[0].director,
+                        year: newSlots[0].year,
+                        sources: [{
+                            src: newSlots[0].src,
+                            type: 'video/webm'
+                        }],
+                        poster: '/assets/transparent.png',
+                        autoPlay: true,
+                        muted: true,
+                        loop: true,
+                        controls: false
+                    };
+                    setSlides(prev => [...prev, videoSlide]);
+                }
 
+                setSlots(newSlots);
+                isInitialLoad.current = false;
             }
-        } catch (err) {
-            console.error('Failed to fetch fade images:', err);
-        } finally {
-            loadingRef.current = false;
-            __loader(false);
         }
-    };
+    } catch (err) {
+        console.error('Failed to fetch fade images:', err);
+    } finally {
+        loadingRef.current = false;
+        __loader(false);
+    }
+};
+
 
     const pickSlot = () => {
         fadeCount.current++;
@@ -225,12 +248,16 @@ const handleImageClick = (imageSrc) => {
             controls: false
         };
 
-        setSlides(prev => [...prev, videoSlide]);
-        idx = prev.length; // Index of newly pushed slide
+        setSlides(prev => {
+            const updated = [...prev, videoSlide];
+            idx = updated.length - 1; // ✅ Correct index of new slide
+            return updated;
+        });
     }
 
     if (idx !== -1) setIndex(idx);
 };
+
 
 
 
