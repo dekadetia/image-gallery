@@ -10,6 +10,7 @@ import { IoMoonOutline } from 'react-icons/io5';
 import Loader from '../../components/loader/loader';
 import Footer from '../../components/Footer';
 import Lightbox from 'yet-another-react-lightbox';
+import Video from 'yet-another-react-lightbox/plugins/video'
 import AudioPlayer from '../../components/AudioPlayer';
 
 export default function FadeGallery() {
@@ -44,15 +45,41 @@ export default function FadeGallery() {
             if (images.length) {
                 poolRef.current.push(...images);
 
-                const newSlides = images.map((photo) => ({
-                    src: photo.src,
-                    width: 1080 * 4,
-                    height: 1620 * 4,
-                    title: photo.caption,
-                    description: photo.dimensions,
-                    director: photo.director || null,
-                    year: photo.year
-                }));
+const newSlides = images.map((photo) => {
+    const src = photo.src ?? '';
+    if (src.toLowerCase().includes('.webm')) {
+        return {
+            type: 'video',
+            width: 1080 * 4,
+            height: 1620 * 4,
+            title: photo.caption,
+            description: photo.dimensions,
+            director: photo.director || null,
+            year: photo.year,
+            sources: [{
+                src,
+                type: 'video/webm'
+            }],
+            poster: '/assets/transparent.png',
+            autoPlay: true,
+            muted: true,
+            loop: true,
+            controls: false
+        };
+    } else {
+        return {
+            type: 'image',
+            src,
+            width: 1080 * 4,
+            height: 1620 * 4,
+            title: photo.caption,
+            description: photo.dimensions,
+            director: photo.director || null,
+            year: photo.year
+        };
+    }
+});
+
                 setSlides((prev) => [...prev, ...newSlides]);
 
                 if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
@@ -246,14 +273,20 @@ export default function FadeGallery() {
             </div>
             {!loader && !blackMode && <Footer />}
             {slides && (
-                <Lightbox
-                    index={index}
-                    slides={slides}
-                    open={index >= 0}
-                    close={() => setIndex(-1)}
-                    render={{
-                        slideFooter: ({ slide }) => (
-                            <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+<Lightbox
+    index={index}
+    slides={slides}
+    open={index >= 0}
+    close={() => setIndex(-1)}
+    plugins={[Video]}
+    render={{
+        slideFooter: ({ slide }) => (
+<div
+  className={cn(
+    "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
+    slide.type === 'video' && 'relative top-auto bottom-unset'
+  )}
+>
                                 {slide.title && (
                                     <div className="yarl__slide_title">{slide.title}</div>
                                 )}
@@ -284,13 +317,31 @@ function FadeSlot({ image }) {
     useEffect(() => {
         if (!image || image.id === currentImage?.id) return;
 
+useEffect(() => {
+    if (!image || image.id === currentImage?.id) return;
+
+    if ((image?.src ?? '').toLowerCase().includes('.webm')) {
+        // Preload video metadata
+        const preload = document.createElement('video');
+        preload.src = image.src;
+        preload.preload = 'metadata';
+        preload.muted = true; // Silence autoplay preload
+        preload.playsInline = true;
+        preload.onloadeddata = () => {
+            setPreviousImage(currentImage);
+            setCurrentImage(image);
+        };
+    } else {
+        // Preload image as before
         const preload = new Image();
         preload.src = image.src;
         preload.onload = () => {
             setPreviousImage(currentImage);
             setCurrentImage(image);
         };
-    }, [image?.id]);
+    }
+}, [image?.id]);
+
 // 🩹 MutationObserver to remove title="Close"
 useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -305,28 +356,60 @@ useEffect(() => {
 }, []);
     return (
         <div className='relative w-full h-full'>
-            {previousImage && (
-                <motion.img
-                    key={previousImage.id}
-                    src={previousImage.src}
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: 0 }}
-                    transition={{ duration: 2, ease: 'easeInOut' }}
-                    className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
-                    alt=''
-                />
-            )}
-            {currentImage && (
-                <motion.img
-                    key={currentImage.id}
-                    src={currentImage.src}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 2, ease: 'easeInOut' }}
-                    className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
-                    alt=''
-                />
-            )}
+{(previousImage?.src ?? '').toLowerCase().includes('.webm') ? (
+    <motion.video
+        key={previousImage.id}
+        src={previousImage.src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster="/assets/transparent.png"
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 0 }}
+        transition={{ duration: 2, ease: 'easeInOut' }}
+        className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
+    />
+) : (
+    <motion.img
+        key={previousImage.id}
+        src={previousImage.src}
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 0 }}
+        transition={{ duration: 2, ease: 'easeInOut' }}
+        className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
+        alt=''
+    />
+)}
+
+{(currentImage?.src ?? '').toLowerCase().includes('.webm') ? (
+    <motion.video
+        key={currentImage.id}
+        src={currentImage.src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster="/assets/transparent.png"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 2, ease: 'easeInOut' }}
+        className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
+    />
+) : (
+    <motion.img
+        key={currentImage.id}
+        src={currentImage.src}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 2, ease: 'easeInOut' }}
+        className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
+        alt=''
+    />
+)}
+
         </div>
     );
 }
