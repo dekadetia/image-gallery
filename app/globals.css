@@ -341,16 +341,13 @@ body.blackmode-hide-cursor * {
   }
 }
 
-    .yarl__video_container {
-  height: auto !important;
-  align-items: flex-start !important;
+@media (max-width: 767px) {
+  .video-slide {
+    position: relative !important;
+    bottom: unset !important;
+    top: auto !important;
+  }
 }
-
-.yarl__slide.yarl__flex_center {
-  flex-direction: column !important;
-  justify-content: flex-start !important;
-}
-
 
 
 
