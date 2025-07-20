@@ -82,45 +82,52 @@ export default function FadeGallery() {
 
             setSlides((prev) => [...prev, ...newSlides]);
 
-            if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
-                const newSlots = poolRef.current.splice(0, 9);
+          if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
+    const newSlots = poolRef.current.splice(0, 9);
 
-                // 🛠 Force slot 0 to use your specific webm
-                newSlots[0] = {
-                    id: 'forced-webm',
-                    src: 'https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/images%2F00000.la.verite.1960.webm?alt=media&token=fa950885-59ff-42a7-9929-67134c7a27ca',
-                    caption: 'La Vérité (1960)',
-                    dimensions: '1920x1080',
-                    director: 'Henri-Georges Clouzot',
-                    year: '1960'
-                };
+    // 🛠 Force slot 0 to use your specific webm
+    const forcedWebm = {
+        id: 'forced-webm',
+        src: 'https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/images%2F00000.la.verite.1960.webm?alt=media&token=fa950885-59ff-42a7-9929-67134c7a27ca',
+        caption: 'La Vérité (1960)',
+        dimensions: '1920x1080',
+        director: 'Henri-Georges Clouzot',
+        year: '1960'
+    };
+    newSlots[0] = forcedWebm;
 
-                // ✅ Add forced webm to slides if missing
-                if (!slides.some(s => s.src === newSlots[0].src)) {
-                    const videoSlide = {
-                        type: 'video',
-                        width: 1080 * 4,
-                        height: 1620 * 4,
-                        title: newSlots[0].caption,
-                        description: newSlots[0].dimensions,
-                        director: newSlots[0].director,
-                        year: newSlots[0].year,
-                        sources: [{
-                            src: newSlots[0].src,
-                            type: 'video/webm'
-                        }],
-                        poster: '/assets/transparent.png',
-                        autoPlay: true,
-                        muted: true,
-                        loop: true,
-                        controls: false
-                    };
-                    setSlides(prev => [...prev, videoSlide]);
-                }
+    // ✅ Force it into slides too (with metadata)
+    const videoSlide = {
+        type: 'video',
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: forcedWebm.caption,
+        description: forcedWebm.dimensions,
+        director: forcedWebm.director,
+        year: forcedWebm.year,
+        sources: [{
+            src: forcedWebm.src,
+            type: 'video/webm'
+        }],
+        poster: '/assets/transparent.png',
+        autoPlay: true,
+        muted: true,
+        loop: true,
+        controls: false
+    };
 
-                setSlots(newSlots);
-                isInitialLoad.current = false;
-            }
+    setSlides(prev => {
+        // Avoid duplicates
+        if (!prev.some(s => s.src === videoSlide.sources[0].src)) {
+            return [...prev, videoSlide];
+        }
+        return prev;
+    });
+
+    setSlots(newSlots);
+    isInitialLoad.current = false;
+}
+
         }
     } catch (err) {
         console.error('Failed to fetch fade images:', err);
@@ -223,40 +230,15 @@ export default function FadeGallery() {
     }, [hideCursor, blackMode]);
 
 const handleImageClick = (imageSrc) => {
-    let idx = slides.findIndex(slide => slide.src === imageSrc);
+    const idx = slides.findIndex(slide => slide.src === imageSrc);
 
-    if (idx === -1 && imageSrc?.toLowerCase().includes('.webm')) {
-        // Try to find full metadata from poolRef
-        const photo = poolRef.current.find(p => p.src === imageSrc);
-
-        const videoSlide = {
-            type: 'video',
-            width: 1080 * 4,
-            height: 1620 * 4,
-            title: photo?.caption || 'Video',
-            description: photo?.dimensions || '',
-            director: photo?.director || null,
-            year: photo?.year || null,
-            sources: [{
-                src: imageSrc,
-                type: 'video/webm'
-            }],
-            poster: '/assets/transparent.png',
-            autoPlay: true,
-            muted: true,
-            loop: true,
-            controls: false
-        };
-
-        setSlides(prev => {
-            const updated = [...prev, videoSlide];
-            idx = updated.length - 1; // ✅ Correct index of new slide
-            return updated;
-        });
+    if (idx !== -1) {
+        setIndex(idx);
+    } else {
+        console.warn('Image clicked but no slide found for:', imageSrc);
     }
-
-    if (idx !== -1) setIndex(idx);
 };
+
 
 
 
