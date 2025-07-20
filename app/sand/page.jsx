@@ -395,12 +395,19 @@ const newSlides = images.map(photo => {
   close={() => setIndex(-1)}
   plugins={[Video]}
   render={{
-    slide: ({ slide, rect }) => {
-      console.log('🪵 YARL slide object:', slide); // 🔥 Debug full slide object
+  slide: ({ slide, rect }) => {
+    console.log('🪵 YARL slide object:', slide);
 
-      if (slide.type === 'video') {
-        console.log('🎥 Detected video slide:', slide);
-        return (
+    if (slide.type === 'video') {
+      console.log('🎥 Detected video slide:', slide);
+      return (
+        <div
+          style={{
+            display: 'inline-block',
+            margin: '0 auto',
+            textAlign: 'center'
+          }}
+        >
           <video
             src={slide.sources?.[0]?.src || slide.src}
             autoPlay
@@ -410,48 +417,52 @@ const newSlides = images.map(photo => {
             preload="auto"
             className="yarl__slide_image"
             style={{
+              width: 'auto',
+              height: 'auto',
               maxWidth: rect.width,
               maxHeight: rect.height,
               objectFit: 'contain',
-              display: 'block',
-              margin: '0 auto',
+              display: 'inline-block',
+              verticalAlign: 'top',
               backgroundColor: 'black'
             }}
           />
-        );
-      }
-
-      return (
-        <img
-          src={slide.src}
-          alt={slide.title || ''}
-          className="yarl__slide_image"
-          style={{
-            maxWidth: rect.width,
-            maxHeight: rect.height,
-            objectFit: 'contain'
-          }}
-        />
-      );
-    },
-    slideFooter: ({ slide }) => (
-      <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-        {slide.title && (
-          <div className="yarl__slide_title">{slide.title}</div>
-        )}
-        <div className={cn("!space-y-0", slide.director && "!mb-5")}>
-          {slide.director && (
-            <div className="yarl__slide_description !text-[#99AABB]">
-              <span className="font-medium">{slide.director}</span>
-            </div>
-          )}
-          {slide.description && (
-            <div className="yarl__slide_description">{slide.description}</div>
-          )}
         </div>
+      );
+    }
+
+    return (
+      <img
+        src={slide.src}
+        alt={slide.title || ''}
+        className="yarl__slide_image"
+        style={{
+          maxWidth: rect.width,
+          maxHeight: rect.height,
+          objectFit: 'contain'
+        }}
+      />
+    );
+  },
+  slideFooter: ({ slide }) => (
+    <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+      {slide.title && (
+        <div className="yarl__slide_title">{slide.title}</div>
+      )}
+      <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+        {slide.director && (
+          <div className="yarl__slide_description !text-[#99AABB]">
+            <span className="font-medium">{slide.director}</span>
+          </div>
+        )}
+        {slide.description && (
+          <div className="yarl__slide_description">{slide.description}</div>
+        )}
       </div>
-    )
-  }}
+    </div>
+  )
+}}
+
 />
 
 
