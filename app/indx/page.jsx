@@ -186,7 +186,12 @@ const newSlides = images.map((photo) => {
 
   // Search Handling Functions
   const openLightboxByImage = (photo) => {
-    const matchedIndex = slides.findIndex((slide) => slide.src === photo.src);
+const matchedIndex = slides.findIndex((slide) => {
+  if (slide.type === 'video') {
+    return slide.sources[0].src === photo.src;
+  }
+  return slide.src === photo.src;
+});
     if (matchedIndex !== -1) {
       setIndex(matchedIndex);
     }
