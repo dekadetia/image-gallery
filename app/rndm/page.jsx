@@ -209,7 +209,7 @@ const slides = Images.map(photo => {
             <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
               {Images.map(photo => (
                 <div key={photo.id}>
-(photo.src ?? '').toLowerCase().includes('.webm') ? (
+{photo.src?.toLowerCase().includes('.webm') ? (
   <video
     src={photo.src}
     onClick={() => handleImageClick(photo.id)}
@@ -236,6 +236,7 @@ const slides = Images.map(photo => {
     decoding='async'
   />
 )}
+
 
                 </div>
               ))}
