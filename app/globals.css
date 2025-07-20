@@ -342,11 +342,12 @@ body.blackmode-hide-cursor * {
 }
 
 @media (max-width: 767px) {
-  .yarl__slide--video .yarl__slide_content {
+  .yarl__slide_content {
     position: relative !important;
     bottom: unset !important;
     top: auto !important;
   }
 }
+
 
 
