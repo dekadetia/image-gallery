@@ -17,6 +17,16 @@ import Loader from '../../components/loader/loader'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
+function dedupeById(items) {
+  const seen = new Set();
+  return items.filter(item => {
+    const key = item.id || item.src; // fallback to src if id missing
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
@@ -123,7 +133,7 @@ const newSlides = images.map(photo => {
       const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images-no-limit`)
       const data = await res.json()
       if (data.success) {
-        setFullImages(data.images)
+        setFullImages(dedupeById(data.images))
       }
     } catch (error) {
       console.error('Error preloading all images:', error)
@@ -300,15 +310,17 @@ const newSlides = images.map(photo => {
         return;
       }
 
-      setImages(fuseResults)
-      setSlides(fuseResults.map(photo => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-        director: photo.director
-      })))
+const dedupedResults = dedupeById(fuseResults)
+setImages(dedupedResults)
+setSlides(dedupedResults.map(photo => ({
+  src: photo.src,
+  width: 1080 * 4,
+  height: 1620 * 4,
+  title: photo.caption,
+  description: photo.dimensions,
+  director: photo.director
+})))
+
     }, 300)
   }, [searchQuery])
 
@@ -321,15 +333,16 @@ const newSlides = images.map(photo => {
         body: JSON.stringify({ queryText })
       })
       const data = await res.json()
-      setImages(data.results)
-      setSlides(data.results.map(photo => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-        director: photo.director
-      })))
+const dedupedResults = dedupeById(data.results)
+setImages(dedupedResults)
+setSlides(dedupedResults.map(photo => ({
+  src: photo.src,
+  width: 1080 * 4,
+  height: 1620 * 4,
+  title: photo.caption,
+  description: photo.dimensions,
+  director: photo.director
+})))
     } catch (err) {
       console.error('Backend search failed:', err)
     } finally {
