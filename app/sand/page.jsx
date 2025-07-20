@@ -7,7 +7,6 @@ import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
-console.log("🔥 Using YARL version:", Lightbox.version || "unknown");
 import Video from 'yet-another-react-lightbox/plugins/video'
 import Footer from '../../components/Footer'
 import Fuse from 'fuse.js'
@@ -83,26 +82,15 @@ export default function Order() {
               title: photo.caption,
               description: photo.dimensions,
               director: photo.director,
-              sources: [
-                {
-                  src: photo.src,
-                  type: 'video/webm'
-                }
-              ],
+              sources: [{
+                src: photo.src,
+                type: 'video/webm'
+              }],
               poster: '/assets/transparent.png',
               autoPlay: true,
               muted: true,
               loop: true,
-              controls: false,
-              className: 'yarl__slide_image',
-              style: {
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                display: 'block',
-                margin: '0 auto',
-                backgroundColor: 'transparent'
-              }
+              controls: false
             }
           } else {
             return {
@@ -154,10 +142,7 @@ export default function Order() {
     if (searchQuery.trim()) return
     if (order_key === 'alphaname') {
       sortImages(order_key, order_value, null, null, 99, nextPageToken)
-    } else if (
-      order_key === 'year' &&
-      order_key_2 === 'alphaname'
-    ) {
+    } else if (order_key === 'year' && order_key_2 === 'alphaname') {
       sortImages(order_key, order_value, order_key_2, order_value_2, 99, nextPageToken)
     } else {
       getImages(nextPageToken)
@@ -245,55 +230,17 @@ export default function Order() {
               close={() => setIndex(-1)}
               plugins={[Video]}
               render={{
-                slide: ({ slide, rect }) => {
-                  const slideClass = slide.type === 'video' ? 'yarl__slide yarl__slide--video' : 'yarl__slide'
-                  if (slide.type === 'video') {
-                    return (
-                      <video
-                        src={slide.sources?.[0]?.src || slide.src}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        className={`${slideClass}_image`}
-                        style={{
-                          maxWidth: rect.width,
-                          maxHeight: rect.height,
-                          objectFit: 'contain',
-                          display: 'block',
-                          margin: '0 auto',
-                          backgroundColor: 'transparent'
-                        }}
-                      />
-                    )
-                  }
-
-                  return (
-                    <img
-                      src={slide.src}
-                      alt={slide.title || ''}
-                      className={`${slideClass}_image`}
-                      style={{
-                        maxWidth: rect.width,
-                        maxHeight: rect.height,
-                        objectFit: 'contain'
-                      }}
-                    />
-                  )
-                },
                 slideFooter: ({ slide }) => (
-<div
-  className={cn(
-    "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
-    slide.type === 'video' && 'video-slide'
-  )}
->
-
+                  <div
+                    className={cn(
+                      "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
+                      slide.type === 'video' && 'relative top-auto bottom-unset'
+                    )}
+                  >
                     {slide.title && (
                       <div className="yarl__slide_title">{slide.title}</div>
                     )}
-                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                    <div className={cn("!space-y-0", slide.director && "!mb-5")}> 
                       {slide.director && (
                         <div className="yarl__slide_description !text-[#99AABB]">
                           <span className="font-medium">{slide.director}</span>
@@ -304,7 +251,7 @@ export default function Order() {
                       )}
                     </div>
                   </div>
-                ),
+                )
               }}
             />
           )}
