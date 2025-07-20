@@ -341,7 +341,7 @@ body.blackmode-hide-cursor * {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1279px) {
   .yarl__video_container {
     height: auto !important;
   }
