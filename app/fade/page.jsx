@@ -85,13 +85,15 @@ export default function FadeGallery() {
 if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
     const newSlots = poolRef.current.splice(0, 9);
 
-    // 🔥 Force a webm into slot 0 for testing
-    const forcedWebm = poolRef.current.find(img => img.src?.toLowerCase().endsWith('.webm'));
-    if (forcedWebm) {
-        newSlots[0] = forcedWebm;
-        // Remove it from pool to avoid showing twice
-        poolRef.current = poolRef.current.filter(img => img !== forcedWebm);
-    }
+    // 🛠 Force slot 0 to use your specific webm
+    newSlots[0] = {
+        id: 'forced-webm',
+        src: 'https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/images%2F00000.la.verite.1960.webm?alt=media&token=fa950885-59ff-42a7-9929-67134c7a27ca',
+        caption: 'La Vérité (1960)',
+        dimensions: '1920x1080',
+        director: 'Henri-Georges Clouzot',
+        year: '1960'
+    };
 
     setSlots(newSlots);
     isInitialLoad.current = false;
