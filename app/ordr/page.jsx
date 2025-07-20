@@ -33,12 +33,10 @@ export default function Order() {
   const [hasMore, setHasMore] = useState(true)
   const [loader, __loader] = useState(true)
   const [sort_loader, __sort_loader] = useState(true)
-
   const [order_key, __order_key] = useState(null)
   const [order_value, __order_value] = useState(null)
   const [order_key_2, __order_key_2] = useState(null)
   const [order_value_2, __order_value_2] = useState(null)
-
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const debounceRef = useRef(null)
@@ -82,7 +80,10 @@ export default function Order() {
               title: photo.caption,
               description: photo.dimensions,
               director: photo.director,
-              sources: [{ src: photo.src, type: 'video/webm' }],
+              sources: [{
+                src: photo.src,
+                type: 'video/webm'
+              }],
               poster: '/assets/transparent.png',
               autoPlay: true,
               muted: true,
@@ -174,8 +175,41 @@ export default function Order() {
           <Link href={'/'}>
             <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
           </Link>
-          {/* Search & Sort */}
-          {/* ... (unchanged UI code for search, sort, etc.) */}
+          <div className="flex gap-[2.3rem] items-center -mt-[2px]">
+            <BsSortAlphaDown
+              className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+              onClick={() => {
+                clearValues().then(() => {
+                  __loader(true)
+                  sortImages('alphaname', 'asc', null, null, Images.length, null)
+                })
+              }}
+            />
+            <div onClick={() => setSearchOpen(true)}>
+              <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+            </div>
+            {!isSorted ? (
+              <TbClockDown
+                className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                onClick={() => {
+                  clearValues().then(() => {
+                    __loader(true)
+                    sortImages('year', 'desc', 'alphaname', 'asc', Images.length, null)
+                  })
+                }}
+              />
+            ) : (
+              <TbClockUp
+                className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                onClick={() => {
+                  clearValues().then(() => {
+                    __loader(true)
+                    sortImages('year', 'asc', 'alphaname', 'asc', Images.length, null)
+                  })
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -186,7 +220,9 @@ export default function Order() {
             dataLength={Images.length}
             next={loadMoreByCondition}
             hasMore={hasMore}
-            loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
+            loader={
+              !searchQuery.trim() && hasMore ? <MoreImageLoader /> : null
+            }
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
@@ -226,7 +262,9 @@ export default function Order() {
               render={{
                 slideFooter: ({ slide }) => (
                   <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-                    {slide.title && <div className="yarl__slide_title">{slide.title}</div>}
+                    {slide.title && (
+                      <div className="yarl__slide_title">{slide.title}</div>
+                    )}
                     <div className={cn("!space-y-0", slide.director && "!mb-5")}>
                       {slide.director && (
                         <div className="yarl__slide_description !text-[#99AABB]">
