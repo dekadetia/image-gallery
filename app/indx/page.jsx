@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 
 import Lightbox from "yet-another-react-lightbox";
-
+import Video from 'yet-another-react-lightbox/plugins/video'
 import Footer from "../../components/Footer";
 import Fuse from 'fuse.js';
 import { BsSortAlphaDown } from "react-icons/bs";
@@ -61,19 +61,43 @@ export default function Index() {
         console.log(images)
         setImages(images);
 
-        const newSlides = images.map((photo) => {
-          const width = 1080 * 4;
-          const height = 1620 * 4;
-          return {
-            src: photo.src,
-            width,
-            height,
-            title: `${photo.caption}`,
-            description: photo.dimensions,
-            director: photo.director || null,
-            year: photo.year
-          };
-        });
+const newSlides = images.map((photo) => {
+  const width = 1080 * 4;
+  const height = 1620 * 4;
+
+  if (photo.src.toLowerCase().includes('.webm')) {
+    return {
+      type: 'video',
+      width,
+      height,
+      title: `${photo.caption}`,
+      description: photo.dimensions,
+      director: photo.director || null,
+      year: photo.year,
+      sources: [{
+        src: photo.src,
+        type: 'video/webm'
+      }],
+      poster: '/assets/transparent.png',
+      autoPlay: true,
+      muted: true,
+      loop: true,
+      controls: false
+    };
+  } else {
+    return {
+      type: 'image',
+      src: photo.src,
+      width,
+      height,
+      title: `${photo.caption}`,
+      description: photo.dimensions,
+      director: photo.director || null,
+      year: photo.year
+    };
+  }
+});
+
 
         setSlides((prevSlides) => [...prevSlides, ...newSlides]);
       }
@@ -339,14 +363,18 @@ useEffect(() => {
         )}
 
         {slides && (
-          <Lightbox
-            index={index}
-            slides={slides}
-            open={index >= 0}
-            close={() => setIndex(-1)}
-            render={{
-              slideFooter: ({ slide }) => (
-                <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+<Lightbox
+  index={index}
+  slides={slides}
+  open={index >= 0}
+  close={() => setIndex(-1)}
+  plugins={[Video]}
+  render={{
+    slideFooter: ({ slide }) => (
+<div className={cn(
+  "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
+  slide.type === 'video' && 'relative top-auto bottom-unset'
+)}>
                   {slide.title && (
                     <div className="yarl__slide_title">{slide.title}</div>
                   )}
