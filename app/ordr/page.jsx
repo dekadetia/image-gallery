@@ -7,6 +7,7 @@ import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown, TbClockUp } from 'react-icons/tb'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import Lightbox from 'yet-another-react-lightbox'
+import Video from 'yet-another-react-lightbox/plugins/video'
 import Footer from '../../components/Footer'
 import Fuse from 'fuse.js'
 import MoreImageLoader from '../../components/MoreImageLoader'
@@ -72,14 +73,38 @@ export default function Order() {
           return [...prevImages, ...uniqueImages]
         })
 
-        const newSlides = images.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director
-        }))
+const newSlides = images.map(photo => {
+  if (photo.src.includes('.webm')) {
+    return {
+      type: 'video',
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: photo.caption,
+      description: photo.dimensions,
+      director: photo.director,
+      sources: [{
+        src: photo.src,
+        type: 'video/webm'
+      }],
+      poster: '/assets/transparent.png',
+      autoPlay: true,
+      muted: true,
+      loop: true,
+      controls: false
+    }
+  } else {
+    return {
+      type: 'image',
+      src: photo.src,
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: photo.caption,
+      description: photo.dimensions,
+      director: photo.director
+    }
+  }
+})
+
 
         setSlides(prevSlides => {
           const existingSrcs = new Set(prevSlides.map(slide => slide.src))
@@ -144,14 +169,38 @@ export default function Order() {
           return [...prevImages, ...uniqueImages]
         })
 
-        const newSlides = images.map(photo => ({
-          src: photo.src,
-          width: 1080 * 4,
-          height: 1620 * 4,
-          title: photo.caption,
-          description: photo.dimensions,
-          director: photo.director
-        }))
+const newSlides = images.map(photo => {
+  if (photo.src.includes('.webm')) {
+    return {
+      type: 'video',
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: photo.caption,
+      description: photo.dimensions,
+      director: photo.director,
+      sources: [{
+        src: photo.src,
+        type: 'video/webm'
+      }],
+      poster: '/assets/transparent.png',
+      autoPlay: true,
+      muted: true,
+      loop: true,
+      controls: false
+    }
+  } else {
+    return {
+      type: 'image',
+      src: photo.src,
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: photo.caption,
+      description: photo.dimensions,
+      director: photo.director
+    }
+  }
+})
+
 
         setSlides(prevSlides => {
           const existingSrcs = new Set(prevSlides.map(slide => slide.src))
@@ -375,27 +424,52 @@ export default function Order() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
                 <div key={i}>
-                  <img
-                    alt={photo.name}
-                    src={photo.src}
-                    onClick={() => setIndex(i)}
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                  />
+{photo.src.includes('.webm') ? (
+  <video
+    src={photo.src}
+    muted
+    autoPlay
+    loop
+    playsInline
+    preload="metadata"
+    poster="/assets/transparent.png"
+    onClick={() => setIndex(i)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+    style={{
+      display: 'block',
+      width: '100%',
+      height: 'auto',
+      backgroundColor: 'transparent'
+    }}
+  />
+) : (
+  <img
+    alt={photo.name}
+    src={photo.src}
+    onClick={() => setIndex(i)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+  />
+)}
+
                 </div>
               ))}
             </div>
           </InfiniteScroll>
 
           {slides && (
-            <Lightbox
-              index={index}
-              slides={slides}
-              open={index >= 0}
-              close={() => setIndex(-1)}
-              render={{
-                slideFooter: ({ slide }) => (
-                  <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-                    {slide.title && (
+<Lightbox
+  index={index}
+  slides={slides}
+  open={index >= 0}
+  close={() => setIndex(-1)}
+  plugins={[Video]}
+  render={{
+    slideFooter: ({ slide }) => (
+<div className={cn(
+  "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
+  slide.type === 'video' && 'relative top-auto bottom-unset'
+)}>
+  {slide.title && (
                       <div className="yarl__slide_title">{slide.title}</div>
                     )}
                     <div className={cn("!space-y-0", slide.director && "!mb-5")}>
