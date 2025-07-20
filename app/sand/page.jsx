@@ -353,29 +353,36 @@ const newSlides = images.map(photo => {
             loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-              {Images.map((photo, i) => (
-                <div key={i}>
-                  {photo.src.includes('.webm') ? (
-  <video
-    src={photo.src}
-    muted
-    playsInline
-    preload="metadata"
-    onClick={() => setIndex(i)}
-    className="aspect-[16/9] object-cover cursor-zoom-in"
-    style={{ display: 'block', width: '100%', height: 'auto' }}
-  />
-) : (
-  <img
-    alt={photo.name}
-    src={photo.src}
-    onClick={() => setIndex(i)}
-    className="aspect-[16/9] object-cover cursor-zoom-in"
-  />
-)}
+          {Images.map((photo, i) => (
+  <div key={i}>
+    {photo.src.includes('.webm') ? (
+      <video
+        src={photo.src}
+        muted
+        autoPlay
+        loop
+        playsInline
+        preload="metadata"
+        onClick={() => setIndex(i)}
+        className="aspect-[16/9] object-cover cursor-zoom-in"
+        style={{
+          display: 'block',
+          width: '100%',
+          height: 'auto',
+          backgroundColor: 'black' // fallback for transparency
+        }}
+      />
+    ) : (
+      <img
+        alt={photo.name}
+        src={photo.src}
+        onClick={() => setIndex(i)}
+        className="aspect-[16/9] object-cover cursor-zoom-in"
+      />
+    )}
+  </div>
+))}
 
-                </div>
-              ))}
             </div>
           </InfiniteScroll>
 
