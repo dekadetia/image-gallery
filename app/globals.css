@@ -341,15 +341,3 @@ body.blackmode-hide-cursor * {
   }
 }
 
-
-.yarl-slide-content {
-    position: relative !important;
-    bottom: unset !important;
-    top: auto !important;
-    padding-bottom: 1rem !important; /* spacing under image */
-    margin-top: 0 !important;        /* no overlap with image */
-    width: 100% !important;
-    text-align: left !important;
-}
-
-
