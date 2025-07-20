@@ -327,7 +327,6 @@ export default function Order() {
     }
   }
 
-  // Force Lightbox to recalculate layout when video metadata loads
   useEffect(() => {
     const videoEls = document.querySelectorAll('video.yarl__slide_image')
     videoEls.forEach(video => {
@@ -367,22 +366,29 @@ export default function Order() {
               {Images.map((photo, i) => (
                 <div key={i}>
                   {photo.src.includes('.webm') ? (
-                    <video
-                      src={photo.src}
-                      muted
-                      autoPlay
-                      loop
-                      playsInline
-                      preload="metadata"
+                    <div
+                      className="aspect-[16/9] bg-black cursor-zoom-in"
                       onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
                       style={{
-                        display: 'block',
-                        width: '100%',
-                        height: 'auto',
-                        backgroundColor: 'black'
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
                       }}
-                    />
+                    >
+                      <video
+                        src={photo.src}
+                        muted
+                        autoPlay
+                        loop
+                        playsInline
+                        preload="metadata"
+                        className="object-cover w-full h-full"
+                        style={{
+                          display: 'block',
+                          backgroundColor: 'black'
+                        }}
+                      />
+                    </div>
                   ) : (
                     <img
                       alt={photo.name}
