@@ -153,6 +153,8 @@ export default function Page() {
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           console.log("File available at", downloadURL);
+const fileName = image.name; // Grab original filename
+
 
           // Send metadata + file URL to backend
           const response = await fetch(
@@ -162,15 +164,18 @@ export default function Page() {
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                caption,
-                director,
-                photographer,
-                year,
-                alphaname,
-                dimensions,
-                fileURL: downloadURL,
-              }),
+body: JSON.stringify({
+  caption,
+  director,
+  photographer,
+  year,
+  alphaname,
+  dimensions,
+  fileURL: downloadURL,
+  name: fileName,               // <-- ADD this
+  contentType: image.type,      // <-- ADD this
+  size: image.size              // <-- ADD this
+}),
             }
           );
 
