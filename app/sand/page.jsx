@@ -98,14 +98,14 @@ const newSlides = images.map(photo => {
       loop: true,      // 🔥 Loop video playback
       controls: false, // 🔥 Hide controls
       className: 'yarl__slide_image', // 🔥 Force same styles as images
-     style: {{
+     style: {
   maxWidth: '100%',
   height: 'auto',
   objectFit: 'contain',
   display: 'block',
   margin: '0 auto',
   backgroundColor: 'black'
-}}
+}
 
     }
   } else {
