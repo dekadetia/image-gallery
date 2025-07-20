@@ -82,11 +82,21 @@ export default function FadeGallery() {
 
                 setSlides((prev) => [...prev, ...newSlides]);
 
-                if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
-                    const newSlots = poolRef.current.splice(0, 9);
-                    setSlots(newSlots);
-                    isInitialLoad.current = false;
-                }
+if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.current.length >= 9) {
+    const newSlots = poolRef.current.splice(0, 9);
+
+    // 🔥 Force a webm into slot 0 for testing
+    const forcedWebm = poolRef.current.find(img => img.src?.toLowerCase().endsWith('.webm'));
+    if (forcedWebm) {
+        newSlots[0] = forcedWebm;
+        // Remove it from pool to avoid showing twice
+        poolRef.current = poolRef.current.filter(img => img !== forcedWebm);
+    }
+
+    setSlots(newSlots);
+    isInitialLoad.current = false;
+}
+
             }
         } catch (err) {
             console.error('Failed to fetch fade images:', err);
