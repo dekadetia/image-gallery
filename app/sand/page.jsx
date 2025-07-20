@@ -356,8 +356,8 @@ const newSlides = images.map(photo => {
           {Images.map((photo, i) => (
   <div key={i}>
     {photo.src.includes('.webm') ? (
-      <video
-  src={slide.sources?.[0]?.src || slide.src}
+<video
+  src={slide?.sources?.[0]?.src || slide?.src || ''}
   autoPlay
   muted
   loop
