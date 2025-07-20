@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Lightbox from 'yet-another-react-lightbox'
 import Video from 'yet-another-react-lightbox/plugins/video'
 import Link from 'next/link'
+import { motion } from 'framer-motion';
 import { IoMdShuffle } from 'react-icons/io'
 import { RxDoubleArrowUp, RxCross1 } from 'react-icons/rx'
 import { IoMoonOutline } from 'react-icons/io5'
