@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { storage } from "../utils/firebaseClient";
+import { storage } from "../../utils/firebaseClient";
 import MoreImageLoader from "../../components/MoreImageLoader/index";
 import "react-toastify/dist/ReactToastify.css";
 import { MdDelete, MdEdit } from "react-icons/md";
