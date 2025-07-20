@@ -98,14 +98,15 @@ const newSlides = images.map(photo => {
       loop: true,      // 🔥 Loop video playback
       controls: false, // 🔥 Hide controls
       className: 'yarl__slide_image', // 🔥 Force same styles as images
-      style: {         // 🔥 Match image sizing
-        maxWidth: '100%',
-        maxHeight: '100%',
-        objectFit: 'contain',
-        display: 'block',
-        margin: '0 auto',
-        backgroundColor: 'black'
-      }
+     style={{
+  maxWidth: '100%',
+  height: 'auto',
+  objectFit: 'contain',
+  display: 'block',
+  margin: '0 auto',
+  backgroundColor: 'black'
+}}
+
     }
   } else {
     console.log("🖼️ Detected as image:", photo.src)
