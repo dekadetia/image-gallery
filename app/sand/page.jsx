@@ -464,11 +464,7 @@ slideFooter: ({ slide }) => {
       </div>
     </div>
   )
-}
-}
-/>
-
-
+},
           )}
         </div>
       ) : (
