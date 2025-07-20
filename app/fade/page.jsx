@@ -199,10 +199,36 @@ if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.curre
         }
     }, [hideCursor, blackMode]);
 
-    const handleImageClick = (imageSrc) => {
-        const idx = slides.findIndex(slide => slide.src === imageSrc);
-        if (idx !== -1) setIndex(idx);
-    };
+const handleImageClick = (imageSrc) => {
+    let idx = slides.findIndex(slide => slide.src === imageSrc);
+
+    // 🛠 If not found and it’s a webm, build Lightbox object on the fly
+    if (idx === -1 && imageSrc?.toLowerCase().includes('.webm')) {
+        const videoSlide = {
+            type: 'video',
+            width: 1080 * 4,
+            height: 1620 * 4,
+            title: 'Video',
+            description: '',
+            director: null,
+            year: null,
+            sources: [{
+                src: imageSrc,
+                type: 'video/webm'
+            }],
+            poster: '/assets/transparent.png',
+            autoPlay: true,
+            muted: true,
+            loop: true,
+            controls: false
+        };
+        setSlides(prev => [...prev, videoSlide]);
+        idx = slides.length; // new item is at end
+    }
+
+    if (idx !== -1) setIndex(idx);
+};
+
 
     return (
         <RootLayout>
