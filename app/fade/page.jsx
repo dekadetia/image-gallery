@@ -314,99 +314,107 @@ function FadeSlot({ image }) {
     const [currentImage, setCurrentImage] = useState(image);
     const [previousImage, setPreviousImage] = useState(null);
 
-useEffect(() => {
-    if (!image || image.id === currentImage?.id) return;
-
-    if ((image?.src ?? '').toLowerCase().includes('.webm')) {
-        // Preload video metadata
-        const preload = document.createElement('video');
-        preload.src = image.src;
-        preload.preload = 'metadata';
-        preload.muted = true; // Silence autoplay preload
-        preload.playsInline = true;
-        preload.onloadeddata = () => {
-            setPreviousImage(currentImage);
-            setCurrentImage(image);
-        };
-    } else {
-        // Preload image as before
-        const preload = new Image();
-        preload.src = image.src;
-        preload.onload = () => {
-            setPreviousImage(currentImage);
-            setCurrentImage(image);
-        };
+    // 🛡 Guard: If no image yet, render an empty placeholder
+    if (!image || !image.src) {
+        return <div className="relative w-full h-full"></div>;
     }
-}, [image?.id]);
 
-// 🩹 MutationObserver to remove title="Close"
-useEffect(() => {
-    const observer = new MutationObserver(() => {
-        document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
-            btn.removeAttribute('title');
+    useEffect(() => {
+        if (!image || !image.src || image.id === currentImage?.id) return;
+
+        if ((image?.src ?? '').toLowerCase().includes('.webm')) {
+            // Preload video metadata
+            const preload = document.createElement('video');
+            preload.src = image.src;
+            preload.preload = 'metadata';
+            preload.muted = true;
+            preload.playsInline = true;
+            preload.onloadeddata = () => {
+                setPreviousImage(currentImage);
+                setCurrentImage(image);
+            };
+        } else {
+            // Preload image
+            const preload = new Image();
+            preload.src = image.src;
+            preload.onload = () => {
+                setPreviousImage(currentImage);
+                setCurrentImage(image);
+            };
+        }
+    }, [image?.id]);
+
+    // 🩹 MutationObserver to remove title="Close"
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+                btn.removeAttribute('title');
+            });
         });
-    });
+        observer.observe(document.body, { childList: true, subtree: true });
+        return () => observer.disconnect();
+    }, []);
 
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    return () => observer.disconnect();
-}, []);
     return (
-        <div className='relative w-full h-full'>
-{(previousImage?.src ?? '').toLowerCase().includes('.webm') ? (
-    <motion.video
-        key={previousImage.id}
-        src={previousImage.src}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster="/assets/transparent.png"
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: 2, ease: 'easeInOut' }}
-        className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
-    />
-) : (
-    <motion.img
-        key={previousImage.id}
-        src={previousImage.src}
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: 2, ease: 'easeInOut' }}
-        className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
-        alt=''
-    />
-)}
+        <div className="relative w-full h-full">
+            {(previousImage?.src ?? '').toLowerCase().includes('.webm') ? (
+                <motion.video
+                    key={previousImage.id}
+                    src={previousImage.src}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    poster="/assets/transparent.png"
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 0 }}
+                    transition={{ duration: 2, ease: 'easeInOut' }}
+                    className="absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]"
+                />
+            ) : (
+                previousImage?.src && (
+                    <motion.img
+                        key={previousImage.id}
+                        src={previousImage.src}
+                        initial={{ opacity: 1 }}
+                        animate={{ opacity: 0 }}
+                        transition={{ duration: 2, ease: 'easeInOut' }}
+                        className="absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]"
+                        alt=""
+                    />
+                )
+            )}
 
-{(currentImage?.src ?? '').toLowerCase().includes('.webm') ? (
-    <motion.video
-        key={currentImage.id}
-        src={currentImage.src}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster="/assets/transparent.png"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 2, ease: 'easeInOut' }}
-        className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
-    />
-) : (
-    <motion.img
-        key={currentImage.id}
-        src={currentImage.src}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 2, ease: 'easeInOut' }}
-        className='absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]'
-        alt=''
-    />
-)}
-
+            {(currentImage?.src ?? '').toLowerCase().includes('.webm') ? (
+                <motion.video
+                    key={currentImage.id}
+                    src={currentImage.src}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    poster="/assets/transparent.png"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 2, ease: 'easeInOut' }}
+                    className="absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]"
+                />
+            ) : (
+                currentImage?.src && (
+                    <motion.img
+                        key={currentImage.id}
+                        src={currentImage.src}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 2, ease: 'easeInOut' }}
+                        className="absolute top-0 left-0 h-full w-full object-cover aspect-[16/9]"
+                        alt=""
+                    />
+                )
+            )}
         </div>
     );
 }
+
