@@ -202,16 +202,18 @@ if (isInitialLoad.current && slots.every(slot => slot === null) && poolRef.curre
 const handleImageClick = (imageSrc) => {
     let idx = slides.findIndex(slide => slide.src === imageSrc);
 
-    // 🛠 If not found and it’s a webm, build Lightbox object on the fly
     if (idx === -1 && imageSrc?.toLowerCase().includes('.webm')) {
+        // Try to find full metadata from poolRef
+        const photo = poolRef.current.find(p => p.src === imageSrc);
+
         const videoSlide = {
             type: 'video',
             width: 1080 * 4,
             height: 1620 * 4,
-            title: 'Video',
-            description: '',
-            director: null,
-            year: null,
+            title: photo?.caption || 'Video',
+            description: photo?.dimensions || '',
+            director: photo?.director || null,
+            year: photo?.year || null,
             sources: [{
                 src: imageSrc,
                 type: 'video/webm'
@@ -222,12 +224,14 @@ const handleImageClick = (imageSrc) => {
             loop: true,
             controls: false
         };
+
         setSlides(prev => [...prev, videoSlide]);
-        idx = slides.length; // new item is at end
+        idx = prev.length; // Index of newly pushed slide
     }
 
     if (idx !== -1) setIndex(idx);
 };
+
 
 
     return (
