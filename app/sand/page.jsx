@@ -74,58 +74,52 @@ export default function Order() {
           return [...prevImages, ...uniqueImages]
         })
 
-const newSlides = images.map(photo => {
-  console.log("🪵 Processing photo.src:", photo.src)
+        const newSlides = images.map(photo => {
+          console.log("🪵 Processing photo.src:", photo.src)
 
-  if (photo.src.includes('.webm')) { // 🔥 Match anywhere in URL
-    console.log("🎥 Detected as video:", photo.src)
-    return {
-      type: 'video',
-      width: 1080 * 4,
-      height: 1620 * 4,
-      title: photo.caption,
-      description: photo.dimensions,
-      director: photo.director,
-      sources: [
-        {
-          src: photo.src,
-          type: 'video/webm'
-        }
-      ],
-      poster: '',      // Optional placeholder image
-      autoPlay: true,  // 🔥 Auto-play video
-      muted: true,     // 🔥 Start muted for autoplay compliance
-      loop: true,      // 🔥 Loop video playback
-      controls: false, // 🔥 Hide controls
-      className: 'yarl__slide_image', // 🔥 Force same styles as images
-     style: {
-  maxWidth: '100%',
-  height: 'auto',
-  objectFit: 'contain',
-  display: 'block',
-  margin: '0 auto',
-  backgroundColor: 'black'
-}
-
-    }
-  } else {
-    console.log("🖼️ Detected as image:", photo.src)
-    return {
-      type: 'image',
-      src: photo.src,
-      width: 1080 * 4,
-      height: 1620 * 4,
-      title: photo.caption,
-      description: photo.dimensions,
-      director: photo.director
-    }
-  }
-})
-
-
-
-
-
+          if (photo.src.includes('.webm')) {
+            console.log("🎥 Detected as video:", photo.src)
+            return {
+              type: 'video',
+              width: 1080 * 4,
+              height: 1620 * 4,
+              title: photo.caption,
+              description: photo.dimensions,
+              director: photo.director,
+              sources: [
+                {
+                  src: photo.src,
+                  type: 'video/webm'
+                }
+              ],
+              poster: '',
+              autoPlay: true,
+              muted: true,
+              loop: true,
+              controls: false,
+              className: 'yarl__slide_image',
+              style: {
+                maxWidth: '100%',
+                height: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+                margin: '0 auto',
+                backgroundColor: 'black'
+              }
+            }
+          } else {
+            console.log("🖼️ Detected as image:", photo.src)
+            return {
+              type: 'image',
+              src: photo.src,
+              width: 1080 * 4,
+              height: 1620 * 4,
+              title: photo.caption,
+              description: photo.dimensions,
+              director: photo.director
+            }
+          }
+        })
 
         setSlides(prevSlides => {
           const existingSrcs = new Set(prevSlides.map(slide => slide.src))
@@ -333,6 +327,22 @@ const newSlides = images.map(photo => {
     }
   }
 
+  // Force Lightbox to recalculate layout when video metadata loads
+  useEffect(() => {
+    const videoEls = document.querySelectorAll('video.yarl__slide_image')
+    videoEls.forEach(video => {
+      video.addEventListener('loadedmetadata', () => {
+        video.style.height = `${video.videoHeight}px`
+        video.style.width = `${video.videoWidth}px`
+      })
+    })
+    return () => {
+      videoEls.forEach(video => {
+        video.removeEventListener('loadedmetadata', () => {})
+      })
+    }
+  }, [index])
+
   return (
     <RootLayout>
       {/* Navigation */}
@@ -354,117 +364,110 @@ const newSlides = images.map(photo => {
             loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-          {Images.map((photo, i) => (
-  <div key={i}>
-    {photo.src.includes('.webm') ? (
-      <video
-        src={photo.src}
-        muted
-        autoPlay
-        loop
-        playsInline
-        preload="metadata"
-        onClick={() => setIndex(i)}
-        className="aspect-[16/9] object-cover cursor-zoom-in"
-        style={{
-          display: 'block',
-          width: '100%',
-          height: 'auto',
-          backgroundColor: 'black' // fallback for transparency
-        }}
-      />
-    ) : (
-      <img
-        alt={photo.name}
-        src={photo.src}
-        onClick={() => setIndex(i)}
-        className="aspect-[16/9] object-cover cursor-zoom-in"
-      />
-    )}
-  </div>
-))}
-
+              {Images.map((photo, i) => (
+                <div key={i}>
+                  {photo.src.includes('.webm') ? (
+                    <video
+                      src={photo.src}
+                      muted
+                      autoPlay
+                      loop
+                      playsInline
+                      preload="metadata"
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        height: 'auto',
+                        backgroundColor: 'black'
+                      }}
+                    />
+                  ) : (
+                    <img
+                      alt={photo.name}
+                      src={photo.src}
+                      onClick={() => setIndex(i)}
+                      className="aspect-[16/9] object-cover cursor-zoom-in"
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           </InfiniteScroll>
 
           {slides && (
-         <Lightbox
-  index={index}
-  slides={slides}
-  open={index >= 0}
-  close={() => setIndex(-1)}
-  plugins={[Video]}
- render={{
-  slide: ({ slide, rect }) => {
-    if (slide.type === 'video') {
-      return (
-        <div
-          style={{
-            position: 'relative',
-            width: '100%',
-            paddingTop: `${(rect.height / rect.width) * 100}%`,
-            backgroundColor: 'black',
-            margin: '0 auto'
-          }}
-        >
-          <video
-            src={slide.sources?.[0]?.src || slide.src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="yarl__slide_image"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              backgroundColor: 'black'
-            }}
-          />
-        </div>
-      )
-    }
+            <Lightbox
+              index={index}
+              slides={slides}
+              open={index >= 0}
+              close={() => setIndex(-1)}
+              plugins={[Video]}
+              render={{
+                slide: ({ slide, rect }) => {
+                  if (slide.type === 'video') {
+                    return (
+                      <div
+                        style={{
+                          width: rect.width,
+                          height: rect.height,
+                          margin: '0 auto',
+                          backgroundColor: 'black',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <video
+                          src={slide.sources?.[0]?.src || slide.src}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          preload="auto"
+                          className="yarl__slide_image"
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      </div>
+                    )
+                  }
 
-    return (
-      <img
-        src={slide.src}
-        alt={slide.title || ''}
-        className="yarl__slide_image"
-        style={{
-          maxWidth: rect.width,
-          maxHeight: rect.height,
-          objectFit: 'contain'
-        }}
-      />
-    )
-  },
-  slideFooter: ({ slide }) => (
-    <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
-      {slide.title && (
-        <div className="yarl__slide_title">{slide.title}</div>
-      )}
-      <div className={cn("!space-y-0", slide.director && "!mb-5")}>
-        {slide.director && (
-          <div className="yarl__slide_description !text-[#99AABB]">
-            <span className="font-medium">{slide.director}</span>
-          </div>
-        )}
-        {slide.description && (
-          <div className="yarl__slide_description">{slide.description}</div>
-        )}
-      </div>
-    </div>
-  )
-}}
-
-
-/>
-
-
+                  return (
+                    <img
+                      src={slide.src}
+                      alt={slide.title || ''}
+                      className="yarl__slide_image"
+                      style={{
+                        maxWidth: rect.width,
+                        maxHeight: rect.height,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  )
+                },
+                slideFooter: ({ slide }) => (
+                  <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+                    {slide.title && (
+                      <div className="yarl__slide_title">{slide.title}</div>
+                    )}
+                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                      {slide.director && (
+                        <div className="yarl__slide_description !text-[#99AABB]">
+                          <span className="font-medium">{slide.director}</span>
+                        </div>
+                      )}
+                      {slide.description && (
+                        <div className="yarl__slide_description">{slide.description}</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }}
+            />
           )}
         </div>
       ) : (
