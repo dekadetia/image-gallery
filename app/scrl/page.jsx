@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Lightbox from 'yet-another-react-lightbox';
+import Video from 'yet-another-react-lightbox/plugins/video';
 import Link from 'next/link';
 import { IoMdShuffle } from 'react-icons/io';
 import { RxDoubleArrowUp, RxCross1 } from 'react-icons/rx';
@@ -33,15 +34,41 @@ export default function Scrl() {
   const wasCalled = useRef(false);
   const seenImageIds = useRef(new Set());
 
-  const slides = Images.map(photo => ({
-    src: photo.src,
-    width: 1080 * 4,
-    height: 1620 * 4,
-    title: `${photo.caption}`,
-    description: photo.dimensions,
-    director: photo.director || null,
-    year: photo.year
-  }));
+const slides = Images.map(photo => {
+  const src = photo.src ?? '';
+  if (src.toLowerCase().includes('.webm')) {
+    return {
+      type: 'video',
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: `${photo.caption}`,
+      description: photo.dimensions,
+      director: photo.director || null,
+      year: photo.year,
+      sources: [{
+        src,
+        type: 'video/webm'
+      }],
+      poster: '/assets/transparent.png',
+      autoPlay: true,
+      muted: true,
+      loop: true,
+      controls: false
+    };
+  } else {
+    return {
+      type: 'image',
+      src,
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: `${photo.caption}`,
+      description: photo.dimensions,
+      director: photo.director || null,
+      year: photo.year
+    };
+  }
+});
+
 
   const getImages = async load => {
     if (load !== 'load more') {
@@ -310,13 +337,34 @@ useEffect(() => {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map(photo => (
                 <div key={photo.id}>
-                  <img
-                    alt={photo.name}
-                    src={photo.src}
-                    onClick={() => handleImageClick(photo.id)}
-                    className="aspect-[16/9] object-cover cursor-zoom-in"
-                    decoding="async"
-                  />
+{photo.src?.toLowerCase().includes('.webm') ? (
+  <video
+    src={photo.src}
+    onClick={() => handleImageClick(photo.id)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+    autoPlay
+    muted
+    loop
+    playsInline
+    preload="metadata"
+    poster="/assets/transparent.png"
+    style={{
+      display: 'block',
+      width: '100%',
+      height: 'auto',
+      backgroundColor: 'transparent'
+    }}
+  />
+) : (
+  <img
+    alt={photo.name}
+    src={photo.src}
+    onClick={() => handleImageClick(photo.id)}
+    className="aspect-[16/9] object-cover cursor-zoom-in"
+    decoding="async"
+  />
+)}
+
                 </div>
               ))}
             </div>
@@ -325,14 +373,18 @@ useEffect(() => {
       </div>
 
       {slides && (
-        <Lightbox
-          index={index}
-          slides={slides}
-          open={index >= 0}
-          close={handleCloseLightbox}
+<Lightbox
+  index={index}
+  slides={slides}
+  open={index >= 0}
+  close={handleCloseLightbox}
+  plugins={[Video]}
           render={{
             slideFooter: ({ slide }) => (
-              <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
+<div className={cn(
+  "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
+  slide.type === 'video' && 'relative top-auto bottom-unset'
+)}>
                 {slide.title && (
                   <div className="yarl__slide_title">{slide.title}</div>
                 )}
