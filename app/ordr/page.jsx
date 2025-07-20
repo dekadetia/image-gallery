@@ -155,26 +155,17 @@ export default function Order() {
     setSorted(true)
   }, [])
 
-  // 🩹 Fix mobile metadata positioning
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const containers = document.querySelectorAll('.yarl__video_container')
-      containers.forEach(container => {
-        if (window.innerWidth < 1280) {
-          container.style.height = 'auto'
-        }
-      })
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
-  }, [slides])
-
-  // 🩹 Remove YARL close titles
+  // Fix video container height on mobile
   useEffect(() => {
     if (!slides.length) return
     const observer = new MutationObserver(() => {
       document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
         btn.removeAttribute('title')
+      })
+      document.querySelectorAll('.yarl__video_container').forEach(container => {
+        if (window.innerWidth < 1280) {
+          container.style.height = 'auto'
+        }
       })
     })
     observer.observe(document.body, { childList: true, subtree: true })
@@ -215,6 +206,12 @@ export default function Order() {
                       poster="/assets/transparent.png"
                       onClick={() => setIndex(i)}
                       className="aspect-[16/9] object-cover cursor-zoom-in"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        height: 'auto',
+                        backgroundColor: 'transparent'
+                      }}
                     />
                   ) : (
                     <img
@@ -238,13 +235,13 @@ export default function Order() {
               plugins={[Video]}
               render={{
                 slideFooter: ({ slide }) => (
-                  <div className="yarl-slide-content">
+                  <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
                     {slide.title && (
                       <div className="yarl__slide_title">{slide.title}</div>
                     )}
                     <div className={cn("!space-y-0", slide.director && "!mb-5")}>
                       {slide.director && (
-                        <div className="yarl__slide_description">
+                        <div className="yarl__slide_description !text-[#99AABB]">
                           <span className="font-medium">{slide.director}</span>
                         </div>
                       )}
