@@ -357,21 +357,25 @@ const newSlides = images.map(photo => {
   <div key={i}>
     {photo.src.includes('.webm') ? (
       <video
-        src={photo.src}
-        muted
-        autoPlay
-        loop
-        playsInline
-        preload="metadata"
-        onClick={() => setIndex(i)}
-        className="aspect-[16/9] object-cover cursor-zoom-in"
-        style={{
-          display: 'block',
-          width: '100%',
-          height: 'auto',
-          backgroundColor: 'black' // fallback for transparency
-        }}
-      />
+  src={slide.sources?.[0]?.src || slide.src}
+  autoPlay
+  muted
+  loop
+  playsInline
+  preload="auto"
+  className="yarl__slide_image"
+  style={{
+    width: '100%',
+    height: 'auto',
+    maxWidth: rect.width,
+    maxHeight: rect.height,
+    objectFit: 'contain',
+    display: 'block',
+    margin: '0 auto',
+    backgroundColor: 'black'
+  }}
+/>
+
     ) : (
       <img
         alt={photo.name}
