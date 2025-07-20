@@ -394,18 +394,17 @@ const newSlides = images.map(photo => {
   open={index >= 0}
   close={() => setIndex(-1)}
   plugins={[Video]}
-  render={{
+ render={{
   slide: ({ slide, rect }) => {
-    console.log('🪵 YARL slide object:', slide);
-
     if (slide.type === 'video') {
-      console.log('🎥 Detected video slide:', slide);
       return (
         <div
           style={{
-            display: 'inline-block',
-            margin: '0 auto',
-            textAlign: 'center'
+            position: 'relative',
+            width: '100%',
+            paddingTop: `${(rect.height / rect.width) * 100}%`,
+            backgroundColor: 'black',
+            margin: '0 auto'
           }}
         >
           <video
@@ -417,18 +416,17 @@ const newSlides = images.map(photo => {
             preload="auto"
             className="yarl__slide_image"
             style={{
-              width: 'auto',
-              height: 'auto',
-              maxWidth: rect.width,
-              maxHeight: rect.height,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
               objectFit: 'contain',
-              display: 'inline-block',
-              verticalAlign: 'top',
               backgroundColor: 'black'
             }}
           />
         </div>
-      );
+      )
     }
 
     return (
@@ -442,7 +440,7 @@ const newSlides = images.map(photo => {
           objectFit: 'contain'
         }}
       />
-    );
+    )
   },
   slideFooter: ({ slide }) => (
     <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
@@ -462,6 +460,7 @@ const newSlides = images.map(photo => {
     </div>
   )
 }}
+
 
 />
 
