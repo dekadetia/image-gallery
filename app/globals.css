@@ -1,4 +1,4 @@
-@tailwind base; 
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -342,11 +342,12 @@ body.blackmode-hide-cursor * {
 }
 
 @media (max-width: 767px) {
-  .video-slide {
+  .yarl__slide {
     position: relative !important;
     bottom: unset !important;
     top: auto !important;
   }
 }
+
 
 
