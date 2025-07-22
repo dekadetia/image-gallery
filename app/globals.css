@@ -294,3 +294,9 @@ body.blackmode-hide-cursor * {
 .captions-container {
     text-wrap: stable;
 }
+
+video {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
