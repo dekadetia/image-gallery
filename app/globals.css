@@ -299,4 +299,5 @@ video {
   transform: translateZ(0);
   backface-visibility: hidden;
   will-change: transform;
+  transform: scale(1.0001);
 }
