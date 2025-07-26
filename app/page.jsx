@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react"; 
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Lightbox from "yet-another-react-lightbox";
 import Video from 'yet-another-react-lightbox/plugins/video'
