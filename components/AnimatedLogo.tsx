@@ -93,12 +93,19 @@ export default function AnimatedLogo() {
       if (longPressed) e.preventDefault();
     });
 
+    // Fix for back/forward nav (remount animation state)
+    const handlePageShow = () => {
+      window.location.reload();
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
     return () => {
       logo.removeEventListener('mouseenter', showAlt);
       logo.removeEventListener('mouseleave', reset);
       logo.removeEventListener('touchstart', () => {});
       logo.removeEventListener('touchend', () => {});
       logo.removeEventListener('contextmenu', () => {});
+      window.removeEventListener('pageshow', handlePageShow);
     };
   }, []);
 
