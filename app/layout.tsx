@@ -4,6 +4,7 @@ import "yet-another-react-lightbox/styles.css";
 import Script from "next/script";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import DynamicTitle from '../components/DynamicTitle';
 import { FIREBASE_APP } from "../firebase/firebase-config";
 import type { Metadata } from "next";
 
@@ -51,6 +52,7 @@ export default function RootLayout({ children }) {
         <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
       </head>
       <body className={inter.className}>
+        <DynamicTitle /> 
         <main>
           <ToastContainer />
         </main>
