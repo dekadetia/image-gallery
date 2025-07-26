@@ -1,126 +1,146 @@
 'use client'
-import { useEffect } from 'react';
-import gsap from 'gsap';
+import { useEffect } from 'react'
+import gsap from 'gsap'
 
 export default function AnimatedLogo() {
   useEffect(() => {
-    const logo = document.getElementById('logo');
-    if (!logo) return;
+    const logo = document.getElementById('logo')
+    if (!logo) return
 
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
       { y: 140 }, { y: -140 },
       { x: -120 }, { x: -120 }, { x: -120 }
-    ];
+    ]
     const enterDirs = [
       { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
       { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
-    ];
+    ]
 
-    let longPressed = false;
-    let longPressTimer;
-    let toggled = false;
+    let longPressed = false
+    let longPressTimer
+    let toggled = false
 
     const showAlt = () => {
       for (let i = 1; i <= 8; i++) {
-        gsap.to(`#letter_${i}`, {
-          duration: 0.5,
-          ...exitDirs[i - 1]
-        });
-        const finalLetter = document.getElementById(`letter_${i + 8}`);
-        finalLetter!.style.display = "inline";
-        gsap.fromTo(finalLetter!,
-          enterDirs[i - 1],
-          {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base && alt) {
+          gsap.to(base, {
             duration: 0.5,
-            x: 0,
-            y: 0
-          }
-        );
+            ...exitDirs[i - 1]
+          })
+
+          alt.style.display = 'inline'
+          gsap.fromTo(alt,
+            enterDirs[i - 1],
+            {
+              duration: 0.5,
+              x: 0,
+              y: 0
+            }
+          )
+        }
       }
-    };
+    }
 
     const reset = () => {
       for (let i = 1; i <= 8; i++) {
-        const finalLetter = document.getElementById(`letter_${i + 8}`);
-        gsap.to(finalLetter!, {
-          duration: 0.5,
-          ...enterDirs[i - 1],
-          onComplete: () => finalLetter!.style.display = "none"
-        });
-        gsap.to(`#letter_${i}`, {
-          duration: 0.5,
-          x: 0,
-          y: 0
-        });
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base) {
+          gsap.to(base, {
+            duration: 0.5,
+            x: 0,
+            y: 0
+          })
+        }
+
+        if (alt) {
+          gsap.to(alt, {
+            duration: 0.5,
+            ...enterDirs[i - 1],
+            onComplete: () => (alt.style.display = 'none')
+          })
+        }
       }
-    };
+    }
 
     const hardReset = () => {
       for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`) as HTMLElement;
-        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement;
-        if (base && alt) {
-          base.style.transform = '';
-          alt.style.transform = '';
-          alt.style.display = 'none';
+        const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+
+        if (base) {
+          base.style.display = 'inline'
+          base.style.transform = ''
+          gsap.set(base, { clearProps: 'all' })
+        }
+
+        if (alt) {
+          alt.style.display = 'none'
+          alt.style.transform = ''
+          gsap.set(alt, { clearProps: 'all' })
         }
       }
-      toggled = false;
-    };
+      toggled = false
+    }
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        requestAnimationFrame(() => {
-          setTimeout(hardReset, 0);
-        });
+        setTimeout(() => {
+          const logo = document.getElementById('logo')
+          if (logo) hardReset()
+        }, 50)
       }
-    };
+    }
 
     logo.addEventListener('mouseenter', () => {
-      showAlt();
-      toggled = true;
-    });
+      showAlt()
+      toggled = true
+    })
     logo.addEventListener('mouseleave', () => {
-      reset();
-      toggled = false;
-    });
+      reset()
+      toggled = false
+    })
 
     logo.addEventListener('touchstart', (e) => {
-      longPressed = false;
+      longPressed = false
       longPressTimer = setTimeout(() => {
-        longPressed = true;
+        longPressed = true
         if (toggled) {
-          reset();
+          reset()
         } else {
-          showAlt();
+          showAlt()
         }
-        toggled = !toggled;
-      }, 500);
-    });
+        toggled = !toggled
+      }, 500)
+    })
 
     logo.addEventListener('touchend', (e) => {
-      clearTimeout(longPressTimer);
+      clearTimeout(longPressTimer)
       if (longPressed) {
-        e.preventDefault(); // cancel link navigation
+        e.preventDefault()
       }
-    });
+    })
 
     logo.addEventListener('contextmenu', (e) => {
-      if (longPressed) e.preventDefault();
-    });
+      if (longPressed) e.preventDefault()
+    })
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      logo.removeEventListener('mouseenter', showAlt);
-      logo.removeEventListener('mouseleave', reset);
-      logo.removeEventListener('touchstart', () => {});
-      logo.removeEventListener('touchend', () => {});
-      logo.removeEventListener('contextmenu', () => {});
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
+      logo.removeEventListener('mouseenter', showAlt)
+      logo.removeEventListener('mouseleave', reset)
+      logo.removeEventListener('touchstart', () => {})
+      logo.removeEventListener('touchend', () => {})
+      logo.removeEventListener('contextmenu', () => {})
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   return (
     <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
