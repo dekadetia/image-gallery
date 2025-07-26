@@ -210,17 +210,20 @@ export default function FadeGallery() {
 
             {/* ❌ X */}
             {blackMode && (
-<motion.button
-  onClick={toggleAutosMode}
-  initial={{ opacity: 0, scale: 0.95 }}
-  animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
-  whileHover={{ opacity: 1 }}
-  transition={{ duration: 2, ease: 'easeInOut' }}
-  className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
-  aria-label="Exit AutosMode"
->
-  <RxCross1 />
-</motion.button>
+{blackMode && (
+  <motion.button
+    onClick={toggleBlackMode}
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
+    whileHover={{ opacity: 1 }}
+    transition={{ duration: 2, ease: 'easeInOut' }}
+    className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
+    aria-label="Exit Blackmode"
+  >
+    <RxCross1 />
+  </motion.button>
+)}
+
 
             )}
 
