@@ -213,7 +213,7 @@ export default function FadeGallery() {
                 <motion.button
                     onClick={toggleBlackMode}
                     initial={{ opacity: 1 }}
-                    animate={{ opacity: showControls ? 1 : 0 }}
+  animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
                     whileHover={{ opacity: 1 }}
                     transition={{ duration: 2 }}
                     className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
