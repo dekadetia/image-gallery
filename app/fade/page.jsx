@@ -12,7 +12,7 @@ import Footer from '../../components/Footer';
 import Lightbox from 'yet-another-react-lightbox';
 import Video from 'yet-another-react-lightbox/plugins/video';
 import AudioPlayer from '../../components/AudioPlayer';
-import AnimatedLogo from '@/components/AnimatedLogo';
+import AnimatedLogo from '../../components/AnimatedLogo';
 
 export default function FadeGallery() {
     const [slots, setSlots] = useState(Array(9).fill(null));
