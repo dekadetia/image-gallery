@@ -13,6 +13,7 @@ import { RxCross1 } from "react-icons/rx";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import RootLayout from "../layout";
 import Loader from "../../components/loader/loader";
+import AnimatedLogo from '../../components/AnimatedLogo';
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -286,9 +287,11 @@ useEffect(() => {
     <RootLayout>
       <div className="w-full flex justify-center items-center py-9">
         <div className="w-full grid place-items-center">
-          <Link href={"/"}>
-            <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
-          </Link>
+<Link href="/">
+  <div id="logo" className="w-40 h-auto cursor-pointer">
+    <AnimatedLogo />
+  </div>
+</Link>
           <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
             {
               searchOpen ? (
