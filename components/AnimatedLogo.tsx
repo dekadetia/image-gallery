@@ -2,6 +2,32 @@
 import { useEffect } from 'react'
 import gsap from 'gsap'
 
+// 🔒 GLOBAL: Fix back button bfcache restore
+if (typeof window !== 'undefined') {
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      setTimeout(() => {
+        for (let i = 1; i <= 8; i++) {
+          const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+
+          if (base) {
+            base.style.display = 'inline'
+            base.style.transform = ''
+            gsap.set(base, { clearProps: 'all' })
+          }
+
+          if (alt) {
+            alt.style.display = 'none'
+            alt.style.transform = ''
+            gsap.set(alt, { clearProps: 'all' })
+          }
+        }
+      }, 50)
+    }
+  })
+}
+
 export default function AnimatedLogo() {
   useEffect(() => {
     const logo = document.getElementById('logo')
@@ -68,35 +94,6 @@ export default function AnimatedLogo() {
       }
     }
 
-    const hardReset = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
-
-        if (base) {
-          base.style.display = 'inline'
-          base.style.transform = ''
-          gsap.set(base, { clearProps: 'all' })
-        }
-
-        if (alt) {
-          alt.style.display = 'none'
-          alt.style.transform = ''
-          gsap.set(alt, { clearProps: 'all' })
-        }
-      }
-      toggled = false
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        setTimeout(() => {
-          const logo = document.getElementById('logo')
-          if (logo) hardReset()
-        }, 50)
-      }
-    }
-
     logo.addEventListener('mouseenter', () => {
       showAlt()
       toggled = true
@@ -130,20 +127,18 @@ export default function AnimatedLogo() {
       if (longPressed) e.preventDefault()
     })
 
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
     return () => {
       logo.removeEventListener('mouseenter', showAlt)
       logo.removeEventListener('mouseleave', reset)
       logo.removeEventListener('touchstart', () => {})
       logo.removeEventListener('touchend', () => {})
       logo.removeEventListener('contextmenu', () => {})
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
   return (
     <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
+    
      <defs><clippath id="clip_letter_1"><rect height="133.15" width="112.25" x="0.0" y="0.0" /></clippath><clippath id="clip_letter_2"><rect height="133.15" width="112.25" x="112.25" y="0.0" /></clippath><clippath id="clip_letter_3"><rect height="133.15" width="112.25" x="224.5" y="0.0" /></clippath><clippath id="clip_letter_4"><rect height="133.15" width="112.25" x="336.75" y="0.0" /></clippath><clippath id="clip_letter_5"><rect height="133.15" width="112.25" x="0.0" y="133.15" /></clippath><clippath id="clip_letter_6"><rect height="133.15" width="112.25" x="112.25" y="133.15" /></clippath><clippath id="clip_letter_7"><rect height="133.15" width="112.25" x="224.5" y="133.15" /></clippath><clippath id="clip_letter_8"><rect height="133.15" width="112.25" x="336.75" y="133.15" /></clippath></defs>
 <g id="g">
 <polygon points="339.9 266.3 338.9 266.3 338.9 133.6 227.9 133.6 227.9 266.3 226.9 266.3 226.9 133.6 116 133.6 116 266.3 115 266.3 115 133.6 0 133.6 0 132.6 115 132.6 115 0 116 0 116 132.6 226.9 132.6 226.9 0 227.9 0 227.9 132.6 338.9 132.6 338.9 0 339.9 0 339.9 132.6 449 132.6 449 133.6 339.9 133.6 339.9 266.3" style={ { fill: "#6e6e73", strokewidth: 0.0 } } />
