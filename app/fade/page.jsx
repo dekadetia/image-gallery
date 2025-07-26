@@ -221,9 +221,6 @@ export default function FadeGallery() {
   >
     <RxCross1 />
   </motion.button>
-)}
-
-
             )}
 
             <div className={`${blackMode ? 'fixed inset-0 flex justify-center items-center bg-black z-50' : 'px-4 lg:px-16 pb-10'}`}>
