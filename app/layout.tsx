@@ -6,7 +6,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FIREBASE_APP } from "../firebase/firebase-config";
 import type { Metadata } from "next";
-import AnimatedLogo from '@/components/AnimatedLogo'
+import AnimatedLogo from '../components/AnimatedLogo'
 
 
 
