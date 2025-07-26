@@ -209,7 +209,6 @@ export default function FadeGallery() {
             )}
 
             {/* ❌ X */}
-            {blackMode && (
 {blackMode && (
   <motion.button
     onClick={toggleBlackMode}
