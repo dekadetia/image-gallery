@@ -10,6 +10,7 @@ import { RxDoubleArrowUp, RxCross1 } from 'react-icons/rx';
 import { IoMoonOutline } from 'react-icons/io5';
 import Footer from '../../components/Footer';
 import RootLayout from '../layout';
+import AnimatedLogo from '../../components/AnimatedLogo';
 import MoreImageLoader from '../../components/MoreImageLoader';
 import Loader from '../../components/loader/loader';
 import InfiniteScroll from 'react-infinite-scroll-component';
@@ -297,13 +298,11 @@ useEffect(() => {
       {!autosMode && (
         <div className="w-full flex justify-center items-center py-9">
           <div className="w-full grid place-items-center space-y-6">
-            <Link href={'/'}>
-              <img
-                src="/assets/logo.svg"
-                className="object-contain w-40"
-                alt=""
-              />
-            </Link>
+<Link href="/">
+  <div id="logo" className="w-40 h-auto cursor-pointer">
+    <AnimatedLogo />
+  </div>
+</Link>
 
             <div className="flex gap-8 items-center pt-[2.5px]" style={{ marginBottom: '4px' }}>
               <Link href={'/fade'}>
