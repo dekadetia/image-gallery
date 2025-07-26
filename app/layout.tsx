@@ -6,8 +6,6 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FIREBASE_APP } from "../firebase/firebase-config";
 import type { Metadata } from "next";
-import AnimatedLogo from '../components/AnimatedLogo'
-
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -53,9 +51,6 @@ export default function RootLayout({ children }) {
         <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
       </head>
       <body className={inter.className}>
-                <header className="flex justify-center py-4">
-          <AnimatedLogo />
-        </header>
         <main>
           <ToastContainer />
         </main>
