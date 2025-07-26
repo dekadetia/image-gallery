@@ -27,9 +27,9 @@ export default function AnimatedLogo() {
           duration: 0.5,
           ...exitDirs[i - 1]
         });
-        const finalLetter = document.getElementById(`letter_${i + 8}`);
-        finalLetter!.style.display = "inline";
-        gsap.fromTo(finalLetter!,
+        const alt = document.getElementById(`letter_${i + 8}`);
+        alt!.style.display = 'inline';
+        gsap.fromTo(alt!,
           enterDirs[i - 1],
           {
             duration: 0.5,
@@ -42,11 +42,11 @@ export default function AnimatedLogo() {
 
     const reset = () => {
       for (let i = 1; i <= 8; i++) {
-        const finalLetter = document.getElementById(`letter_${i + 8}`);
-        gsap.to(finalLetter!, {
+        const alt = document.getElementById(`letter_${i + 8}`);
+        gsap.to(alt!, {
           duration: 0.5,
           ...enterDirs[i - 1],
-          onComplete: () => finalLetter!.style.display = "none"
+          onComplete: () => alt!.style.display = 'none'
         });
         gsap.to(`#letter_${i}`, {
           duration: 0.5,
@@ -54,6 +54,17 @@ export default function AnimatedLogo() {
           y: 0
         });
       }
+    };
+
+    const immediateReset = () => {
+      for (let i = 1; i <= 16; i++) {
+        const el = document.getElementById(`letter_${i}`);
+        if (el) {
+          gsap.set(el, { clearProps: 'all' });
+          el.style.display = i <= 8 ? 'inline' : 'none';
+        }
+      }
+      toggled = false;
     };
 
     // Desktop hover
@@ -66,7 +77,7 @@ export default function AnimatedLogo() {
       toggled = false;
     });
 
-    // Long press start
+    // Long press mobile
     logo.addEventListener('touchstart', (e) => {
       longPressed = false;
       longPressTimer = setTimeout(() => {
@@ -80,39 +91,26 @@ export default function AnimatedLogo() {
       }, 500);
     });
 
-    // Long press end
     logo.addEventListener('touchend', (e) => {
       clearTimeout(longPressTimer);
-      if (longPressed) {
-        e.preventDefault(); // cancel link navigation
-      }
+      if (longPressed) e.preventDefault();
     });
 
-    // Suppress long-press context menu if it was used for toggling
     logo.addEventListener('contextmenu', (e) => {
       if (longPressed) e.preventDefault();
     });
 
-    // Reset state when navigating back
-    const handlePageShow = () => {
-      for (let i = 1; i <= 16; i++) {
-        const el = document.getElementById(`letter_${i}`);
-        if (el) {
-          el.style.transform = 'none';
-          el.style.display = i <= 8 ? 'inline' : 'none';
-        }
-      }
-      toggled = false;
-    };
-    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) immediateReset();
+    });
 
     return () => {
-      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('pageshow', immediateReset);
     };
   }, []);
 
   return (
-    <svg className="w-40 h-auto" viewBox="0 0 312 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg id="logo" className="w-40 h-auto" viewBox="0 0 312 180" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g fontFamily="Helvetica Neue" fontWeight="700" fontSize="45" letterSpacing="0.1em" fill="#e43f25">
         <text id="letter_1" x="13" y="55">T</text>
         <text id="letter_2" x="53" y="55">N</text>
