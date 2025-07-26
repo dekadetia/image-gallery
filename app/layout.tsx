@@ -8,18 +8,7 @@ import { FIREBASE_APP } from "../firebase/firebase-config";
 import type { Metadata } from "next";
 import AnimatedLogo from '@/components/AnimatedLogo'
 
-export default function RootLayout({ children }) {
-  return (
-    <html lang="en">
-      <body>
-        <header className="flex justify-center py-4">
-          <AnimatedLogo />
-        </header>
-        {children}
-      </body>
-    </html>
-  )
-}
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -64,6 +53,9 @@ export default function RootLayout({ children }) {
         <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
       </head>
       <body className={inter.className}>
+                <header className="flex justify-center py-4">
+          <AnimatedLogo />
+        </header>
         <main>
           <ToastContainer />
         </main>
