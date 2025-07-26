@@ -282,17 +282,17 @@ useEffect(() => {
 
       {/* ❌ X */}
       {autosMode && (
-        <motion.button
-          onClick={toggleAutosMode}
-          initial={{ opacity: 1 }}
-          animate={{ opacity: showControls ? 1 : 0 }}
-          whileHover={{ opacity: 1 }}
-          transition={{ duration: 2 }}
-          className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
-          aria-label="Exit AutosMode"
-        >
-          <RxCross1 />
-        </motion.button>
+<motion.button
+  onClick={toggleAutosMode}
+  initial={{ opacity: 0, scale: 0.95 }}
+  animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
+  whileHover={{ opacity: 1 }}
+  transition={{ duration: 2, ease: 'easeInOut' }}
+  className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
+  aria-label="Exit AutosMode"
+>
+  <RxCross1 />
+</motion.button>
       )}
 
       {!autosMode && (
@@ -405,7 +405,7 @@ useEffect(() => {
         />
       )}
 
-      {autosMode && <AudioPlayer blackMode={autosMode} />}
+{autosMode && <AudioPlayer blackMode={autosMode} showControls={showControls} />}
       {!loader && !autosMode && <Footer />}
     </RootLayout>
   );
