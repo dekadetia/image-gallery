@@ -12,6 +12,7 @@ import Footer from '../../components/Footer';
 import Lightbox from 'yet-another-react-lightbox';
 import Video from 'yet-another-react-lightbox/plugins/video';
 import AudioPlayer from '../../components/AudioPlayer';
+import AnimatedLogo from '@/components/AnimatedLogo';
 
 export default function FadeGallery() {
     const [slots, setSlots] = useState(Array(9).fill(null));
@@ -226,9 +227,11 @@ export default function FadeGallery() {
                 {!blackMode && (
                     <div className='w-full flex justify-center items-center py-9'>
                         <div className='w-full grid place-items-center space-y-6'>
-                            <Link href={'/'}>
-                                <img src='/assets/logo.svg' className='object-contain w-40' alt='Logo' />
-                            </Link>
+<Link href="/">
+  <div id="logo" className="w-40 h-auto cursor-pointer">
+    <AnimatedLogo />
+  </div>
+</Link>
                             <div className="flex gap-8 items-center pt-[2.5px]" style={{ marginBottom: '4px' }}>
                                 <img src="/assets/crossfade.svg" className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3.75px]" alt="" />
                                 <Link href={'/scrl'}>
