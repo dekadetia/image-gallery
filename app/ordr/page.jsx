@@ -12,6 +12,7 @@ import Footer from '../../components/Footer'
 import Fuse from 'fuse.js'
 import MoreImageLoader from '../../components/MoreImageLoader'
 import RootLayout from '../layout'
+import AnimatedLogo from '../../components/AnimatedLogo';
 import InfiniteScroll from 'react-infinite-scroll-component'
 import Loader from '../../components/loader/loader'
 import { clsx } from 'clsx'
@@ -355,9 +356,11 @@ setSlides(dedupedResults.map(photo => ({
       {/* Navigation */}
       <div className="w-full flex justify-center items-center pt-9 pb-[1.69rem]">
         <div className="w-full grid place-items-center space-y-6">
-          <Link href={'/'}>
-            <img src="/assets/logo.svg" className="object-contain w-40" alt="" />
-          </Link>
+<Link href="/">
+  <div id="logo" className="w-40 h-auto cursor-pointer">
+    <AnimatedLogo />
+  </div>
+</Link>
           <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
             {searchOpen ? (
               <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
