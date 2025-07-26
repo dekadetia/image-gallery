@@ -287,7 +287,7 @@ export default function FadeGallery() {
                     }}
                 />
             )}
-            {blackMode && <AudioPlayer blackMode={blackMode} />}
+            {blackMode && <AudioPlayer blackMode={blackMode} showControls={showControls} />}
         </RootLayout>
     );
 }
