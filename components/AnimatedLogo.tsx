@@ -17,8 +17,9 @@ export default function AnimatedLogo() {
       { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
     ];
 
-    let longPressTimer;
     let longPressed = false;
+    let longPressTimer;
+    let toggled = false;
 
     const showAlt = () => {
       for (let i = 1; i <= 8; i++) {
@@ -55,23 +56,41 @@ export default function AnimatedLogo() {
       }
     };
 
-    logo.addEventListener('mouseenter', showAlt);
-    logo.addEventListener('mouseleave', reset);
+    // Desktop hover
+    logo.addEventListener('mouseenter', () => {
+      showAlt();
+      toggled = true;
+    });
+    logo.addEventListener('mouseleave', () => {
+      reset();
+      toggled = false;
+    });
 
+    // Long press start
     logo.addEventListener('touchstart', (e) => {
       longPressed = false;
       longPressTimer = setTimeout(() => {
         longPressed = true;
-        showAlt();
+        if (toggled) {
+          reset();
+        } else {
+          showAlt();
+        }
+        toggled = !toggled;
       }, 500);
     });
 
+    // Long press end
     logo.addEventListener('touchend', (e) => {
       clearTimeout(longPressTimer);
       if (longPressed) {
-        e.preventDefault();
-        reset();
+        e.preventDefault(); // cancel link navigation
       }
+    });
+
+    // Suppress long-press context menu if it was used for toggling
+    logo.addEventListener('contextmenu', (e) => {
+      if (longPressed) e.preventDefault();
     });
 
     return () => {
@@ -79,6 +98,7 @@ export default function AnimatedLogo() {
       logo.removeEventListener('mouseleave', reset);
       logo.removeEventListener('touchstart', () => {});
       logo.removeEventListener('touchend', () => {});
+      logo.removeEventListener('contextmenu', () => {});
     };
   }, []);
 
