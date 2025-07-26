@@ -28,26 +28,30 @@ export default function AnimatedLogo() {
           ...exitDirs[i - 1]
         });
         const finalLetter = document.getElementById(`letter_${i + 8}`);
-        finalLetter!.style.display = "inline";
-        gsap.fromTo(finalLetter!,
-          enterDirs[i - 1],
-          {
-            duration: 0.5,
-            x: 0,
-            y: 0
-          }
-        );
+        if (finalLetter) {
+          finalLetter.style.display = "inline";
+          gsap.fromTo(finalLetter,
+            enterDirs[i - 1],
+            {
+              duration: 0.5,
+              x: 0,
+              y: 0
+            }
+          );
+        }
       }
     };
 
     const reset = () => {
       for (let i = 1; i <= 8; i++) {
         const finalLetter = document.getElementById(`letter_${i + 8}`);
-        gsap.to(finalLetter!, {
-          duration: 0.5,
-          ...enterDirs[i - 1],
-          onComplete: () => finalLetter!.style.display = "none"
-        });
+        if (finalLetter) {
+          gsap.to(finalLetter, {
+            duration: 0.5,
+            ...enterDirs[i - 1],
+            onComplete: () => (finalLetter.style.display = "none")
+          });
+        }
         gsap.to(`#letter_${i}`, {
           duration: 0.5,
           x: 0,
@@ -58,10 +62,10 @@ export default function AnimatedLogo() {
 
     const hardReset = () => {
       for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`) as HTMLElement;
-        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement;
-        if (base && alt) {
-          base.style.transform = '';
+        const base = document.getElementById(`letter_${i}`) as HTMLElement | null;
+        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null;
+        if (base) base.style.transform = '';
+        if (alt) {
           alt.style.transform = '';
           alt.style.display = 'none';
         }
@@ -71,9 +75,10 @@ export default function AnimatedLogo() {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        requestAnimationFrame(() => {
-          setTimeout(hardReset, 0);
-        });
+        setTimeout(() => {
+          const logo = document.getElementById('logo');
+          if (logo) hardReset();
+        }, 50);
       }
     };
 
