@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FaVolumeUp, FaVolumeMute, FaForward, FaBackward } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 
 const bucket = 'tndrbtns.appspot.com';
 
@@ -144,18 +145,13 @@ function fadeInAudio() {
   }
 }
 
-export default function AudioPlayer({ blackMode }) {
+export default function AudioPlayer({ blackMode, showControls }) {
   const [muted, setMuted] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [fadingOut, setFadingOut] = useState(false);
-  const [fadeIn, setFadeIn] = useState(false);
-  const hideTimer = useRef(null);
 
   const toggleMute = () => {
     const newMuted = !muted;
     setMuted(newMuted);
     if (audio) audio.muted = newMuted;
-    keepButtonVisible();
   };
 
   const skipNext = () => {
@@ -166,24 +162,12 @@ export default function AudioPlayer({ blackMode }) {
     if (audio) crossfadeToPrevTrack(skipFadeDuration);
   };
 
-  const keepButtonVisible = () => {
-    clearTimeout(hideTimer.current);
-    setVisible(true);
-    setFadingOut(false);
-
-    hideTimer.current = setTimeout(() => {
-      setFadingOut(true);
-      setTimeout(() => setVisible(false), 1000);
-    }, 10000);
-  };
 
   useEffect(() => {
     if (blackMode) {
       startPlayback().then(() => {
         if (audio) audio.muted = muted;
         fadeInAudio();
-        setFadeIn(true);
-        keepButtonVisible();
       }).catch(err => console.error('AudioPlayer error:', err));
     } else {
       fadeOutAudio();
@@ -191,7 +175,6 @@ export default function AudioPlayer({ blackMode }) {
 
     return () => {
       fadeOutAudio(); // Ensure we fade out on unmount too
-      clearTimeout(hideTimer.current);
     };
   }, [blackMode]);
 
@@ -199,45 +182,30 @@ export default function AudioPlayer({ blackMode }) {
 
   return (
     <>
-      <div
-        onMouseEnter={keepButtonVisible}
-        onTouchStart={keepButtonVisible}
-        style={{
-          position: 'fixed',
-          bottom: '10px',
-          right: '10px',
-          width: '50px',
-          height: '50px',
-          zIndex: 9998
-        }}
-      />
-      {visible && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            display: 'flex',
-            gap: '1.25rem', // 📏 Updated spacing matches nav icons
-            zIndex: 9999,
-            opacity: fadingOut ? 0 : 0.8,
-            transform: fadeIn ? 'scale(1)' : 'scale(0.95)',
-            transition: fadeIn
-              ? 'opacity 0.8s ease-out, transform 0.4s ease-out'
-              : 'opacity 0.5s ease-in-out'
-          }}
-        >
-          <button onClick={skipPrev} style={buttonStyle}>
-            <FaBackward size={24} /> {/* 📐 Updated size */}
-          </button>
-          <button onClick={toggleMute} style={buttonStyle}>
-            {muted ? <FaVolumeMute size={24} /> : <FaVolumeUp size={24} />}
-          </button>
-          <button onClick={skipNext} style={buttonStyle}>
-            <FaForward size={24} />
-          </button>
-        </div>
-      )}
+     <motion.div
+  initial={{ opacity: 0, scale: 0.95 }}
+  animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
+  transition={{ duration: 0.5, ease: 'easeInOut' }}
+  style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    display: 'flex',
+    gap: '1.25rem',
+    zIndex: 9999,
+  }}
+>
+  <button onClick={skipPrev} style={buttonStyle}>
+    <FaBackward size={24} />
+  </button>
+  <button onClick={toggleMute} style={buttonStyle}>
+    {muted ? <FaVolumeMute size={24} /> : <FaVolumeUp size={24} />}
+  </button>
+  <button onClick={skipNext} style={buttonStyle}>
+    <FaForward size={24} />
+  </button>
+</motion.div>
+
     </>
   );
 }
