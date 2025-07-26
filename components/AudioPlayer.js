@@ -185,7 +185,7 @@ export default function AudioPlayer({ blackMode, showControls }) {
      <motion.div
   initial={{ opacity: 0, scale: 0.95 }}
   animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
-  transition={{ duration: 0.5, ease: 'easeInOut' }}
+  transition={{ duration: 2, ease: 'easeInOut' }}
   style={{
     position: 'fixed',
     bottom: '20px',
