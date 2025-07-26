@@ -5,6 +5,8 @@ import gsap from 'gsap';
 export default function AnimatedLogo() {
   useEffect(() => {
     const logo = document.getElementById('logo');
+    if (!logo) return;
+
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
       { y: 140 }, { y: -140 },
@@ -15,15 +17,15 @@ export default function AnimatedLogo() {
       { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
     ];
 
-    if (!logo) return;
+    let longPressTimer;
+    let longPressed = false;
 
-    logo.addEventListener('mouseenter', () => {
+    const showAlt = () => {
       for (let i = 1; i <= 8; i++) {
         gsap.to(`#letter_${i}`, {
           duration: 0.5,
           ...exitDirs[i - 1]
         });
-
         const finalLetter = document.getElementById(`letter_${i + 8}`);
         finalLetter!.style.display = "inline";
         gsap.fromTo(finalLetter!,
@@ -35,9 +37,9 @@ export default function AnimatedLogo() {
           }
         );
       }
-    });
+    };
 
-    logo.addEventListener('mouseleave', () => {
+    const reset = () => {
       for (let i = 1; i <= 8; i++) {
         const finalLetter = document.getElementById(`letter_${i + 8}`);
         gsap.to(finalLetter!, {
@@ -51,7 +53,33 @@ export default function AnimatedLogo() {
           y: 0
         });
       }
+    };
+
+    logo.addEventListener('mouseenter', showAlt);
+    logo.addEventListener('mouseleave', reset);
+
+    logo.addEventListener('touchstart', (e) => {
+      longPressed = false;
+      longPressTimer = setTimeout(() => {
+        longPressed = true;
+        showAlt();
+      }, 500);
     });
+
+    logo.addEventListener('touchend', (e) => {
+      clearTimeout(longPressTimer);
+      if (longPressed) {
+        e.preventDefault();
+        reset();
+      }
+    });
+
+    return () => {
+      logo.removeEventListener('mouseenter', showAlt);
+      logo.removeEventListener('mouseleave', reset);
+      logo.removeEventListener('touchstart', () => {});
+      logo.removeEventListener('touchend', () => {});
+    };
   }, []);
 
   return (
