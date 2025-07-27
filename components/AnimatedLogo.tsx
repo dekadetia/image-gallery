@@ -95,14 +95,16 @@ export default function AnimatedLogo() {
       }
     }
 
-    logo.addEventListener('mouseenter', () => {
-      showAlt()
-      toggled = true
-    })
-    logo.addEventListener('mouseleave', () => {
-      reset()
-      toggled = false
-    })
+const toggle = () => {
+  if (toggled) {
+    reset()
+  } else {
+    showAlt()
+  }
+  toggled = !toggled
+}
+
+logo.addEventListener('mouseenter', toggle)
 
     logo.addEventListener('touchstart', (e) => {
       longPressed = false
@@ -129,8 +131,7 @@ export default function AnimatedLogo() {
     })
 
     return () => {
-      logo.removeEventListener('mouseenter', showAlt)
-      logo.removeEventListener('mouseleave', reset)
+      logo.removeEventListener('mouseenter', toggle)
       logo.removeEventListener('touchstart', () => {})
       logo.removeEventListener('touchend', () => {})
       logo.removeEventListener('contextmenu', () => {})
