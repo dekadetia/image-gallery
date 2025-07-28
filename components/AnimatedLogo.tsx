@@ -128,7 +128,7 @@ export default function AnimatedLogo() {
           gsap.fromTo(
             base,
             {
-              x: enterDirs[i - 1].x,
+              x: enterDirs[i - 1].x, 
               y: enterDirs[i - 1].y,
             },
             {
