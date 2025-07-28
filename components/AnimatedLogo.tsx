@@ -105,12 +105,25 @@ useEffect(() => {
     localStorage.setItem('logoToggled', toggled.toString())
   }
 
-  // Apply initial state
-  if (toggled) {
-    showAlt()
-  } else {
-    reset()
+// Instantly apply the correct state without animation
+for (let i = 1; i <= 8; i++) {
+  const base = document.getElementById(`letter_${i}`)
+  const alt = document.getElementById(`letter_${i + 8}`)
+
+  if (base && alt) {
+    if (toggled) {
+      base.style.display = 'none'
+      base.style.transform = `translate(${exitDirs[i - 1].x || 0}px, ${exitDirs[i - 1].y || 0}px)`
+      alt.style.display = 'inline'
+      alt.style.transform = 'translate(0px, 0px)'
+    } else {
+      base.style.display = 'inline'
+      base.style.transform = 'translate(0px, 0px)'
+      alt.style.display = 'none'
+      alt.style.transform = `translate(${enterDirs[i - 1].x || 0}px, ${enterDirs[i - 1].y || 0}px)`
+    }
   }
+}
 
   logo.addEventListener('mouseenter', toggle)
 
