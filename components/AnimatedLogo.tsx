@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useId } from 'react'
 import gsap from 'gsap'
+import { useRef } from 'react'
 
 // 🔒 GLOBAL: Fix back button bfcache restore
 if (typeof window !== 'undefined') {
@@ -13,17 +14,17 @@ if (typeof window !== 'undefined') {
           const alt = document.getElementById(`letter_${i + 8}`)
 
           if (base && alt) {
-            if (toggled) {
-              base.style.display = 'none'
-              alt.style.display = 'inline'
-              gsap.set(base, { x: exitDirs[i - 1].x || 0, y: exitDirs[i - 1].y || 0 })
-              gsap.set(alt, { x: 0, y: 0 })
-            } else {
-              base.style.display = 'inline'
-              alt.style.display = 'none'
-              gsap.set(base, { x: 0, y: 0 })
-              gsap.set(alt, { x: enterDirs[i - 1].x || 0, y: enterDirs[i - 1].y || 0 })
-            }
+if (toggledRef.current) {
+  base.style.display = 'none'
+  alt.style.display = 'inline'
+  gsap.set(base, { x: exitDirs[i - 1].x || 0, y: exitDirs[i - 1].y || 0 })
+  gsap.set(alt, { x: 0, y: 0 })
+} else {
+  base.style.display = 'inline'
+  alt.style.display = 'none'
+  gsap.set(base, { x: 0, y: 0 })
+  gsap.set(alt, { x: enterDirs[i - 1].x || 0, y: enterDirs[i - 1].y || 0 })
+}
           }
         }
       }, 50)
@@ -51,7 +52,7 @@ useEffect(() => {
 
   let longPressed = false
   let longPressTimer
-  let toggled = localStorage.getItem('logoToggled') === 'true'
+const toggledRef = useRef(localStorage.getItem('logoToggled') === 'true')
 
   const showAlt = () => {
     for (let i = 1; i <= 8; i++) {
@@ -98,13 +99,13 @@ useEffect(() => {
   }
 
   const toggle = () => {
-    if (toggled) {
+    if (toggledRef.current) {
       reset()
     } else {
       showAlt()
     }
-    toggled = !toggled
-    localStorage.setItem('logoToggled', toggled.toString())
+toggledRef.current = !toggledRef.current
+localStorage.setItem('logoToggled', toggledRef.current.toString())
   }
 
 // Instantly apply the correct visual state and sync GSAP
@@ -113,7 +114,7 @@ for (let i = 1; i <= 8; i++) {
   const alt = document.getElementById(`letter_${i + 8}`)
 
   if (base && alt) {
-    if (toggled) {
+    if (toggledRef.current) {
       // Set visual state directly
       base.style.display = 'none'
       alt.style.display = 'inline'
