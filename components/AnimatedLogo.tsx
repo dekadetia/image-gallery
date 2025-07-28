@@ -1,147 +1,142 @@
-'use client';
+'use client'
+import { useEffect, useId } from 'react'
+import gsap from 'gsap'
 
-import { useEffect, useId, useState } from 'react';
-import gsap from 'gsap';
+// 🔒 GLOBAL: Fix back button bfcache restore
+if (typeof window !== 'undefined') {
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      setTimeout(() => {
+        for (let i = 1; i <= 8; i++) {
+          const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
 
-const exitDirs = [
-  { x: 0, y: -40 },
-  { x: 0, y: -40 },
-  { x: 0, y: -40 },
-  { x: 0, y: -40 },
-  { x: 0, y: 40 },
-  { x: 0, y: 40 },
-  { x: 0, y: 40 },
-  { x: 0, y: 40 },
-];
+          if (base) {
+            base.style.display = 'inline'
+            base.style.transform = ''
+            gsap.set(base, { clearProps: 'all' })
+          }
 
-const enterDirs = [
-  { x: 0, y: 40 },
-  { x: 0, y: 40 },
-  { x: 0, y: 40 },
-  { x: 0, y: 40 },
-  { x: 0, y: -40 },
-  { x: 0, y: -40 },
-  { x: 0, y: -40 },
-  { x: 0, y: -40 },
-];
-
-export default function AnimatedLogo() {
-  const [toggled, setToggled] = useState(false);
-  const id = useId();
-
-  useEffect(() => {
-    const toggledRef = { current: false };
-
-    if (typeof window !== 'undefined') {
-      // Read toggle state from localStorage
-      const saved = localStorage.getItem('logoToggled');
-      toggledRef.current = saved === 'true';
-      setToggled(toggledRef.current);
-
-      // Immediately apply visual state
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`) as HTMLElement | null;
-        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null;
-
-        if (base && alt) {
-          if (toggledRef.current) {
-            base.style.display = 'none';
-            base.style.transform = `translate(${exitDirs[i - 1].x}px, ${exitDirs[i - 1].y}px)`;
-            alt.style.display = 'inline';
-            alt.style.transform = 'translate(0px, 0px)';
-          } else {
-            base.style.display = 'inline';
-            base.style.transform = 'translate(0px, 0px)';
-            alt.style.display = 'none';
-            alt.style.transform = `translate(${enterDirs[i - 1].x}px, ${enterDirs[i - 1].y}px)`;
+          if (alt) {
+            alt.style.display = 'none'
+            alt.style.transform = ''
+            gsap.set(alt, { clearProps: 'all' })
           }
         }
-      }
-
-      // Handle bfcache restore
-      window.addEventListener('pageshow', (e) => {
-        if (e.persisted) {
-          setTimeout(() => {
-            for (let i = 1; i <= 8; i++) {
-              const base = document.getElementById(`letter_${i}`) as HTMLElement | null;
-              const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null;
-
-              if (base && alt) {
-                base.style.display = toggledRef.current ? 'none' : 'inline';
-                alt.style.display = toggledRef.current ? 'inline' : 'none';
-                gsap.set(base, { clearProps: 'all' });
-                gsap.set(alt, { clearProps: 'all' });
-              }
-            }
-          }, 0);
-        }
-      });
+      }, 50)
     }
-  }, []);
+  })
+}
 
-  const handleToggle = () => {
-    const newState = !toggled;
-    setToggled(newState);
+export default function AnimatedLogo() {
+  const idPrefix = useId()
+  useEffect(() => {
+    const logo = document.getElementById('logo')
+    if (!logo) return
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('logoToggled', newState.toString());
-    }
+    const exitDirs = [
+      { x: 120 }, { x: 120 }, { x: 120 },
+      { y: 140 }, { y: -140 },
+      { x: -120 }, { x: -120 }, { x: -120 }
+    ]
+    const enterDirs = [
+      { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
+      { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
+    ]
 
-    for (let i = 1; i <= 8; i++) {
-      const base = document.getElementById(`letter_${i}`) as HTMLElement | null;
-      const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null;
+    let longPressed = false
+    let longPressTimer
+    let toggled = false
 
-      if (base && alt) {
-        if (newState) {
-          // Animate base out, alt in
+    const showAlt = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base && alt) {
           gsap.to(base, {
-            duration: 0.6,
-            x: exitDirs[i - 1].x,
-            y: exitDirs[i - 1].y,
-            ease: 'power2.in',
-            onComplete: () => (base.style.display = 'none'),
-          });
-          alt.style.display = 'inline';
-          gsap.fromTo(
-            alt,
+            duration: 0.5,
+            ...exitDirs[i - 1]
+          })
+
+          alt.style.display = 'inline'
+          gsap.fromTo(alt,
+            enterDirs[i - 1],
             {
-              x: enterDirs[i - 1].x,
-              y: enterDirs[i - 1].y,
-            },
-            {
-              duration: 0.6,
+              duration: 0.5,
               x: 0,
-              y: 0,
-              ease: 'power2.out',
+              y: 0
             }
-          );
-        } else {
-          // Animate alt out, base in
-          gsap.to(alt, {
-            duration: 0.6,
-            x: exitDirs[i - 1].x,
-            y: exitDirs[i - 1].y,
-            ease: 'power2.in',
-            onComplete: () => (alt.style.display = 'none'),
-          });
-          base.style.display = 'inline';
-          gsap.fromTo(
-            base,
-            {
-              x: enterDirs[i - 1].x, 
-              y: enterDirs[i - 1].y,
-            },
-            {
-              duration: 0.6,
-              x: 0,
-              y: 0,
-              ease: 'power2.out',
-            }
-          );
+          )
         }
       }
     }
-  };
+
+    const reset = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base) {
+          gsap.to(base, {
+            duration: 0.5,
+            x: 0,
+            y: 0
+          })
+        }
+
+        if (alt) {
+          gsap.to(alt, {
+            duration: 0.5,
+            ...enterDirs[i - 1],
+            onComplete: () => (alt.style.display = 'none')
+          })
+        }
+      }
+    }
+
+const toggle = () => {
+  if (toggled) {
+    reset()
+  } else {
+    showAlt()
+  }
+  toggled = !toggled
+}
+
+logo.addEventListener('mouseenter', toggle)
+
+    logo.addEventListener('touchstart', (e) => {
+      longPressed = false
+      longPressTimer = setTimeout(() => {
+        longPressed = true
+        if (toggled) {
+          reset()
+        } else {
+          showAlt()
+        }
+        toggled = !toggled
+      }, 500)
+    })
+
+    logo.addEventListener('touchend', (e) => {
+      clearTimeout(longPressTimer)
+      if (longPressed) {
+        e.preventDefault()
+      }
+    })
+
+    logo.addEventListener('contextmenu', (e) => {
+      if (longPressed) e.preventDefault()
+    })
+
+    return () => {
+      logo.removeEventListener('mouseenter', toggle)
+      logo.removeEventListener('touchstart', () => {})
+      logo.removeEventListener('touchend', () => {})
+      logo.removeEventListener('contextmenu', () => {})
+    }
+  }, [])
 
   return (
     <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
