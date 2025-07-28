@@ -12,29 +12,23 @@ const setLogoState = (state: 'a' | 'b') => {
   localStorage.setItem('logoState', state)
 }
 
-// 🔒 GLOBAL: Fix back button bfcache restore
+// Instant static restore on BFCache
 if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
-      setTimeout(() => {
-        const state = getLogoState()
-        for (let i = 1; i <= 8; i++) {
-          const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
-
-          if (base) {
-            base.style.display = state === 'a' ? 'inline' : 'none'
-            base.style.transform = ''
-            gsap.set(base, { clearProps: 'all' })
-          }
-
-          if (alt) {
-            alt.style.display = state === 'b' ? 'inline' : 'none'
-            alt.style.transform = ''
-            gsap.set(alt, { clearProps: 'all' })
-          }
+      const state = getLogoState()
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+        if (base && alt) {
+          base.style.display = state === 'a' ? 'inline' : 'none'
+          alt.style.display = state === 'b' ? 'inline' : 'none'
+          base.style.transform = ''
+          alt.style.transform = ''
+          gsap.set(base, { clearProps: 'all' })
+          gsap.set(alt, { clearProps: 'all' })
         }
-      }, 10)
+      }
     }
   })
 }
@@ -49,55 +43,48 @@ export default function AnimatedLogo() {
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
       { y: 140 }, { y: -140 },
-      { x: -120 }, { x: -120 }, { x: -120 }
+      { x: -120 }, { x: -120 }, { x: -120 },
     ]
     const enterDirs = [
       { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
-      { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
+      { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 },
     ]
 
     let toggled = getLogoState() === 'b'
 
-    const showAltStatic = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
-
-        if (base) {
-          base.style.transform = 'translate(0, 0)'
-          base.style.display = toggled ? 'none' : 'inline'
-        }
-        if (alt) {
-          alt.style.transform = 'translate(0, 0)'
-          alt.style.display = toggled ? 'inline' : 'none'
-        }
+    // Apply static A or B state instantly with no animation
+    for (let i = 1; i <= 8; i++) {
+      const base = document.getElementById(`letter_${i}`)
+      const alt = document.getElementById(`letter_${i + 8}`)
+      if (base && alt) {
+        base.style.display = toggled ? 'none' : 'inline'
+        alt.style.display = toggled ? 'inline' : 'none'
+        base.style.transform = ''
+        alt.style.transform = ''
+        gsap.set(base, { clearProps: 'all' })
+        gsap.set(alt, { clearProps: 'all' })
       }
     }
 
-    const showAlt = () => {
+    const animateToAlt = () => {
       for (let i = 1; i <= 8; i++) {
         const base = document.getElementById(`letter_${i}`)
         const alt = document.getElementById(`letter_${i + 8}`)
-
         if (base && alt) {
-          gsap.to(base, { duration: 0.5, ...exitDirs[i - 1] })
+          gsap.to(base, { duration: 0.5, ...exitDirs[i - 1], onComplete: () => (base.style.display = 'none') })
           alt.style.display = 'inline'
           gsap.fromTo(alt, enterDirs[i - 1], { duration: 0.5, x: 0, y: 0 })
         }
       }
     }
 
-    const reset = () => {
+    const animateToBase = () => {
       for (let i = 1; i <= 8; i++) {
         const base = document.getElementById(`letter_${i}`)
         const alt = document.getElementById(`letter_${i + 8}`)
-
-        if (base) {
+        if (base && alt) {
           base.style.display = 'inline'
           gsap.to(base, { duration: 0.5, x: 0, y: 0 })
-        }
-
-        if (alt) {
           gsap.to(alt, {
             duration: 0.5,
             ...enterDirs[i - 1],
@@ -109,19 +96,15 @@ export default function AnimatedLogo() {
 
     const toggle = () => {
       if (toggled) {
-        reset()
+        animateToBase()
         setLogoState('a')
       } else {
-        showAlt()
+        animateToAlt()
         setLogoState('b')
       }
       toggled = !toggled
     }
 
-    // Immediately apply static state (no animation)
-    showAltStatic()
-
-    // Add interaction listeners
     logo.addEventListener('mouseenter', toggle)
 
     let longPressed = false
