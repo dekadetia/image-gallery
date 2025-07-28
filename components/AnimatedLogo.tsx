@@ -11,17 +11,18 @@ if (typeof window !== 'undefined') {
         for (let i = 1; i <= 8; i++) {
           const base = document.getElementById(`letter_${i}`)
           const alt = document.getElementById(`letter_${i + 8}`)
+
           if (base && alt) {
             if (toggled) {
               base.style.display = 'none'
               alt.style.display = 'inline'
-              gsap.set(base, { clearProps: 'all' })
-              gsap.set(alt, { clearProps: 'all' })
+              gsap.set(base, { x: exitDirs[i - 1].x || 0, y: exitDirs[i - 1].y || 0 })
+              gsap.set(alt, { x: 0, y: 0 })
             } else {
               base.style.display = 'inline'
               alt.style.display = 'none'
-              gsap.set(base, { clearProps: 'all' })
-              gsap.set(alt, { clearProps: 'all' })
+              gsap.set(base, { x: 0, y: 0 })
+              gsap.set(alt, { x: enterDirs[i - 1].x || 0, y: enterDirs[i - 1].y || 0 })
             }
           }
         }
@@ -29,6 +30,7 @@ if (typeof window !== 'undefined') {
     }
   })
 }
+
 
 
 export default function AnimatedLogo() {
@@ -105,25 +107,30 @@ useEffect(() => {
     localStorage.setItem('logoToggled', toggled.toString())
   }
 
-// Instantly apply the correct state without animation
+// Instantly apply the correct visual state and sync GSAP
 for (let i = 1; i <= 8; i++) {
   const base = document.getElementById(`letter_${i}`)
   const alt = document.getElementById(`letter_${i + 8}`)
 
   if (base && alt) {
     if (toggled) {
+      // Set visual state directly
       base.style.display = 'none'
-      base.style.transform = `translate(${exitDirs[i - 1].x || 0}px, ${exitDirs[i - 1].y || 0}px)`
       alt.style.display = 'inline'
-      alt.style.transform = 'translate(0px, 0px)'
+
+      // Set transform state and clear GSAP overrides
+      gsap.set(base, { x: exitDirs[i - 1].x || 0, y: exitDirs[i - 1].y || 0 })
+      gsap.set(alt, { x: 0, y: 0 })
     } else {
       base.style.display = 'inline'
-      base.style.transform = 'translate(0px, 0px)'
       alt.style.display = 'none'
-      alt.style.transform = `translate(${enterDirs[i - 1].x || 0}px, ${enterDirs[i - 1].y || 0}px)`
+
+      gsap.set(base, { x: 0, y: 0 })
+      gsap.set(alt, { x: enterDirs[i - 1].x || 0, y: enterDirs[i - 1].y || 0 })
     }
   }
 }
+
 
   logo.addEventListener('mouseenter', toggle)
 
