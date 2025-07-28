@@ -1,167 +1,176 @@
 'use client'
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import gsap from 'gsap'
-import { useRef } from 'react'
 
-// 🔒 GLOBAL: Fix back button bfcache restore
-if (typeof window !== 'undefined') {
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) {
+const exitDirs = [
+  { x: 120 }, { x: 120 }, { x: 120 },
+  { y: 140 }, { y: -140 },
+  { x: -120 }, { x: -120 }, { x: -120 }
+]
+
+const enterDirs = [
+  { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
+  { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
+]
+
+export default function AnimatedLogo() {
+  const idPrefix = useId()
+  const toggledRef = useRef(localStorage.getItem('logoToggled') === 'true')
+
+  // Main setup and animation
+  useEffect(() => {
+    const logo = document.getElementById('logo')
+    if (!logo) return
+
+    let longPressed = false
+    let longPressTimer: NodeJS.Timeout
+
+    const showAlt = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base && alt) {
+          gsap.to(base, {
+            duration: 0.5,
+            ...exitDirs[i - 1]
+          })
+
+          alt.style.display = 'inline'
+          gsap.fromTo(
+            alt,
+            enterDirs[i - 1],
+            {
+              duration: 0.5,
+              x: 0,
+              y: 0
+            }
+          )
+        }
+      }
+    }
+
+    const reset = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base) {
+          gsap.to(base, {
+            duration: 0.5,
+            x: 0,
+            y: 0
+          })
+        }
+
+        if (alt) {
+          gsap.to(alt, {
+            duration: 0.5,
+            ...enterDirs[i - 1],
+            onComplete: () => (alt.style.display = 'none')
+          })
+        }
+      }
+    }
+
+    const toggle = () => {
+      if (toggledRef.current) {
+        reset()
+      } else {
+        showAlt()
+      }
+      toggledRef.current = !toggledRef.current
+      localStorage.setItem('logoToggled', toggledRef.current.toString())
+    }
+
+    // Instantly apply correct state on mount
+    requestAnimationFrame(() => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base && alt) {
+          if (toggledRef.current) {
+            base.style.display = 'none'
+            alt.style.display = 'inline'
+            gsap.set(base, { x: exitDirs[i - 1].x || 0, y: exitDirs[i - 1].y || 0 })
+            gsap.set(alt, { x: 0, y: 0 })
+          } else {
+            base.style.display = 'inline'
+            alt.style.display = 'none'
+            gsap.set(base, { x: 0, y: 0 })
+            gsap.set(alt, { x: enterDirs[i - 1].x || 0, y: enterDirs[i - 1].y || 0 })
+          }
+        }
+      }
+    })
+
+    const handleMouseEnter = () => toggle()
+
+    const handleTouchStart = () => {
+      longPressed = false
+      longPressTimer = setTimeout(() => {
+        longPressed = true
+        toggle()
+      }, 500)
+    }
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      clearTimeout(longPressTimer)
+      if (longPressed) e.preventDefault()
+    }
+
+    const handleContextMenu = (e: MouseEvent) => {
+      if (longPressed) e.preventDefault()
+    }
+
+    logo.addEventListener('mouseenter', handleMouseEnter)
+    logo.addEventListener('touchstart', handleTouchStart)
+    logo.addEventListener('touchend', handleTouchEnd)
+    logo.addEventListener('contextmenu', handleContextMenu)
+
+    return () => {
+      logo.removeEventListener('mouseenter', handleMouseEnter)
+      logo.removeEventListener('touchstart', handleTouchStart)
+      logo.removeEventListener('touchend', handleTouchEnd)
+      logo.removeEventListener('contextmenu', handleContextMenu)
+    }
+  }, [])
+
+  // bfcache / pageshow restore handling
+  useEffect(() => {
+    const handleRestore = (e: PageTransitionEvent) => {
+      if (!e.persisted) return
+
+      const toggled = localStorage.getItem('logoToggled') === 'true'
+
       setTimeout(() => {
-        const toggled = localStorage.getItem('logoToggled') === 'true'
         for (let i = 1; i <= 8; i++) {
           const base = document.getElementById(`letter_${i}`)
           const alt = document.getElementById(`letter_${i + 8}`)
 
           if (base && alt) {
-if (toggledRef.current) {
-  base.style.display = 'none'
-  alt.style.display = 'inline'
-  gsap.set(base, { x: exitDirs[i - 1].x || 0, y: exitDirs[i - 1].y || 0 })
-  gsap.set(alt, { x: 0, y: 0 })
-} else {
-  base.style.display = 'inline'
-  alt.style.display = 'none'
-  gsap.set(base, { x: 0, y: 0 })
-  gsap.set(alt, { x: enterDirs[i - 1].x || 0, y: enterDirs[i - 1].y || 0 })
-}
+            if (toggled) {
+              base.style.display = 'none'
+              alt.style.display = 'inline'
+              gsap.set(base, { x: exitDirs[i - 1].x || 0, y: exitDirs[i - 1].y || 0 })
+              gsap.set(alt, { x: 0, y: 0 })
+            } else {
+              base.style.display = 'inline'
+              alt.style.display = 'none'
+              gsap.set(base, { x: 0, y: 0 })
+              gsap.set(alt, { x: enterDirs[i - 1].x || 0, y: enterDirs[i - 1].y || 0 })
+            }
           }
         }
       }, 50)
     }
-  })
-}
 
+    window.addEventListener('pageshow', handleRestore)
+    return () => window.removeEventListener('pageshow', handleRestore)
+  }, [])
 
-
-export default function AnimatedLogo() {
-  const idPrefix = useId()
-useEffect(() => {
-  const logo = document.getElementById('logo')
-  if (!logo) return
-
-  const exitDirs = [
-    { x: 120 }, { x: 120 }, { x: 120 },
-    { y: 140 }, { y: -140 },
-    { x: -120 }, { x: -120 }, { x: -120 }
-  ]
-  const enterDirs = [
-    { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
-    { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
-  ]
-
-  let longPressed = false
-  let longPressTimer
-const toggledRef = useRef(localStorage.getItem('logoToggled') === 'true')
-
-  const showAlt = () => {
-    for (let i = 1; i <= 8; i++) {
-      const base = document.getElementById(`letter_${i}`)
-      const alt = document.getElementById(`letter_${i + 8}`)
-
-      if (base && alt) {
-        gsap.to(base, {
-          duration: 0.5,
-          ...exitDirs[i - 1]
-        })
-
-        alt.style.display = 'inline'
-        gsap.fromTo(alt, enterDirs[i - 1], {
-          duration: 0.5,
-          x: 0,
-          y: 0
-        })
-      }
-    }
-  }
-
-  const reset = () => {
-    for (let i = 1; i <= 8; i++) {
-      const base = document.getElementById(`letter_${i}`)
-      const alt = document.getElementById(`letter_${i + 8}`)
-
-      if (base) {
-        gsap.to(base, {
-          duration: 0.5,
-          x: 0,
-          y: 0
-        })
-      }
-
-      if (alt) {
-        gsap.to(alt, {
-          duration: 0.5,
-          ...enterDirs[i - 1],
-          onComplete: () => (alt.style.display = 'none')
-        })
-      }
-    }
-  }
-
-  const toggle = () => {
-    if (toggledRef.current) {
-      reset()
-    } else {
-      showAlt()
-    }
-toggledRef.current = !toggledRef.current
-localStorage.setItem('logoToggled', toggledRef.current.toString())
-  }
-
-// Instantly apply the correct visual state and sync GSAP
-for (let i = 1; i <= 8; i++) {
-  const base = document.getElementById(`letter_${i}`)
-  const alt = document.getElementById(`letter_${i + 8}`)
-
-  if (base && alt) {
-    if (toggledRef.current) {
-      // Set visual state directly
-      base.style.display = 'none'
-      alt.style.display = 'inline'
-
-      // Set transform state and clear GSAP overrides
-      gsap.set(base, { x: exitDirs[i - 1].x || 0, y: exitDirs[i - 1].y || 0 })
-      gsap.set(alt, { x: 0, y: 0 })
-    } else {
-      base.style.display = 'inline'
-      alt.style.display = 'none'
-
-      gsap.set(base, { x: 0, y: 0 })
-      gsap.set(alt, { x: enterDirs[i - 1].x || 0, y: enterDirs[i - 1].y || 0 })
-    }
-  }
-}
-
-
-  logo.addEventListener('mouseenter', toggle)
-
-  logo.addEventListener('touchstart', (e) => {
-    longPressed = false
-    longPressTimer = setTimeout(() => {
-      longPressed = true
-      toggle()
-    }, 500)
-  })
-
-  logo.addEventListener('touchend', (e) => {
-    clearTimeout(longPressTimer)
-    if (longPressed) {
-      e.preventDefault()
-    }
-  })
-
-  logo.addEventListener('contextmenu', (e) => {
-    if (longPressed) e.preventDefault()
-  })
-
-  return () => {
-    logo.removeEventListener('mouseenter', toggle)
-    logo.removeEventListener('touchstart', () => {})
-    logo.removeEventListener('touchend', () => {})
-    logo.removeEventListener('contextmenu', () => {})
-  }
-}, [])
-
+  // SVG JSX returns here
   return (
     <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
     
