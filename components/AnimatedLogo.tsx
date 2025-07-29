@@ -7,22 +7,25 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
       setTimeout(() => {
-        for (let i = 1; i <= 8; i++) {
-          const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+      // Ensure initial visual state matches toggled = false
+for (let i = 1; i <= 8; i++) {
+  const base = document.getElementById(`letter_${i}`)
+  const alt = document.getElementById(`letter_${i + 8}`)
 
-          if (base) {
-            base.style.display = 'inline'
-            base.style.transform = ''
-            gsap.set(base, { clearProps: 'all' })
-          }
+  if (base) {
+    base.style.display = 'inline'
+    base.style.transform = ''
+    gsap.set(base, { clearProps: 'all' })
+  }
 
-          if (alt) {
-            alt.style.display = 'none'
-            alt.style.transform = ''
-            gsap.set(alt, { clearProps: 'all' })
-          }
-        }
+  if (alt) {
+    alt.style.visibility = 'hidden'        // ✅ Use visibility instead
+    alt.style.position = 'absolute'        // ✅ Avoid layout shifts
+    alt.style.transform = ''
+    gsap.set(alt, { clearProps: 'all' })
+  }
+}
+
       }, 50)
     }
   })
@@ -60,22 +63,21 @@ const showAlt = (onComplete?: () => void) => {
         ...exitDirs[i - 1]
       })
 
-      alt.style.display = 'inline'
-      gsap.fromTo(
-        alt,
-        enterDirs[i - 1],
-        {
-          duration: 0.5,
-          x: 0,
-          y: 0,
-          onComplete: () => {
-            if (++completed === 8 && onComplete) onComplete()
-          }
+      alt.style.visibility = 'visible'     // ✅ Use visibility instead of display
+      gsap.set(alt, enterDirs[i - 1])      // ✅ Ensure correct starting transform
+
+      gsap.to(alt, {
+        duration: 0.5,
+        x: 0,
+        y: 0,
+        onComplete: () => {
+          if (++completed === 8 && onComplete) onComplete()
         }
-      )
+      })
     }
   }
 }
+
 
 
  const reset = (onComplete?: () => void) => {
