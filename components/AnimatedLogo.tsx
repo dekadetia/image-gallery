@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useID, useRef } from 'react'
+import { useId } from 'react'
+import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 
 export default function AnimatedLogo() {
