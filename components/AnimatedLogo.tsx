@@ -18,12 +18,14 @@ for (let i = 1; i <= 8; i++) {
     gsap.set(base, { clearProps: 'all' })
   }
 
-  if (alt) {
-    alt.style.visibility = 'hidden'        // ✅ Use visibility instead
-    alt.style.position = 'absolute'        // ✅ Avoid layout shifts
-    alt.style.transform = ''
-    gsap.set(alt, { clearProps: 'all' })
-  }
+if (alt) {
+  alt.style.opacity = '0'
+  alt.style.pointerEvents = 'none'
+  alt.style.position = 'absolute'
+  alt.style.transform = ''
+  gsap.set(alt, { clearProps: 'all' })
+}
+
 }
 
       }, 50)
@@ -63,8 +65,10 @@ const showAlt = (onComplete?: () => void) => {
         ...exitDirs[i - 1]
       })
 
-      alt.style.visibility = 'visible'     // ✅ Use visibility instead of display
-      gsap.set(alt, enterDirs[i - 1])      // ✅ Ensure correct starting transform
+alt.style.opacity = '1'
+alt.style.pointerEvents = 'auto'
+gsap.set(alt, enterDirs[i - 1])
+
 
       gsap.to(alt, {
         duration: 0.5,
@@ -99,7 +103,8 @@ const reset = (onComplete?: () => void) => {
         duration: 0.5,
         ...enterDirs[i - 1],
         onComplete: () => {
-          alt.style.visibility = 'hidden'  // ✅ Hide after animating out
+alt.style.opacity = '0'
+alt.style.pointerEvents = 'none'
           if (++completed === 8 && onComplete) onComplete()
         }
       })
