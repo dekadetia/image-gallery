@@ -50,34 +50,38 @@ export default function AnimatedLogo() {
 
 const showAlt = (onComplete?: () => void) => {
   let completed = 0
+
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
 
     if (base && alt) {
-      gsap.to(base, {
+      alt.style.display = 'inline' // Prep alt layer for animation
+
+      const tl = gsap.timeline()
+
+      // Base exits with its directional transform
+      tl.to(base, {
         duration: 0.5,
-        ...exitDirs[i - 1]
-      })
+        ...exitDirs[i - 1],
+      }, 0)
 
-   alt.style.display = 'inline'
-void alt.offsetWidth // 🔧 forces layout flush, ensures transform kicks in cleanly
+      // Alt is positioned at its entry direction immediately
+      tl.set(alt, enterDirs[i - 1], 0)
 
-gsap.fromTo(
-  alt,
-  enterDirs[i - 1],
-  {
-    duration: 0.5,
-    x: 0,
-    y: 0,
-    onComplete: () => {
-      if (++completed === 8 && onComplete) onComplete()
-    }
-  }
-)
+      // Alt animates in to (0,0) — starting at the same time
+      tl.to(alt, {
+        duration: 0.5,
+        x: 0,
+        y: 0,
+        onComplete: () => {
+          if (++completed === 8 && onComplete) onComplete()
+        }
+      }, 0)
     }
   }
 }
+
 
 
  const reset = (onComplete?: () => void) => {
