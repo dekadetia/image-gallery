@@ -12,6 +12,7 @@ import Footer from '../../components/Footer';
 import Lightbox from 'yet-another-react-lightbox';
 import Video from 'yet-another-react-lightbox/plugins/video';
 import AudioPlayer from '../../components/AudioPlayer';
+import BlackModeCaption from '../../components/BlackModeCaption';
 import AnimatedLogo from '../../components/AnimatedLogo';
 
 export default function FadeGallery() {
