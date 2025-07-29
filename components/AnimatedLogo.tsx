@@ -17,12 +17,11 @@ if (typeof window !== 'undefined') {
             gsap.set(base, { clearProps: 'all' })
           }
 
-if (alt) {
-  alt.style.display = 'inline'                // Make it paintable
-  gsap.set(alt, enterDirs[i - 1])             // Place it offscreen (the 'from' state)
-  alt.getBoundingClientRect()                 // Force a layout + paint + rasterization
-  alt.style.display = 'none'                  // Hide again until animation
-}
+          if (alt) {
+            alt.style.display = 'none'
+            alt.style.transform = ''
+            gsap.set(alt, { clearProps: 'all' })
+          }
         }
       }, 50)
     }
