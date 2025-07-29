@@ -60,19 +60,21 @@ const showAlt = (onComplete?: () => void) => {
         ...exitDirs[i - 1]
       })
 
-      alt.style.display = 'inline'
-      gsap.fromTo(
-        alt,
-        enterDirs[i - 1],
-        {
-          duration: 0.5,
-          x: 0,
-          y: 0,
-          onComplete: () => {
-            if (++completed === 8 && onComplete) onComplete()
-          }
-        }
-      )
+   alt.style.display = 'inline'
+void alt.offsetWidth // 🔧 forces layout flush, ensures transform kicks in cleanly
+
+gsap.fromTo(
+  alt,
+  enterDirs[i - 1],
+  {
+    duration: 0.5,
+    x: 0,
+    y: 0,
+    onComplete: () => {
+      if (++completed === 8 && onComplete) onComplete()
+    }
+  }
+)
     }
   }
 }
