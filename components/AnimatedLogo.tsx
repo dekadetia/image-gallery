@@ -1,41 +1,34 @@
 'use client'
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useState } from 'react'
 import gsap from 'gsap'
-
-const getInitialLogoState = (): 'a' | 'b' => {
-  if (typeof window === 'undefined') return 'a'
-  try {
-    return (localStorage.getItem('logoState') as 'a' | 'b') || 'a'
-  } catch {
-    return 'a'
-  }
-}
-
-const setLogoState = (state: 'a' | 'b') => {
-  try {
-    localStorage.setItem('logoState', state)
-  } catch {}
-}
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
-  const initialState = getInitialLogoState() // <-- read during render!
+  const [mounted, setMounted] = useState(false)
+  const [toggled, setToggled] = useState(false) // false = state A, true = state B
 
   useEffect(() => {
+    // Client-only mount
+    const stored = localStorage.getItem('logoState')
+    const isAlt = stored === 'b'
+    setToggled(isAlt)
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
     const logo = document.getElementById('logo')
     if (!logo) return
 
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
       { y: 140 }, { y: -140 },
-      { x: -120 }, { x: -120 }, { x: -120 },
+      { x: -120 }, { x: -120 }, { x: -120 }
     ]
     const enterDirs = [
       { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
-      { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 },
+      { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
     ]
-
-    let toggled = initialState === 'b'
 
     const animateToAlt = () => {
       for (let i = 1; i <= 8; i++) {
@@ -50,7 +43,6 @@ export default function AnimatedLogo() {
         alt.style.display = 'inline'
         gsap.fromTo(alt, enterDirs[i - 1], { duration: 0.5, x: 0, y: 0 })
       }
-      setLogoState('b')
     }
 
     const animateToBase = () => {
@@ -66,15 +58,20 @@ export default function AnimatedLogo() {
           onComplete: () => (alt.style.display = 'none'),
         })
       }
-      setLogoState('a')
     }
 
     const toggle = () => {
-      if (toggled) animateToBase()
-      else animateToAlt()
-      toggled = !toggled
+      if (toggled) {
+        animateToBase()
+        localStorage.setItem('logoState', 'a')
+      } else {
+        animateToAlt()
+        localStorage.setItem('logoState', 'b')
+      }
+      setToggled(!toggled)
     }
 
+    // Attach interaction
     logo.addEventListener('mouseenter', toggle)
 
     let longPressed = false
@@ -100,10 +97,13 @@ export default function AnimatedLogo() {
       logo.removeEventListener('touchend', () => {})
       logo.removeEventListener('contextmenu', () => {})
     }
-  }, [initialState])
+  }, [mounted, toggled])
+
+  if (!mounted) return null // prevent server-side render
 
   return (
-    <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
+    <svg
+ className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
     
      <defs><clipPath id={`${idPrefix}_clip_letter_1`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="0.0" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_2`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="112.25" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_3`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="224.5" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_4`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="336.75" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_5`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="0.0" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_6`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="112.25" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_7`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="224.5" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_8`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="336.75" y="133.15" /></clipPath></defs>
 <g id="g">
