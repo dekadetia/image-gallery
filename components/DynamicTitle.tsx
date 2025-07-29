@@ -9,21 +9,23 @@ export default function DynamicTitle() {
       alt:  '𝐁 | 𝐋 | 𝐍 | 𝐃 | 𝐆 | 𝐋 | 𝐒 | 𝐒',
     }
 
-    const setTitleFromLogoState = () => {
-      const logoState = sessionStorage.getItem('logoState') === 'alt' ? 'alt' : 'base'
-      document.title = titles[logoState]
+    const setTitleFromLogoState = (state: 'base' | 'alt') => {
+      document.title = titles[state]
     }
 
-    setTitleFromLogoState()
+    const initial = sessionStorage.getItem('logoState') === 'alt' ? 'alt' : 'base'
+    setTitleFromLogoState(initial)
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        setTitleFromLogoState()
-      }
-    })
+    const handler = (e: Event) => {
+      const custom = e as CustomEvent
+      const state = custom.detail?.state === 'alt' ? 'alt' : 'base'
+      setTitleFromLogoState(state)
+    }
+
+    window.addEventListener('logoStateChange', handler)
 
     return () => {
-      document.removeEventListener('visibilitychange', setTitleFromLogoState)
+      window.removeEventListener('logoStateChange', handler)
     }
   }, [])
 
