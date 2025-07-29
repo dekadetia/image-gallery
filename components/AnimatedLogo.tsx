@@ -7,6 +7,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
       setTimeout(() => {
+        const saved = sessionStorage.getItem('logoState')
         for (let i = 1; i <= 8; i++) {
           const base = document.getElementById(`letter_${i}`) as HTMLElement | null
           const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
@@ -23,15 +24,32 @@ if (typeof window !== 'undefined') {
             gsap.set(alt, { clearProps: 'all' })
           }
         }
+
+        if (saved === 'alt') {
+          for (let i = 1; i <= 8; i++) {
+            const base = document.getElementById(`letter_${i}`)
+            const alt = document.getElementById(`letter_${i + 8}`)
+            if (base && alt) {
+              base.style.display = 'none'
+              alt.style.display = 'inline'
+            }
+          }
+        }
       }, 50)
     }
   })
 }
 
+
 export default function AnimatedLogo() {
   const idPrefix = useId()
   useEffect(() => {
     const logo = document.getElementById('logo')
+const saved = sessionStorage.getItem('logoState')
+if (saved === 'alt') {
+  showAlt()
+  toggled.current = true
+}
     if (!logo) return
 
     const exitDirs = [
@@ -46,7 +64,7 @@ export default function AnimatedLogo() {
 
     let longPressed = false
     let longPressTimer
-    let toggled = false
+const toggled = useRef(false)
 
     const showAlt = () => {
       for (let i = 1; i <= 8; i++) {
@@ -96,12 +114,14 @@ export default function AnimatedLogo() {
     }
 
 const toggle = () => {
-  if (toggled) {
+  if (toggled.current) {
     reset()
+    sessionStorage.setItem('logoState', 'base')
   } else {
     showAlt()
+    sessionStorage.setItem('logoState', 'alt')
   }
-  toggled = !toggled
+  toggled.current = !toggled.current
 }
 
 logo.addEventListener('mouseenter', toggle)
