@@ -94,15 +94,17 @@ const reset = (onComplete?: () => void) => {
       })
     }
 
-    if (alt) {
-      gsap.to(alt, {
-        duration: 0.5,
-        ...enterDirs[i - 1],
-        onComplete: () => {
-          alt.style.display = 'none' // ✅ Only hide after full exit
-          if (++completed === 8 && onComplete) onComplete()
-        },
-      })
+if (alt) {
+  gsap.set(alt, { x: 0, y: 0 }) // 🧠 ensures clean starting position
+
+  gsap.to(alt, {
+    duration: 0.5,
+    ...enterDirs[i - 1],        // 📤 animates alt letter out to offscreen
+    onComplete: () => {
+      alt.style.display = 'none'
+      if (++completed === 8 && onComplete) onComplete()
+    },
+  })
     }
   }
 }
