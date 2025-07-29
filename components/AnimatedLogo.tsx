@@ -94,22 +94,25 @@ const reset = (onComplete?: () => void) => {
       })
     }
 
-if (alt) {
-  gsap.set(alt, { x: 0, y: 0 })
-  void alt.offsetHeight // 🧠 force flush to make sure transform is registered
+    if (alt) {
+      alt.style.display = 'inline' // 🔥 Must be visible to animate
 
-  gsap.to(alt, {
-    duration: 0.5,
-    ...enterDirs[i - 1],
-    onComplete: () => {
-      alt.style.display = 'none'
-      if (++completed === 8 && onComplete) onComplete()
-    },
-  })
-}
+      const tl = gsap.timeline()
 
+      tl.set(alt, { x: 0, y: 0 }) // force known transform start
+
+      tl.to(alt, {
+        duration: 0.5,
+        ...enterDirs[i - 1],
+        onComplete: () => {
+          alt.style.display = 'none'
+          if (++completed === 8 && onComplete) onComplete()
+        }
+      })
+    }
   }
 }
+
 
 
 
