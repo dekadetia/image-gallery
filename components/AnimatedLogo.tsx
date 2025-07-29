@@ -115,15 +115,20 @@ export default function AnimatedLogo() {
     // Initial state snap-in
     snapToState()
 
-    const toggle = () => {
-      if (toggled) {
-        reset()
-      } else {
-        showAlt()
-      }
-      toggled = !toggled
-      sessionStorage.setItem('logoState', toggled ? 'alt' : 'base')
-    }
+const toggle = () => {
+  if (toggled) {
+    reset()
+  } else {
+    showAlt()
+  }
+  toggled = !toggled
+  sessionStorage.setItem('logoState', toggled ? 'alt' : 'base')
+
+  // 🔥 Dispatch event for others to react
+  window.dispatchEvent(new CustomEvent('logoStateChange', {
+    detail: { state: toggled ? 'alt' : 'base' }
+  }))
+}
 
     logo.addEventListener('mouseenter', toggle)
 
