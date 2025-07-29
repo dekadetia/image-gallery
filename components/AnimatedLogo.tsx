@@ -48,52 +48,63 @@ export default function AnimatedLogo() {
     let longPressTimer
     let toggled = false
 
-    const showAlt = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
+const showAlt = (onComplete?: () => void) => {
+  let completed = 0
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
 
-        if (base && alt) {
-          gsap.to(base, {
-            duration: 0.5,
-            ...exitDirs[i - 1]
-          })
+    if (base && alt) {
+      gsap.to(base, {
+        duration: 0.5,
+        ...exitDirs[i - 1]
+      })
 
-          alt.style.display = 'inline'
-          gsap.fromTo(alt,
-            enterDirs[i - 1],
-            {
-              duration: 0.5,
-              x: 0,
-              y: 0
-            }
-          )
+      alt.style.display = 'inline'
+      gsap.fromTo(
+        alt,
+        enterDirs[i - 1],
+        {
+          duration: 0.5,
+          x: 0,
+          y: 0,
+          onComplete: () => {
+            if (++completed === 8 && onComplete) onComplete()
+          }
         }
-      }
+      )
+    }
+  }
+}
+
+
+ const reset = (onComplete?: () => void) => {
+  let completed = 0
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
+
+    if (base) {
+      gsap.to(base, {
+        duration: 0.5,
+        x: 0,
+        y: 0
+      })
     }
 
-    const reset = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
-
-        if (base) {
-          gsap.to(base, {
-            duration: 0.5,
-            x: 0,
-            y: 0
-          })
+    if (alt) {
+      gsap.to(alt, {
+        duration: 0.5,
+        ...enterDirs[i - 1],
+        onComplete: () => {
+          alt.style.display = 'none'
+          if (++completed === 8 && onComplete) onComplete()
         }
-
-        if (alt) {
-          gsap.to(alt, {
-            duration: 0.5,
-            ...enterDirs[i - 1],
-            onComplete: () => (alt.style.display = 'none')
-          })
-        }
-      }
+      })
     }
+  }
+}
+
 
 const toggle = () => {
   if (toggled) {
@@ -108,15 +119,15 @@ logo.addEventListener('mouseenter', toggle)
 
     logo.addEventListener('touchstart', (e) => {
       longPressed = false
-      longPressTimer = setTimeout(() => {
-        longPressed = true
-        if (toggled) {
-          reset()
-        } else {
-          showAlt()
-        }
-        toggled = !toggled
-      }, 500)
+longPressTimer = setTimeout(() => {
+  longPressed = true
+  if (toggled) {
+    reset(() => (toggled = false))
+  } else {
+    showAlt(() => (toggled = true))
+  }
+}, 500)
+
     })
 
     logo.addEventListener('touchend', (e) => {
