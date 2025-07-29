@@ -2,38 +2,23 @@
 import { useEffect, useId } from 'react'
 import gsap from 'gsap'
 
-// 🔒 GLOBAL: Fix back button bfcache restore
-if (typeof window !== 'undefined') {
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) {
-      setTimeout(() => {
-        for (let i = 1; i <= 8; i++) {
-          const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+const getLogoState = (): 'a' | 'b' => {
+  if (typeof window === 'undefined') return 'a'
+  return (localStorage.getItem('logoState') as 'a' | 'b') || 'a'
+}
 
-          if (base) {
-            base.style.display = 'inline'
-            base.style.transform = ''
-            gsap.set(base, { clearProps: 'all' })
-          }
-
-          if (alt) {
-            alt.style.display = 'none'
-            alt.style.transform = ''
-            gsap.set(alt, { clearProps: 'all' })
-          }
-        }
-      }, 50)
-    }
-  })
+const setLogoState = (state: 'a' | 'b') => {
+  if (typeof window !== 'undefined') localStorage.setItem('logoState', state)
 }
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
+
   useEffect(() => {
     const logo = document.getElementById('logo')
     if (!logo) return
 
+    // Directions for each letter (exit/enter)
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
       { y: 140 }, { y: -140 },
@@ -44,88 +29,81 @@ export default function AnimatedLogo() {
       { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
     ]
 
+    // Current toggle state
+    let toggled = getLogoState() === 'b'
+
+    // Apply initial static state immediately
+    const applyStaticState = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+        if (!base || !alt) continue
+        base.style.display = toggled ? 'none' : 'inline'
+        alt.style.display = toggled ? 'inline' : 'none'
+        gsap.set([base, alt], { x: 0, y: 0, clearProps: 'all' })
+      }
+      logo.setAttribute('data-state', toggled ? 'b' : 'a')
+    }
+
+    const animateToAlt = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+        if (!base || !alt) continue
+        gsap.to(base, {
+          duration: 0.5,
+          ...exitDirs[i - 1],
+          onComplete: () => (base.style.display = 'none'),
+        })
+        alt.style.display = 'inline'
+        gsap.fromTo(alt, enterDirs[i - 1], { duration: 0.5, x: 0, y: 0 })
+      }
+      logo.setAttribute('data-state', 'b')
+      setLogoState('b')
+    }
+
+    const animateToBase = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+        if (!base || !alt) continue
+        base.style.display = 'inline'
+        gsap.to(base, { duration: 0.5, x: 0, y: 0 })
+        gsap.to(alt, {
+          duration: 0.5,
+          ...enterDirs[i - 1],
+          onComplete: () => (alt.style.display = 'none'),
+        })
+      }
+      logo.setAttribute('data-state', 'a')
+      setLogoState('a')
+    }
+
+    const toggle = () => {
+      if (toggled) animateToBase()
+      else animateToAlt()
+      toggled = !toggled
+    }
+
+    // INITIALIZE STATE
+    applyStaticState()
+
+    // EVENTS
+    logo.addEventListener('mouseenter', toggle)
+
     let longPressed = false
-    let longPressTimer
-    let toggled = false
-
-    const showAlt = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
-
-        if (base && alt) {
-          gsap.to(base, {
-            duration: 0.5,
-            ...exitDirs[i - 1]
-          })
-
-          alt.style.display = 'inline'
-          gsap.fromTo(alt,
-            enterDirs[i - 1],
-            {
-              duration: 0.5,
-              x: 0,
-              y: 0
-            }
-          )
-        }
-      }
-    }
-
-    const reset = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
-
-        if (base) {
-          gsap.to(base, {
-            duration: 0.5,
-            x: 0,
-            y: 0
-          })
-        }
-
-        if (alt) {
-          gsap.to(alt, {
-            duration: 0.5,
-            ...enterDirs[i - 1],
-            onComplete: () => (alt.style.display = 'none')
-          })
-        }
-      }
-    }
-
-const toggle = () => {
-  if (toggled) {
-    reset()
-  } else {
-    showAlt()
-  }
-  toggled = !toggled
-}
-
-logo.addEventListener('mouseenter', toggle)
-
-    logo.addEventListener('touchstart', (e) => {
+    let longPressTimer: NodeJS.Timeout
+    logo.addEventListener('touchstart', () => {
       longPressed = false
       longPressTimer = setTimeout(() => {
         longPressed = true
-        if (toggled) {
-          reset()
-        } else {
-          showAlt()
-        }
-        toggled = !toggled
+        toggle()
       }, 500)
     })
-
     logo.addEventListener('touchend', (e) => {
       clearTimeout(longPressTimer)
-      if (longPressed) {
-        e.preventDefault()
-      }
+      if (longPressed) e.preventDefault()
     })
-
     logo.addEventListener('contextmenu', (e) => {
       if (longPressed) e.preventDefault()
     })
