@@ -7,8 +7,6 @@ import "react-toastify/dist/ReactToastify.css";
 import DynamicTitle from '../components/DynamicTitle';
 import { FIREBASE_APP } from "../firebase/firebase-config";
 import type { Metadata } from "next";
-import AnimatedLogo from '../components/AnimatedLogo'
-
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -55,7 +53,6 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         <DynamicTitle /> 
-         <AnimatedLogo />
         <main>
           <ToastContainer />
         </main>
