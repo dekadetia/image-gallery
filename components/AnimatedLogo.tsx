@@ -2,48 +2,40 @@
 import { useEffect, useId } from 'react'
 import gsap from 'gsap'
 
-const getLogoState = (): 'a' | 'b' => {
+const getInitialLogoState = (): 'a' | 'b' => {
   if (typeof window === 'undefined') return 'a'
-  return (localStorage.getItem('logoState') as 'a' | 'b') || 'a'
+  try {
+    return (localStorage.getItem('logoState') as 'a' | 'b') || 'a'
+  } catch {
+    return 'a'
+  }
 }
 
 const setLogoState = (state: 'a' | 'b') => {
-  if (typeof window !== 'undefined') localStorage.setItem('logoState', state)
+  try {
+    localStorage.setItem('logoState', state)
+  } catch {}
 }
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
+  const initialState = getInitialLogoState() // <-- read during render!
 
   useEffect(() => {
     const logo = document.getElementById('logo')
     if (!logo) return
 
-    // Directions for each letter (exit/enter)
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
       { y: 140 }, { y: -140 },
-      { x: -120 }, { x: -120 }, { x: -120 }
+      { x: -120 }, { x: -120 }, { x: -120 },
     ]
     const enterDirs = [
       { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
-      { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
+      { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 },
     ]
 
-    // Current toggle state
-    let toggled = getLogoState() === 'b'
-
-    // Apply initial static state immediately
-    const applyStaticState = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-        const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
-        if (!base || !alt) continue
-        base.style.display = toggled ? 'none' : 'inline'
-        alt.style.display = toggled ? 'inline' : 'none'
-        gsap.set([base, alt], { x: 0, y: 0, clearProps: 'all' })
-      }
-      logo.setAttribute('data-state', toggled ? 'b' : 'a')
-    }
+    let toggled = initialState === 'b'
 
     const animateToAlt = () => {
       for (let i = 1; i <= 8; i++) {
@@ -58,7 +50,6 @@ export default function AnimatedLogo() {
         alt.style.display = 'inline'
         gsap.fromTo(alt, enterDirs[i - 1], { duration: 0.5, x: 0, y: 0 })
       }
-      logo.setAttribute('data-state', 'b')
       setLogoState('b')
     }
 
@@ -75,7 +66,6 @@ export default function AnimatedLogo() {
           onComplete: () => (alt.style.display = 'none'),
         })
       }
-      logo.setAttribute('data-state', 'a')
       setLogoState('a')
     }
 
@@ -85,10 +75,6 @@ export default function AnimatedLogo() {
       toggled = !toggled
     }
 
-    // INITIALIZE STATE
-    applyStaticState()
-
-    // EVENTS
     logo.addEventListener('mouseenter', toggle)
 
     let longPressed = false
@@ -114,7 +100,7 @@ export default function AnimatedLogo() {
       logo.removeEventListener('touchend', () => {})
       logo.removeEventListener('contextmenu', () => {})
     }
-  }, [])
+  }, [initialState])
 
   return (
     <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
