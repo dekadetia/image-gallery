@@ -80,7 +80,7 @@ const showAlt = (onComplete?: () => void) => {
 
 
 
- const reset = (onComplete?: () => void) => {
+const reset = (onComplete?: () => void) => {
   let completed = 0
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
@@ -99,13 +99,14 @@ const showAlt = (onComplete?: () => void) => {
         duration: 0.5,
         ...enterDirs[i - 1],
         onComplete: () => {
-          alt.style.display = 'none'
+          alt.style.visibility = 'hidden'  // ✅ Hide after animating out
           if (++completed === 8 && onComplete) onComplete()
         }
       })
     }
   }
 }
+
 
 
 const toggle = () => {
