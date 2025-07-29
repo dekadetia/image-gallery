@@ -17,11 +17,12 @@ if (typeof window !== 'undefined') {
             gsap.set(base, { clearProps: 'all' })
           }
 
-          if (alt) {
-            alt.style.display = 'none'
-            alt.style.transform = ''
-            gsap.set(alt, { clearProps: 'all' })
-          }
+if (alt && alt.dataset.reset !== 'inProgress') {
+  alt.style.display = 'none'
+  alt.style.transform = ''
+  gsap.set(alt, { clearProps: 'all' })
+}
+
         }
       }, 50)
     }
@@ -95,6 +96,7 @@ const reset = (onComplete?: () => void) => {
     }
 
     if (alt) {
+      alt.dataset.reset = 'inProgress'     // 🧠 block useEffect from interfering
       alt.style.display = 'inline'
 
       gsap.fromTo(
@@ -103,13 +105,11 @@ const reset = (onComplete?: () => void) => {
         {
           duration: 0.5,
           ...enterDirs[i - 1],
-          // 👇 Delay hiding until AFTER 500ms — same as animation duration
-          onStart: () => {
-            setTimeout(() => {
-              alt.style.display = 'none'
-              if (++completed === 8 && onComplete) onComplete()
-            }, 500)
-          }
+          onComplete: () => {
+            alt.style.display = 'none'
+            delete alt.dataset.reset        // 🧼 clean up flag after animation
+            if (++completed === 8 && onComplete) onComplete()
+          },
         }
       )
     }
