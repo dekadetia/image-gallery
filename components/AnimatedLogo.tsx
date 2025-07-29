@@ -95,10 +95,7 @@ const reset = (onComplete?: () => void) => {
     }
 
     if (alt) {
-      // 🧠 Force visibility & isolate it
       alt.style.display = 'inline'
-      alt.style.position = 'absolute'
-      alt.style.pointerEvents = 'none'
 
       gsap.fromTo(
         alt,
@@ -106,17 +103,19 @@ const reset = (onComplete?: () => void) => {
         {
           duration: 0.5,
           ...enterDirs[i - 1],
-          onComplete: () => {
-            alt.style.display = 'none'
-            alt.style.position = ''
-            alt.style.pointerEvents = ''
-            if (++completed === 8 && onComplete) onComplete()
-          },
+          // 👇 Delay hiding until AFTER 500ms — same as animation duration
+          onStart: () => {
+            setTimeout(() => {
+              alt.style.display = 'none'
+              if (++completed === 8 && onComplete) onComplete()
+            }, 500)
+          }
         }
       )
     }
   }
 }
+
 
 
 
