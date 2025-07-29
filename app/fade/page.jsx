@@ -275,7 +275,7 @@ transition={{ duration: 2, ease: 'easeInOut' }}
                                 <div className={slide.director && "!mb-5"}>
                                     {slide.director && (
                                         <div className="yarl__slide_description !text-[#99AABB]">
-                                            <span>{slide.director}</span>
+                                            <span className="font-medium">{slide.director}</span>
                                         </div>
                                     )}
                                     {slide.description && (
