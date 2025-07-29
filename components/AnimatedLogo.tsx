@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import gsap from 'gsap'
 
 // 🔒 GLOBAL: Fix back button bfcache restore
