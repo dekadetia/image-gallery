@@ -1,22 +1,36 @@
 'use client'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId } from 'react'
 import gsap from 'gsap'
+
+// 🔒 GLOBAL: Fix back button bfcache restore
+if (typeof window !== 'undefined') {
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      setTimeout(() => {
+        for (let i = 1; i <= 8; i++) {
+          const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+
+          if (base) {
+            base.style.display = 'inline'
+            base.style.transform = ''
+            gsap.set(base, { clearProps: 'all' })
+          }
+
+          if (alt) {
+            alt.style.display = 'none'
+            alt.style.transform = ''
+            gsap.set(alt, { clearProps: 'all' })
+          }
+        }
+      }, 50)
+    }
+  })
+}
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
-  const [mounted, setMounted] = useState(false)
-  const [toggled, setToggled] = useState(false) // false = state A, true = state B
-
   useEffect(() => {
-    // Client-only mount
-    const stored = localStorage.getItem('logoState')
-    const isAlt = stored === 'b'
-    setToggled(isAlt)
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) return
     const logo = document.getElementById('logo')
     if (!logo) return
 
@@ -30,63 +44,88 @@ export default function AnimatedLogo() {
       { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
     ]
 
-    const animateToAlt = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
-        if (!base || !alt) continue
-        gsap.to(base, {
-          duration: 0.5,
-          ...exitDirs[i - 1],
-          onComplete: () => (base.style.display = 'none'),
-        })
-        alt.style.display = 'inline'
-        gsap.fromTo(alt, enterDirs[i - 1], { duration: 0.5, x: 0, y: 0 })
-      }
-    }
-
-    const animateToBase = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
-        if (!base || !alt) continue
-        base.style.display = 'inline'
-        gsap.to(base, { duration: 0.5, x: 0, y: 0 })
-        gsap.to(alt, {
-          duration: 0.5,
-          ...enterDirs[i - 1],
-          onComplete: () => (alt.style.display = 'none'),
-        })
-      }
-    }
-
-    const toggle = () => {
-      if (toggled) {
-        animateToBase()
-        localStorage.setItem('logoState', 'a')
-      } else {
-        animateToAlt()
-        localStorage.setItem('logoState', 'b')
-      }
-      setToggled(!toggled)
-    }
-
-    // Attach interaction
-    logo.addEventListener('mouseenter', toggle)
-
     let longPressed = false
-    let longPressTimer: NodeJS.Timeout
-    logo.addEventListener('touchstart', () => {
+    let longPressTimer
+    let toggled = false
+
+    const showAlt = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base && alt) {
+          gsap.to(base, {
+            duration: 0.5,
+            ...exitDirs[i - 1]
+          })
+
+          alt.style.display = 'inline'
+          gsap.fromTo(alt,
+            enterDirs[i - 1],
+            {
+              duration: 0.5,
+              x: 0,
+              y: 0
+            }
+          )
+        }
+      }
+    }
+
+    const reset = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+
+        if (base) {
+          gsap.to(base, {
+            duration: 0.5,
+            x: 0,
+            y: 0
+          })
+        }
+
+        if (alt) {
+          gsap.to(alt, {
+            duration: 0.5,
+            ...enterDirs[i - 1],
+            onComplete: () => (alt.style.display = 'none')
+          })
+        }
+      }
+    }
+
+const toggle = () => {
+  if (toggled) {
+    reset()
+  } else {
+    showAlt()
+  }
+  toggled = !toggled
+}
+
+logo.addEventListener('mouseenter', toggle)
+
+    logo.addEventListener('touchstart', (e) => {
       longPressed = false
       longPressTimer = setTimeout(() => {
         longPressed = true
-        toggle()
+        if (toggled) {
+          reset()
+        } else {
+          showAlt()
+        }
+        toggled = !toggled
       }, 500)
     })
+
     logo.addEventListener('touchend', (e) => {
       clearTimeout(longPressTimer)
-      if (longPressed) e.preventDefault()
+      if (longPressed) {
+        e.preventDefault()
+      }
     })
+
     logo.addEventListener('contextmenu', (e) => {
       if (longPressed) e.preventDefault()
     })
@@ -97,13 +136,10 @@ export default function AnimatedLogo() {
       logo.removeEventListener('touchend', () => {})
       logo.removeEventListener('contextmenu', () => {})
     }
-  }, [mounted, toggled])
-
-  if (!mounted) return null // prevent server-side render
+  }, [])
 
   return (
-    <svg
- className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
+    <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
     
      <defs><clipPath id={`${idPrefix}_clip_letter_1`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="0.0" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_2`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="112.25" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_3`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="224.5" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_4`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="336.75" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_5`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="0.0" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_6`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="112.25" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_7`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="224.5" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_8`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="336.75" y="133.15" /></clipPath></defs>
 <g id="g">
