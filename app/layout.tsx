@@ -7,7 +7,18 @@ import "react-toastify/dist/ReactToastify.css";
 import DynamicTitle from '../components/DynamicTitle';
 import { FIREBASE_APP } from "../firebase/firebase-config";
 import type { Metadata } from "next";
+import AnimatedLogo from '@/components/AnimatedLogo'
 
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <AnimatedLogo />
+        {children}
+      </body>
+    </html>
+  )
+}
 
 const inter = Inter({ subsets: ["latin"] });
 
