@@ -44,7 +44,9 @@ export default function AnimatedLogo() {
       { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
     ]
 
-    let toggled = sessionStorage.getItem('logoState') === 'alt'
+    let longPressed = false
+    let longPressTimer
+    let toggled = false
 
     const showAlt = () => {
       for (let i = 1; i <= 8; i++) {
@@ -93,54 +95,35 @@ export default function AnimatedLogo() {
       }
     }
 
-    const snapToState = () => {
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
+const toggle = () => {
+  if (toggled) {
+    reset()
+  } else {
+    showAlt()
+  }
+  toggled = !toggled
+}
 
-        if (toggled) {
-          if (base && alt) {
-            gsap.set(base, exitDirs[i - 1])
-            gsap.set(alt, { x: 0, y: 0, display: 'inline' })
-          }
-        } else {
-          if (base && alt) {
-            gsap.set(base, { x: 0, y: 0 })
-            gsap.set(alt, { display: 'none' })
-          }
-        }
-      }
-    }
+logo.addEventListener('mouseenter', toggle)
 
-    // Initial state snap-in
-    snapToState()
-
-    const toggle = () => {
-      if (toggled) {
-        reset()
-      } else {
-        showAlt()
-      }
-      toggled = !toggled
-      sessionStorage.setItem('logoState', toggled ? 'alt' : 'base')
-    }
-
-    logo.addEventListener('mouseenter', toggle)
-
-    let longPressed = false
-    let longPressTimer: ReturnType<typeof setTimeout>
-
-    logo.addEventListener('touchstart', () => {
+    logo.addEventListener('touchstart', (e) => {
       longPressed = false
       longPressTimer = setTimeout(() => {
         longPressed = true
-        toggle()
+        if (toggled) {
+          reset()
+        } else {
+          showAlt()
+        }
+        toggled = !toggled
       }, 500)
     })
 
     logo.addEventListener('touchend', (e) => {
       clearTimeout(longPressTimer)
-      if (longPressed) e.preventDefault()
+      if (longPressed) {
+        e.preventDefault()
+      }
     })
 
     logo.addEventListener('contextmenu', (e) => {
