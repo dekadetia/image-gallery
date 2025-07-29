@@ -86,6 +86,7 @@ const reset = (onComplete?: () => void) => {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
 
+    // Animate base letters back to center
     if (base) {
       gsap.to(base, {
         duration: 0.5,
@@ -94,18 +95,26 @@ const reset = (onComplete?: () => void) => {
       })
     }
 
+    // Animate alt letters OUT using fromTo
     if (alt) {
-      gsap.to(alt, {
-        duration: 0.5,
-        ...enterDirs[i - 1],
-        onComplete: () => {
-          alt.style.display = 'none' // ✅ Only hide after full exit
-          if (++completed === 8 && onComplete) onComplete()
-        },
-      })
+      alt.style.display = 'inline' // Ensure visible to animate
+
+      gsap.fromTo(
+        alt,
+        { x: 0, y: 0 },             // 💡 Explicit starting point
+        {
+          duration: 0.5,
+          ...enterDirs[i - 1],      // 🎯 Animate out of view
+          onComplete: () => {
+            alt.style.display = 'none' // 👻 Hide after full exit
+            if (++completed === 8 && onComplete) onComplete()
+          },
+        }
+      )
     }
   }
 }
+
 
 
 
