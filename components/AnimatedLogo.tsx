@@ -130,12 +130,13 @@ logo.addEventListener('mouseenter', toggle)
       longPressed = false
       longPressTimer = setTimeout(() => {
         longPressed = true
-        if (toggled) {
-          reset()
-        } else {
-          showAlt()
-        }
-        toggled = !toggled
+if (toggled.current) {
+  reset()
+} else {
+  showAlt()
+}
+toggled.current = !toggled.current
+
       }, 500)
     })
 
