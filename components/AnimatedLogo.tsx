@@ -95,17 +95,19 @@ const reset = (onComplete?: () => void) => {
     }
 
 if (alt) {
-  gsap.set(alt, { x: 0, y: 0 }) // 🧠 ensures clean starting position
+  gsap.set(alt, { x: 0, y: 0 })
+  void alt.offsetHeight // 🧠 force flush to make sure transform is registered
 
   gsap.to(alt, {
     duration: 0.5,
-    ...enterDirs[i - 1],        // 📤 animates alt letter out to offscreen
+    ...enterDirs[i - 1],
     onComplete: () => {
       alt.style.display = 'none'
       if (++completed === 8 && onComplete) onComplete()
     },
   })
-    }
+}
+
   }
 }
 
