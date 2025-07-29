@@ -31,10 +31,9 @@ if (typeof window !== 'undefined') {
 export default function AnimatedLogo() {
   const idPrefix = useId()
   useEffect(() => {
-    let isAnimating = false
     const logo = document.getElementById('logo')
     if (!logo) return
-    
+
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
       { y: 140 }, { y: -140 },
@@ -47,56 +46,52 @@ export default function AnimatedLogo() {
 
     let toggled = sessionStorage.getItem('logoState') === 'alt'
 
-const showAlt = () => {
-  for (let i = 1; i <= 8; i++) {
-    const base = document.getElementById(`letter_${i}`)
-    const alt = document.getElementById(`letter_${i + 8}`)
+    const showAlt = () => {
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
 
-    if (base && alt) {
-      // Animate base out
-      gsap.to(base, {
-        duration: 0.5,
-        ...exitDirs[i - 1]
-      })
+        if (base && alt) {
+          gsap.to(base, {
+            duration: 0.5,
+            ...exitDirs[i - 1]
+          })
 
-      // Ensure alt starts hidden and appears *at animation start*
-      gsap.set(alt, { ...enterDirs[i - 1], display: 'inline' })
-
-      gsap.to(alt, {
-        duration: 0.5,
-        x: 0,
-        y: 0
-      })
+          alt.style.display = 'inline'
+          gsap.fromTo(alt,
+            enterDirs[i - 1],
+            {
+              duration: 0.5,
+              x: 0,
+              y: 0
+            }
+          )
+        }
+      }
     }
-  }
-}
-
 
     const reset = () => {
-  for (let i = 1; i <= 8; i++) {
-    const base = document.getElementById(`letter_${i}`)
-    const alt = document.getElementById(`letter_${i + 8}`)
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
 
-    if (base) {
-      gsap.to(base, {
-        duration: 0.5,
-        x: 0,
-        y: 0
-      })
-    }
-
-    if (alt) {
-      gsap.to(alt, {
-        duration: 0.5,
-        ...enterDirs[i - 1],
-        onComplete: () => {
-          alt.style.display = 'none'
+        if (base) {
+          gsap.to(base, {
+            duration: 0.5,
+            x: 0,
+            y: 0
+          })
         }
-      })
-    }
-  }
-}
 
+        if (alt) {
+          gsap.to(alt, {
+            duration: 0.5,
+            ...enterDirs[i - 1],
+            onComplete: () => (alt.style.display = 'none')
+          })
+        }
+      }
+    }
 
     const snapToState = () => {
       for (let i = 1; i <= 8; i++) {
@@ -120,25 +115,15 @@ const showAlt = () => {
     // Initial state snap-in
     snapToState()
 
-const toggle = () => {
-  if (isAnimating) return
-  isAnimating = true
-
-  if (toggled) {
-    reset()
-  } else {
-    showAlt()
-  }
-
-  toggled = !toggled
-  sessionStorage.setItem('logoState', toggled ? 'alt' : 'base')
-  window.dispatchEvent(new CustomEvent('logoStateChange', {
-    detail: { state: toggled ? 'alt' : 'base' }
-  }))
-
-  // Unlock after animation completes
-  setTimeout(() => (isAnimating = false), 600)
-}
+    const toggle = () => {
+      if (toggled) {
+        reset()
+      } else {
+        showAlt()
+      }
+      toggled = !toggled
+      sessionStorage.setItem('logoState', toggled ? 'alt' : 'base')
+    }
 
     logo.addEventListener('mouseenter', toggle)
 
