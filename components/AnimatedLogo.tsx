@@ -57,30 +57,30 @@ const showAlt = (onComplete?: () => void) => {
     if (base && alt) {
       gsap.to(base, {
         duration: 0.5,
-        ...exitDirs[i - 1],
+        ...exitDirs[i - 1]
       })
 
-      alt.style.display = 'inline'
+   alt.style.display = 'inline'
+void alt.offsetWidth // 🔧 forces layout flush, ensures transform kicks in cleanly
 
-      // ✅ Force browser to flush layout before animating
-      void alt.offsetHeight
-
-      gsap.set(alt, enterDirs[i - 1])
-      gsap.to(alt, {
-        duration: 0.5,
-        x: 0,
-        y: 0,
-        onComplete: () => {
-          if (++completed === 8 && onComplete) onComplete()
-        },
-      })
+gsap.fromTo(
+  alt,
+  enterDirs[i - 1],
+  {
+    duration: 0.5,
+    x: 0,
+    y: 0,
+    onComplete: () => {
+      if (++completed === 8 && onComplete) onComplete()
+    }
+  }
+)
     }
   }
 }
 
 
-
-const reset = (onComplete?: () => void) => {
+ const reset = (onComplete?: () => void) => {
   let completed = 0
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
@@ -90,18 +90,12 @@ const reset = (onComplete?: () => void) => {
       gsap.to(base, {
         duration: 0.5,
         x: 0,
-        y: 0,
+        y: 0
       })
     }
 
     if (alt) {
-      alt.style.display = 'inline' // 🔥 Must be visible to animate
-
-      const tl = gsap.timeline()
-
-      tl.set(alt, { x: 0, y: 0 }) // force known transform start
-
-      tl.to(alt, {
+      gsap.to(alt, {
         duration: 0.5,
         ...enterDirs[i - 1],
         onComplete: () => {
@@ -112,8 +106,6 @@ const reset = (onComplete?: () => void) => {
     }
   }
 }
-
-
 
 
 const toggle = () => {
