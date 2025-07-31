@@ -51,7 +51,7 @@ export default function AnimatedLogo() {
 
 const showAlt = (onComplete?: () => void) => {
   let completed = 0
-  const exitDelay = firstToggle ? 0.05 : 0
+  const exitDelay = firstToggle ? 0.2 : 0
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
