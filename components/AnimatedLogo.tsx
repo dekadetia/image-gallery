@@ -102,32 +102,34 @@ if (saved === 'alt') {
       firstToggle = false
     }
 
-    const reset = (onComplete?: () => void) => {
-      let completed = 0
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
+  const reset = (onComplete?: () => void) => {
+  let completed = 0
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
 
-        if (base) {
-          gsap.to(base, {
-            duration: 0.5,
-            x: 0,
-            y: 0,
-          })
-        }
-
-        if (alt) {
-          gsap.to(alt, {
-            duration: 0.5,
-            ...enterDirs[i - 1],
-            onComplete: () => {
-              alt.style.display = 'none'
-              if (++completed === 8 && onComplete) onComplete()
-            },
-          })
-        }
-      }
+    if (base) {
+      base.style.display = 'inline' // ✅ make base visible again
+      gsap.to(base, {
+        duration: 0.5,
+        x: 0,
+        y: 0,
+      })
     }
+
+    if (alt) {
+      gsap.to(alt, {
+        duration: 0.5,
+        ...enterDirs[i - 1],
+        onComplete: () => {
+          alt.style.display = 'none'
+          if (++completed === 8 && onComplete) onComplete()
+        },
+      })
+    }
+  }
+}
+
 
     const toggle = () => {
       if (toggled) {
