@@ -72,6 +72,7 @@ gsap.fromTo(
   enterDirs[i - 1],
   {
     duration: 0.5,
+    delay: exitDelay, // 👈 same delay as base letter's exit
     x: 0,
     y: 0,
     onComplete: () => {
@@ -79,6 +80,7 @@ gsap.fromTo(
     }
   }
 )
+
     }
   }
   firstToggle = false
