@@ -52,7 +52,7 @@ export default function AnimatedLogo() {
 
 const showAlt = (onComplete?: () => void) => {
   let completed = 0
-const exitDelay = firstToggle && isTouchInteraction ? 0.18 : 0
+const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
@@ -117,9 +117,9 @@ gsap.fromTo(
 
 const toggle = () => {
   if (toggled) {
-    reset(() => sessionStorage.setItem('logoState', 'base'))
+    reset()
   } else {
-    showAlt(() => sessionStorage.setItem('logoState', 'alt'))
+    showAlt()
   }
   toggled = !toggled
 }
