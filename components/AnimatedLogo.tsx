@@ -117,9 +117,9 @@ gsap.fromTo(
 
 const toggle = () => {
   if (toggled) {
-    reset()
+    reset(() => sessionStorage.setItem('logoState', 'base'))
   } else {
-    showAlt()
+    showAlt(() => sessionStorage.setItem('logoState', 'alt'))
   }
   toggled = !toggled
 }
