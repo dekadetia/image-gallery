@@ -46,12 +46,13 @@ export default function AnimatedLogo() {
 
     let longPressed = false
     let firstToggle = true
+    let isTouchInteraction = false
     let longPressTimer
     let toggled = false
 
 const showAlt = (onComplete?: () => void) => {
   let completed = 0
-  const exitDelay = firstToggle ? 0.2 : 0
+const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
@@ -123,8 +124,9 @@ const toggle = () => {
 
 logo.addEventListener('mouseenter', toggle)
 
-    logo.addEventListener('touchstart', (e) => {
-      longPressed = false
+logo.addEventListener('touchstart', (e) => {
+  isTouchInteraction = true
+   longPressed = false
 longPressTimer = setTimeout(() => {
   longPressed = true
   if (toggled) {
