@@ -52,8 +52,19 @@ export default function AnimatedLogo() {
     let firstToggle = true
     let isTouchInteraction = false
     let longPressTimer
-    let toggled = false
+let toggled = false
 
+const saved = sessionStorage.getItem('logoState')
+if (saved === 'alt') {
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
+
+    if (base) base.style.display = 'none'
+    if (alt) alt.style.display = 'inline'
+  }
+  toggled = true // 👈 this one, not a different one
+}
     const showAlt = (onComplete?: () => void) => {
       let completed = 0
       const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
