@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useId } from 'react'
+import { useLayoutEffect, useEffect, useId } from 'react'
 import gsap from 'gsap'
 
 // 🔒 GLOBAL: Fix back button bfcache restore
@@ -27,6 +27,29 @@ if (typeof window !== 'undefined') {
     }
   })
 }
+
+export default function AnimatedLogo() {
+  const idPrefix = useId()
+
+  useLayoutEffect(() => {
+    const logo = document.getElementById('logo')
+    if (!logo) return
+
+    const savedState = sessionStorage.getItem('logoState')
+    if (savedState === 'alt') {
+      toggled = true
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
+        if (base && alt) {
+          base.style.display = 'none'
+          alt.style.display = 'inline'
+          gsap.set(base, { clearProps: 'all' })
+          gsap.set(alt, { x: 0, y: 0, autoAlpha: 1 })
+        }
+      }
+    }
+  }, [])
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
