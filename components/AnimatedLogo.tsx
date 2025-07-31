@@ -1,5 +1,5 @@
 'use client'
-import { useLayoutEffect, useEffect, useId } from 'react'
+import { useEffect, useId } from 'react'
 import gsap from 'gsap'
 
 // 🔒 GLOBAL: Fix back button bfcache restore
@@ -30,30 +30,9 @@ if (typeof window !== 'undefined') {
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
-  let toggled = false
-
-  useLayoutEffect(() => {
+  useEffect(() => {
     const logo = document.getElementById('logo')
     if (!logo) return
-
-    const savedState = sessionStorage.getItem('logoState')
-    if (savedState === 'alt') {
-      toggled = true
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
-        if (base && alt) {
-          base.style.display = 'none'
-          alt.style.display = 'inline'
-          gsap.set(base, { clearProps: 'all' })
-          gsap.set(alt, { x: 0, y: 0, autoAlpha: 1 })
-        }
-      }
-    }
-  }, [])
-
-
-if (!logo) return
 
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
@@ -153,15 +132,9 @@ logo.addEventListener('touchstart', (e) => {
 longPressTimer = setTimeout(() => {
   longPressed = true
   if (toggled) {
-reset(() => {
-  toggled = false
-  sessionStorage.setItem('logoState', 'base')
-})
+    reset(() => (toggled = false))
   } else {
-showAlt(() => {
-  toggled = true
-  sessionStorage.setItem('logoState', 'alt')
-})
+    showAlt(() => (toggled = true))
   }
 }, 500)
 
