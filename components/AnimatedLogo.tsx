@@ -45,20 +45,23 @@ export default function AnimatedLogo() {
     ]
 
     let longPressed = false
+    let firstToggle = true
     let longPressTimer
     let toggled = false
 
 const showAlt = (onComplete?: () => void) => {
   let completed = 0
+  const exitDelay = firstToggle ? 0.05 : 0
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
 
     if (base && alt) {
-      gsap.to(base, {
-        duration: 0.5,
-        ...exitDirs[i - 1]
-      })
+gsap.to(base, {
+  duration: 0.5,
+  delay: exitDelay,
+  ...exitDirs[i - 1]
+})
 
    alt.style.display = 'inline'
 void alt.offsetWidth // 🔧 forces layout flush, ensures transform kicks in cleanly
@@ -77,6 +80,7 @@ gsap.fromTo(
 )
     }
   }
+  firstToggle = false
 }
 
 
