@@ -49,7 +49,7 @@ if (savedState === 'alt') {
   }
 }
 
-    const logo = document.getElementById('logo')
+
 if (!logo) return
 
     const exitDirs = [
