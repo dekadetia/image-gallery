@@ -129,10 +129,16 @@ export default function AnimatedLogo() {
 
     // ✅ Restore saved state now that everything is defined
     const saved = sessionStorage.getItem('logoState')
-    if (saved === 'alt') {
-      showAlt()
-      toggled = true
-    }
+if (saved === 'alt') {
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
+
+    if (base) base.style.display = 'none'
+    if (alt) alt.style.display = 'inline'
+  }
+  toggled = true
+}
 
     logo.addEventListener('mouseenter', toggle)
 
