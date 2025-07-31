@@ -138,12 +138,14 @@ longPressTimer = setTimeout(() => {
 
     })
 
-    logo.addEventListener('touchend', (e) => {
-      clearTimeout(longPressTimer)
-      if (longPressed) {
-        e.preventDefault()
-      }
-    })
+logo.addEventListener('touchend', (e) => {
+  isTouchInteraction = false
+  clearTimeout(longPressTimer)
+  if (longPressed) {
+    e.preventDefault()
+  }
+})
+
 
     logo.addEventListener('contextmenu', (e) => {
       if (longPressed) e.preventDefault()
