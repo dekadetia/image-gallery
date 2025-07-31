@@ -7,18 +7,21 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
       setTimeout(() => {
+        const saved = sessionStorage.getItem('logoState')
+        const isAlt = saved === 'alt'
+
         for (let i = 1; i <= 8; i++) {
           const base = document.getElementById(`letter_${i}`) as HTMLElement | null
           const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
 
           if (base) {
-            base.style.display = 'inline'
+            base.style.display = isAlt ? 'none' : 'inline'
             base.style.transform = ''
             gsap.set(base, { clearProps: 'all' })
           }
 
           if (alt) {
-            alt.style.display = 'none'
+            alt.style.display = isAlt ? 'inline' : 'none'
             alt.style.transform = ''
             gsap.set(alt, { clearProps: 'all' })
           }
@@ -30,6 +33,7 @@ if (typeof window !== 'undefined') {
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
+
   useEffect(() => {
     const logo = document.getElementById('logo')
     if (!logo) return
@@ -50,104 +54,116 @@ export default function AnimatedLogo() {
     let longPressTimer
     let toggled = false
 
-const showAlt = (onComplete?: () => void) => {
-  let completed = 0
-const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
-  for (let i = 1; i <= 8; i++) {
-    const base = document.getElementById(`letter_${i}`)
-    const alt = document.getElementById(`letter_${i + 8}`)
+    const showAlt = (onComplete?: () => void) => {
+      let completed = 0
+      const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
-    if (base && alt) {
-gsap.to(base, {
-  duration: 0.5,
-  delay: exitDelay,
-  ...exitDirs[i - 1]
-})
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
 
-   alt.style.display = 'inline'
-void alt.offsetWidth // 🔧 forces layout flush, ensures transform kicks in cleanly
+        if (base && alt) {
+          gsap.to(base, {
+            duration: 0.5,
+            delay: exitDelay,
+            ...exitDirs[i - 1],
+          })
 
-gsap.fromTo(
-  alt,
-  enterDirs[i - 1],
-  {
-    duration: 0.5,
-    delay: exitDelay, // 👈 same delay as base letter's exit
-    x: 0,
-    y: 0,
-    onComplete: () => {
-      if (++completed === 8 && onComplete) onComplete()
-    }
-  }
-)
+          alt.style.display = 'inline'
+          void alt.offsetWidth // layout flush
 
-    }
-  }
-  firstToggle = false
-}
-
-
- const reset = (onComplete?: () => void) => {
-  let completed = 0
-  for (let i = 1; i <= 8; i++) {
-    const base = document.getElementById(`letter_${i}`)
-    const alt = document.getElementById(`letter_${i + 8}`)
-
-    if (base) {
-      gsap.to(base, {
-        duration: 0.5,
-        x: 0,
-        y: 0
-      })
-    }
-
-    if (alt) {
-      gsap.to(alt, {
-        duration: 0.5,
-        ...enterDirs[i - 1],
-        onComplete: () => {
-          alt.style.display = 'none'
-          if (++completed === 8 && onComplete) onComplete()
+          gsap.fromTo(
+            alt,
+            enterDirs[i - 1],
+            {
+              duration: 0.5,
+              delay: exitDelay,
+              x: 0,
+              y: 0,
+              onComplete: () => {
+                if (++completed === 8 && onComplete) onComplete()
+              },
+            }
+          )
         }
-      })
+      }
+
+      firstToggle = false
     }
-  }
-}
 
+    const reset = (onComplete?: () => void) => {
+      let completed = 0
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
 
-const toggle = () => {
-  if (toggled) {
-    reset()
-  } else {
-    showAlt()
-  }
-  toggled = !toggled
-}
+        if (base) {
+          gsap.to(base, {
+            duration: 0.5,
+            x: 0,
+            y: 0,
+          })
+        }
 
-logo.addEventListener('mouseenter', toggle)
+        if (alt) {
+          gsap.to(alt, {
+            duration: 0.5,
+            ...enterDirs[i - 1],
+            onComplete: () => {
+              alt.style.display = 'none'
+              if (++completed === 8 && onComplete) onComplete()
+            },
+          })
+        }
+      }
+    }
 
-logo.addEventListener('touchstart', (e) => {
-  isTouchInteraction = true
-   longPressed = false
-longPressTimer = setTimeout(() => {
-  longPressed = true
-  if (toggled) {
-    reset(() => (toggled = false))
-  } else {
-    showAlt(() => (toggled = true))
-  }
-}, 500)
+    const toggle = () => {
+      if (toggled) {
+        reset(() => sessionStorage.setItem('logoState', 'base'))
+      } else {
+        showAlt(() => sessionStorage.setItem('logoState', 'alt'))
+      }
+      toggled = !toggled
+    }
 
+    // ✅ Restore saved state now that everything is defined
+    const saved = sessionStorage.getItem('logoState')
+    if (saved === 'alt') {
+      showAlt()
+      toggled = true
+    }
+
+    logo.addEventListener('mouseenter', toggle)
+
+    logo.addEventListener('touchstart', (e) => {
+      isTouchInteraction = true
+      longPressed = false
+
+      longPressTimer = setTimeout(() => {
+        longPressed = true
+
+        if (toggled) {
+          reset(() => {
+            toggled = false
+            sessionStorage.setItem('logoState', 'base')
+          })
+        } else {
+          showAlt(() => {
+            toggled = true
+            sessionStorage.setItem('logoState', 'alt')
+          })
+        }
+      }, 500)
     })
 
-logo.addEventListener('touchend', (e) => {
-  isTouchInteraction = false
-  clearTimeout(longPressTimer)
-  if (longPressed) {
-    e.preventDefault()
-  }
-})
-
+    logo.addEventListener('touchend', (e) => {
+      isTouchInteraction = false
+      clearTimeout(longPressTimer)
+      if (longPressed) {
+        e.preventDefault()
+      }
+    })
 
     logo.addEventListener('contextmenu', (e) => {
       if (longPressed) e.preventDefault()
