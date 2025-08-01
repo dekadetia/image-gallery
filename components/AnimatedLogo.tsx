@@ -100,7 +100,6 @@ if (saved === 'alt') {
         }
       }
 
-      firstToggle = false
     }
 
   const reset = (onComplete?: () => void) => {
@@ -139,37 +138,44 @@ if (saved === 'alt') {
 }
 
 
-    const toggle = () => {
-      if (toggled) {
-        reset(() => sessionStorage.setItem('logoState', 'base'))
-      } else {
-        showAlt(() => sessionStorage.setItem('logoState', 'alt'))
-      }
-      toggled = !toggled
-    }
-
-
+const toggle = () => {
+  if (toggled) {
+    reset(() => {
+      sessionStorage.setItem('logoState', 'base')
+      firstToggle = false // 👈 now lives here
+    })
+  } else {
+    showAlt(() => {
+      sessionStorage.setItem('logoState', 'alt')
+      firstToggle = false // 👈 and here
+    })
+  }
+  toggled = !toggled
+}
+    
     logo.addEventListener('mouseenter', toggle)
 
     logo.addEventListener('touchstart', (e) => {
       isTouchInteraction = true
       longPressed = false
 
-      longPressTimer = setTimeout(() => {
-        longPressed = true
+longPressTimer = setTimeout(() => {
+  longPressed = true
 
-        if (toggled) {
-          reset(() => {
-            toggled = false
-            sessionStorage.setItem('logoState', 'base')
-          })
-        } else {
-          showAlt(() => {
-            toggled = true
-            sessionStorage.setItem('logoState', 'alt')
-          })
-        }
-      }, 500)
+  if (toggled) {
+    reset(() => {
+      toggled = false
+      sessionStorage.setItem('logoState', 'base')
+      firstToggle = false // 👈 add this
+    })
+  } else {
+    showAlt(() => {
+      toggled = true
+      sessionStorage.setItem('logoState', 'alt')
+      firstToggle = false // 👈 and this
+    })
+  }
+}, 500)
     })
 
     logo.addEventListener('touchend', (e) => {
