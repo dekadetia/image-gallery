@@ -99,7 +99,7 @@ if (saved === 'alt') {
         if (base && alt) {
           gsap.to(base, {
             duration: 0.5,
-            delay: exitDelay,
+delay,
             ...exitDirs[i - 1],
           })
 
@@ -151,7 +151,7 @@ if (saved === 'alt') {
     if (alt) {
       gsap.to(alt, {
         duration: 0.5,
-        delay: exitDelay,
+delay,
         ...enterDirs[i - 1],     // exit in opposite direction
         onComplete: () => {
           alt.style.display = 'none'
