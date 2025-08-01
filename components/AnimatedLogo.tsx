@@ -46,8 +46,7 @@ if (base && alt) {
       clearProps: 'all',
     })
   }
-
-
+}
       }, 50)
     }
   })
