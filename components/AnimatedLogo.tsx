@@ -107,33 +107,35 @@ if (saved === 'alt') {
 
     }
 
-  const reset = (onComplete?: () => void) => {
+ const reset = (onComplete?: () => void) => {
   let completed = 0
+  const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
+
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
 
     if (base) {
-  base.style.display = 'inline'
-  void base.offsetWidth // 🔧 layout flush
+      base.style.display = 'inline'
+      void base.offsetWidth // 🔧 layout flush before animating
 
-  gsap.fromTo(
-    base,
-    exitDirs[i - 1], // 🚀 come in from same direction it previously exited
-    {
-      duration: 0.5,
-        delay: exitDelay, // 
-      x: 0,
-      y: 0,
+      gsap.fromTo(
+        base,
+        exitDirs[i - 1],         // come in from where it exited earlier
+        {
+          duration: 0.5,
+          delay: exitDelay,
+          x: 0,
+          y: 0,
+        }
+      )
     }
-  )
-}
-
 
     if (alt) {
       gsap.to(alt, {
         duration: 0.5,
-        ...enterDirs[i - 1],
+        delay: exitDelay,
+        ...enterDirs[i - 1],     // exit in opposite direction
         onComplete: () => {
           alt.style.display = 'none'
           if (++completed === 8 && onComplete) onComplete()
@@ -142,6 +144,7 @@ if (saved === 'alt') {
     }
   }
 }
+
 
 
 const toggle = () => {
