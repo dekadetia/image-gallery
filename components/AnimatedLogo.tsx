@@ -55,6 +55,11 @@ const isInitialAlt = typeof window !== 'undefined' && sessionStorage.getItem('lo
     let longPressTimer
 let toggled = false
 
+const clearFirstToggle = () => {
+  if (firstToggle) firstToggle = false
+}
+
+
 const saved = sessionStorage.getItem('logoState')
 if (saved === 'alt') {
   for (let i = 1; i <= 8; i++) {
@@ -142,16 +147,17 @@ const toggle = () => {
   if (toggled) {
     reset(() => {
       sessionStorage.setItem('logoState', 'base')
-      firstToggle = false // 👈 now lives here
+      clearFirstToggle() // ✅ called after animation finishes
     })
   } else {
     showAlt(() => {
       sessionStorage.setItem('logoState', 'alt')
-      firstToggle = false // 👈 and here
+      clearFirstToggle() // ✅ same here
     })
   }
   toggled = !toggled
 }
+
     
     logo.addEventListener('mouseenter', toggle)
 
@@ -162,19 +168,20 @@ const toggle = () => {
 longPressTimer = setTimeout(() => {
   longPressed = true
 
-  if (toggled) {
-    reset(() => {
-      toggled = false
-      sessionStorage.setItem('logoState', 'base')
-      firstToggle = false // 👈 add this
-    })
-  } else {
-    showAlt(() => {
-      toggled = true
-      sessionStorage.setItem('logoState', 'alt')
-      firstToggle = false // 👈 and this
-    })
-  }
+if (toggled) {
+  reset(() => {
+    toggled = false
+    sessionStorage.setItem('logoState', 'base')
+    clearFirstToggle()
+  })
+} else {
+  showAlt(() => {
+    toggled = true
+    sessionStorage.setItem('logoState', 'alt')
+    clearFirstToggle()
+  })
+}
+
 }, 500)
     })
 
