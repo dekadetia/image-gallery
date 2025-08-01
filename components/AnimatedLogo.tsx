@@ -1,49 +1,32 @@
 'use client'
-import { useEffect, useId } from 'react' 
+import { useEffect, useId } from 'react'
 import gsap from 'gsap'
 
 // 🔒 GLOBAL: Fix back button bfcache restore
 if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
- setTimeout(() => {
-  const saved = sessionStorage.getItem('logoState')
-  const isAlt = saved === 'alt'
+      setTimeout(() => {
+        const saved = sessionStorage.getItem('logoState')
+        const isAlt = saved === 'alt'
 
-  for (let i = 1; i <= 8; i++) {
-    const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-    const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+        for (let i = 1; i <= 8; i++) {
+          const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
 
-    if (base && alt) {
-      if (isAlt) {
-        base.style.display = 'none'
-        alt.style.display = 'inline'
-        gsap.set(alt, {
-          x: 0,
-          y: 0,
-          clearProps: 'all',
-        })
-        gsap.set(base, {
-          ...exitDirs[i - 1],
-          clearProps: 'all',
-        })
-      } else {
-        base.style.display = 'inline'
-        alt.style.display = 'none'
-        gsap.set(base, {
-          x: 0,
-          y: 0,
-          clearProps: 'all',
-        })
-        gsap.set(alt, {
-          ...enterDirs[i - 1],
-          clearProps: 'all',
-        })
-      }
-    }
-  } // 👈 this is the missing one
-}, 50)
+          if (base) {
+            base.style.display = isAlt ? 'none' : 'inline'
+            base.style.transform = ''
+            gsap.set(base, { clearProps: 'all' })
+          }
 
+          if (alt) {
+            alt.style.display = isAlt ? 'inline' : 'none'
+            alt.style.transform = ''
+            gsap.set(alt, { clearProps: 'all' })
+          }
+        }
+      }, 50)
     }
   })
 }
@@ -72,11 +55,6 @@ const isInitialAlt = typeof window !== 'undefined' && sessionStorage.getItem('lo
     let longPressTimer
 let toggled = false
 
-const clearFirstToggle = () => {
-  if (firstToggle) firstToggle = false
-}
-
-
 const saved = sessionStorage.getItem('logoState')
 if (saved === 'alt') {
   for (let i = 1; i <= 8; i++) {
@@ -99,7 +77,7 @@ if (saved === 'alt') {
         if (base && alt) {
           gsap.to(base, {
             duration: 0.5,
-delay,
+            delay: exitDelay,
             ...exitDirs[i - 1],
           })
 
@@ -122,37 +100,35 @@ delay,
         }
       }
 
+      firstToggle = false
     }
 
- const reset = (onComplete?: () => void) => {
+  const reset = (onComplete?: () => void) => {
   let completed = 0
-  const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
-
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
 
     if (base) {
-      base.style.display = 'inline'
-      void base.offsetWidth // 🔧 layout flush before animating
+  base.style.display = 'inline'
+  void base.offsetWidth // 🔧 layout flush
 
-      gsap.fromTo(
-        base,
-        exitDirs[i - 1],         // come in from where it exited earlier
-        {
-          duration: 0.5,
-          delay: exitDelay,
-          x: 0,
-          y: 0,
-        }
-      )
+  gsap.fromTo(
+    base,
+    exitDirs[i - 1], // 🚀 come in from same direction it previously exited
+    {
+      duration: 0.5,
+      x: 0,
+      y: 0,
     }
+  )
+}
+
 
     if (alt) {
       gsap.to(alt, {
         duration: 0.5,
-delay,
-        ...enterDirs[i - 1],     // exit in opposite direction
+        ...enterDirs[i - 1],
         onComplete: () => {
           alt.style.display = 'none'
           if (++completed === 8 && onComplete) onComplete()
@@ -163,47 +139,37 @@ delay,
 }
 
 
+    const toggle = () => {
+      if (toggled) {
+        reset(() => sessionStorage.setItem('logoState', 'base'))
+      } else {
+        showAlt(() => sessionStorage.setItem('logoState', 'alt'))
+      }
+      toggled = !toggled
+    }
 
-const toggle = () => {
-  if (toggled) {
-    reset(() => {
-      sessionStorage.setItem('logoState', 'base')
-      clearFirstToggle() // ✅ called after animation finishes
-    })
-  } else {
-    showAlt(() => {
-      sessionStorage.setItem('logoState', 'alt')
-      clearFirstToggle() // ✅ same here
-    })
-  }
-  toggled = !toggled
-}
 
-    
     logo.addEventListener('mouseenter', toggle)
 
     logo.addEventListener('touchstart', (e) => {
       isTouchInteraction = true
       longPressed = false
 
-longPressTimer = setTimeout(() => {
-  longPressed = true
+      longPressTimer = setTimeout(() => {
+        longPressed = true
 
-if (toggled) {
-  reset(() => {
-    toggled = false
-    sessionStorage.setItem('logoState', 'base')
-    clearFirstToggle()
-  })
-} else {
-  showAlt(() => {
-    toggled = true
-    sessionStorage.setItem('logoState', 'alt')
-    clearFirstToggle()
-  })
-}
-
-}, 500)
+        if (toggled) {
+          reset(() => {
+            toggled = false
+            sessionStorage.setItem('logoState', 'base')
+          })
+        } else {
+          showAlt(() => {
+            toggled = true
+            sessionStorage.setItem('logoState', 'alt')
+          })
+        }
+      }, 500)
     })
 
     logo.addEventListener('touchend', (e) => {
