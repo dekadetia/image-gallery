@@ -6,48 +6,44 @@ import gsap from 'gsap'
 if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
-      setTimeout(() => {
-        const saved = sessionStorage.getItem('logoState')
-        const isAlt = saved === 'alt'
+ setTimeout(() => {
+  const saved = sessionStorage.getItem('logoState')
+  const isAlt = saved === 'alt'
 
-for (let i = 1; i <= 8; i++) {
-  const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-  const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+    const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
 
-if (base && alt) {
-  if (isAlt) {
-    base.style.display = 'none'
-    alt.style.display = 'inline'
+    if (base && alt) {
+      if (isAlt) {
+        base.style.display = 'none'
+        alt.style.display = 'inline'
+        gsap.set(alt, {
+          x: 0,
+          y: 0,
+          clearProps: 'all',
+        })
+        gsap.set(base, {
+          ...exitDirs[i - 1],
+          clearProps: 'all',
+        })
+      } else {
+        base.style.display = 'inline'
+        alt.style.display = 'none'
+        gsap.set(base, {
+          x: 0,
+          y: 0,
+          clearProps: 'all',
+        })
+        gsap.set(alt, {
+          ...enterDirs[i - 1],
+          clearProps: 'all',
+        })
+      }
+    }
+  } // 👈 this is the missing one
+}, 50)
 
-    // alt letters should be *at* x:0/y:0 since they're visible
-    gsap.set(alt, {
-      x: 0,
-      y: 0,
-      clearProps: 'all',
-    })
-
-    // base letters (invisible) get pre-offset to match animation
-    gsap.set(base, {
-      ...exitDirs[i - 1],
-      clearProps: 'all',
-    })
-  } else {
-    base.style.display = 'inline'
-    alt.style.display = 'none'
-
-    gsap.set(base, {
-      x: 0,
-      y: 0,
-      clearProps: 'all',
-    })
-
-    gsap.set(alt, {
-      ...enterDirs[i - 1],
-      clearProps: 'all',
-    })
-  }
-}
-      }, 50)
     }
   })
 }
