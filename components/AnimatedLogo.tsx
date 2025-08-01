@@ -10,22 +10,33 @@ if (typeof window !== 'undefined') {
         const saved = sessionStorage.getItem('logoState')
         const isAlt = saved === 'alt'
 
-        for (let i = 1; i <= 8; i++) {
-          const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+for (let i = 1; i <= 8; i++) {
+  const base = document.getElementById(`letter_${i}`) as HTMLElement | null
+  const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
 
-          if (base) {
-            base.style.display = isAlt ? 'none' : 'inline'
-            base.style.transform = ''
-            gsap.set(base, { clearProps: 'all' })
-          }
+  if (base && alt) {
+    if (isAlt) {
+      base.style.display = 'none'
+      alt.style.display = 'inline'
+    } else {
+      base.style.display = 'inline'
+      alt.style.display = 'none'
+    }
 
-          if (alt) {
-            alt.style.display = isAlt ? 'inline' : 'none'
-            alt.style.transform = ''
-            gsap.set(alt, { clearProps: 'all' })
-          }
-        }
+    gsap.set(base, {
+      clearProps: 'all',
+      x: 0,
+      y: 0,
+    })
+
+    gsap.set(alt, {
+      clearProps: 'all',
+      x: 0,
+      y: 0,
+    })
+  }
+}
+
       }, 50)
     }
   })
