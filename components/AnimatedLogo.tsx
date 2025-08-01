@@ -122,6 +122,7 @@ if (saved === 'alt') {
     exitDirs[i - 1], // 🚀 come in from same direction it previously exited
     {
       duration: 0.5,
+        delay: exitDelay, // 
       x: 0,
       y: 0,
     }
