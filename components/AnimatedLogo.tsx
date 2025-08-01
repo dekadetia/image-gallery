@@ -49,13 +49,11 @@ const isInitialAlt = typeof window !== 'undefined' && sessionStorage.getItem('lo
       { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
     ]
 
-let longPressed = false
-let firstToggle = true
-let isTouchInteraction = false
-let longPressTimer
+    let longPressed = false
+    let firstToggle = true
+    let isTouchInteraction = false
+    let longPressTimer
 let toggled = false
-let isNavigating = false // 🆕 NEW
-
 
 const saved = sessionStorage.getItem('logoState')
 if (saved === 'alt') {
@@ -141,27 +139,19 @@ if (saved === 'alt') {
 }
 
 
-const toggle = () => {
-  if (isNavigating) return // 🚫 skip toggle if navigating
-
-  if (toggled) {
-    reset(() => sessionStorage.setItem('logoState', 'base'))
-  } else {
-    showAlt(() => sessionStorage.setItem('logoState', 'alt'))
-  }
-  toggled = !toggled
-}
+    const toggle = () => {
+      if (toggled) {
+        reset(() => sessionStorage.setItem('logoState', 'base'))
+      } else {
+        showAlt(() => sessionStorage.setItem('logoState', 'alt'))
+      }
+      toggled = !toggled
+    }
 
 
-logo.addEventListener('click', () => {
-  isNavigating = true
-  setTimeout(() => {
-    isNavigating = false
-  }, 1000)
-})
-    
+    logo.addEventListener('mouseenter', toggle)
+
     logo.addEventListener('touchstart', (e) => {
-        if (isNavigating) return // 🚫 skip long-press toggle
       isTouchInteraction = true
       longPressed = false
 
