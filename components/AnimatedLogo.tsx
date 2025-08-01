@@ -50,7 +50,7 @@ const isInitialAlt = typeof window !== 'undefined' && sessionStorage.getItem('lo
     ]
 
     let longPressed = false
-let userHasToggled = false
+    let firstToggle = true
     let isTouchInteraction = false
     let longPressTimer
 let toggled = false
@@ -68,7 +68,7 @@ if (saved === 'alt') {
 }
     const showAlt = (onComplete?: () => void) => {
       let completed = 0
-const exitDelay = !userHasToggled && isTouchInteraction ? 0.2 : 0
+      const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
       for (let i = 1; i <= 8; i++) {
         const base = document.getElementById(`letter_${i}`)
@@ -145,7 +145,6 @@ const exitDelay = !userHasToggled && isTouchInteraction ? 0.2 : 0
       } else {
         showAlt(() => sessionStorage.setItem('logoState', 'alt'))
       }
-        userHasToggled = true
       toggled = !toggled
     }
 
