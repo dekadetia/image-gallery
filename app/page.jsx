@@ -162,22 +162,28 @@ const newSlides = newImages.map((photo) => {
               {images.map((photo, i) => (
                 <div key={i}>
                   {photo.src.toLowerCase().includes('.webm') ? (
-                    <video
-                      src={photo.src}
-                      onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                    />
+<div className="aspect-[16/9] w-full relative overflow-hidden min-w-0 min-h-0">
+  <video
+    src={photo.src}
+    onClick={() => setIndex(i)}
+    className="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
+    autoPlay
+    muted
+    loop
+    playsInline
+  />
+</div>
+
                   ) : (
-                    <img
-                      alt={photo.name}
-                      src={photo.src}
-                      onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
-                    />
+<div className="aspect-[16/9] w-full relative overflow-hidden min-w-0 min-h-0">
+  <img
+    alt={photo.name}
+    src={photo.src}
+    onClick={() => setIndex(i)}
+    className="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
+  />
+</div>
+
                   )}
                 </div>
               ))}
