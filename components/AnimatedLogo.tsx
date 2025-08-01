@@ -109,13 +109,20 @@ if (saved === 'alt') {
     const alt = document.getElementById(`letter_${i + 8}`)
 
     if (base) {
-      base.style.display = 'inline' // ✅ make base visible again
-      gsap.to(base, {
-        duration: 0.5,
-        x: 0,
-        y: 0,
-      })
+  base.style.display = 'inline'
+  void base.offsetWidth // 🔧 layout flush
+
+  gsap.fromTo(
+    base,
+    exitDirs[i - 1], // 🚀 come in from same direction it previously exited
+    {
+      duration: 0.5,
+      x: 0,
+      y: 0,
     }
+  )
+}
+
 
     if (alt) {
       gsap.to(alt, {
