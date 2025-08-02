@@ -206,39 +206,34 @@ const slides = Images.map(photo => {
             loader={<MoreImageLoader />}
           >
             <div className='w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center'>
-              {Images.map(photo => (
-                <div key={photo.id}>
-{photo.src?.toLowerCase().includes('.webm') ? (
-  <video
-    src={photo.src}
+{Images.map(photo => (
+  <div
+    key={photo.id}
+    className="w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in"
     onClick={() => handleImageClick(photo.id)}
-    className='aspect-[16/9] object-cover cursor-zoom-in'
-    autoPlay
-    muted
-    loop
-    playsInline
-    preload="metadata"
-    poster="/assets/transparent.png"
-    style={{
-      display: 'block',
-      width: '100%',
-      height: 'auto',
-      backgroundColor: 'transparent'
-    }}
-  />
-) : (
-  <img
-    alt={photo.name}
-    src={photo.src}
-    onClick={() => handleImageClick(photo.id)}
-    className='aspect-[16/9] object-cover cursor-zoom-in'
-    decoding='async'
-  />
-)}
+  >
+    {photo.src?.toLowerCase().includes('.webm') ? (
+      <video
+        src={photo.src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster="/assets/transparent.png"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    ) : (
+      <img
+        alt={photo.name}
+        src={photo.src}
+        decoding="async"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    )}
+  </div>
+))}
 
-
-                </div>
-              ))}
             </div>
           </InfiniteScroll>
         )}
