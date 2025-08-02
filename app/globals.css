@@ -295,3 +295,36 @@ body.blackmode-hide-cursor * {
     text-wrap: stable;
 }
 
+/* 🌅 Morning — cool haze */
+.morning {
+  background-image: linear-gradient(to bottom, #15181b, #4f7de421);
+  background-size: 100% 100%;
+  background-attachment: fixed;
+}
+
+/* ☀️ Day — faint solar warmth */
+.day {
+  background-image: linear-gradient(to bottom, #15181b, #ff19011a);
+  background-size: 100% 100%;
+  background-attachment: fixed;
+}
+
+/* 🌇 Dusk — ghost of neon */
+.dusk {
+  background-image: linear-gradient(to bottom, #15181b, #ff018112);
+  background-size: 100% 100%;
+  background-attachment: fixed;
+}
+
+/* 🌌 Night — midnight glint */
+.night {
+  background-image: linear-gradient(to bottom, #15181b, #0b123352);
+  background-size: 100% 100%;
+  background-attachment: fixed;
+}
+
+/* ✨ Optional: smooth transition */
+body,
+.min-h-screen {
+  transition: background-image 1s ease-in-out;
+}
