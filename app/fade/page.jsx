@@ -171,6 +171,25 @@ export default function FadeGallery() {
             clearTimeout(activityTimerRef.current);
         };
     }, []);
+    
+useEffect(() => {
+    if (blackMode) {
+        const handleMouseMove = () => {
+            clearTimeout(activityTimerRef.current);
+            setHideCursor(false);
+            activityTimerRef.current = setTimeout(() => {
+                setHideCursor(true);
+            }, 3000);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+
+        return () => {
+            clearTimeout(activityTimerRef.current);
+            window.removeEventListener('mousemove', handleMouseMove);
+        };
+    }
+}, [blackMode]);
 
     useEffect(() => {
         if (hideCursor && blackMode) {
