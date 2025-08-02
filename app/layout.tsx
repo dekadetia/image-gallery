@@ -44,9 +44,11 @@ const metadata: Metadata = {
   },
 };
 
-const gradient = useTimeGradient(); 
 
 export default function RootLayout({ children }) {
+
+  const gradient = useTimeGradient(); 
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
