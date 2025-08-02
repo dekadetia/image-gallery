@@ -7,6 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 import DynamicTitle from '../components/DynamicTitle';
 import { FIREBASE_APP } from "../firebase/firebase-config";
 import type { Metadata } from "next";
+import { useTimeGradient } from '../components/useTimeGradient';
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -43,6 +44,8 @@ const metadata: Metadata = {
   },
 };
 
+const gradient = useTimeGradient(); 
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -52,6 +55,8 @@ export default function RootLayout({ children }) {
         <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
       </head>
       <body className={inter.className}>
+                <div className={`min-h-screen ${gradient ?? ''}`}>
+
         <DynamicTitle /> 
         <main>
           <ToastContainer />
@@ -73,6 +78,7 @@ export default function RootLayout({ children }) {
             });
           `}
         </Script>
+                </div>
       </body>
     </html>
   );
