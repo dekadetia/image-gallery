@@ -34,6 +34,8 @@ export default function Scrl() {
   const activityTimerRef = useRef(null);
   const wasCalled = useRef(false);
   const seenImageIds = useRef(new Set());
+  const isFirefox = typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent);
+  const stepSize = isFirefox ? 1 : 0.5;
 
 const slides = Images.map(photo => {
   const src = photo.src ?? '';
@@ -146,18 +148,30 @@ const slides = Images.map(photo => {
   }, []);
 
   useEffect(() => {
-    let scrollSpeed = 1;
-    const scrollStep = () => {
-      window.scrollBy(0, scrollSpeed);
-      if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
-        window.scrollTo(0, 0);
-      }
-      scrollRef.current = requestAnimationFrame(scrollStep);
-    };
-    scrollRef.current = requestAnimationFrame(scrollStep);
+  let lastTime = 0;
+  const frameInterval = 1000 / 30; // 30fps
 
-    return () => cancelAnimationFrame(scrollRef.current);
-  }, []);
+  const scrollStep = (now) => {
+    if (now - lastTime >= frameInterval) {
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      const newScrollY = Math.min(window.scrollY + stepSize, maxScroll);
+
+      window.scrollTo({ top: newScrollY, behavior: 'auto' });
+
+      if (newScrollY >= maxScroll) {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+
+      lastTime = now;
+    }
+
+    scrollRef.current = requestAnimationFrame(scrollStep);
+  };
+
+  scrollRef.current = requestAnimationFrame(scrollStep);
+  return () => cancelAnimationFrame(scrollRef.current);
+}, []);
+
 
   const handleUserActivity = () => {
     clearTimeout(activityTimerRef.current);
