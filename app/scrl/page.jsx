@@ -146,18 +146,31 @@ const slides = Images.map(photo => {
   }, []);
 
   useEffect(() => {
-    let scrollSpeed = 1;
-    const scrollStep = () => {
-      window.scrollBy(0, scrollSpeed);
-      if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
-        window.scrollTo(0, 0);
-      }
-      scrollRef.current = requestAnimationFrame(scrollStep);
-    };
-    scrollRef.current = requestAnimationFrame(scrollStep);
+  let lastTime = 0;
+  const frameInterval = 1000 / 24; // 24 FPS
 
-    return () => cancelAnimationFrame(scrollRef.current);
-  }, []);
+  const scrollStep = (now) => {
+    if (now - lastTime >= frameInterval) {
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      const newScrollY = Math.min(window.scrollY + 1, maxScroll);
+
+      window.scrollTo({ top: newScrollY, behavior: 'auto' });
+
+      if (newScrollY >= maxScroll) {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+
+      lastTime = now;
+    }
+
+    scrollRef.current = requestAnimationFrame(scrollStep);
+  };
+
+  scrollRef.current = requestAnimationFrame(scrollStep);
+
+  return () => cancelAnimationFrame(scrollRef.current);
+}, []);
+
 
   const handleUserActivity = () => {
     clearTimeout(activityTimerRef.current);
