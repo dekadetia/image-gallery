@@ -21,6 +21,7 @@ export default function FadeGallery() {
     const loadingRef = useRef(false);
     const isInitialLoad = useRef(true);
     const [loader, __loader] = useState(true);
+    const cursorTimerRef = useRef(null);
 
     const [blackMode, setBlackMode] = useState(false);
     const [hideCursor, setHideCursor] = useState(false);
@@ -175,9 +176,9 @@ export default function FadeGallery() {
 useEffect(() => {
     if (blackMode) {
         const handleMouseMove = () => {
-            clearTimeout(activityTimerRef.current);
+            clearTimeout(cursorTimerRef.current);
             setHideCursor(false);
-            activityTimerRef.current = setTimeout(() => {
+            cursorTimerRef.current = setTimeout(() => {
                 setHideCursor(true);
             }, 3000);
         };
@@ -185,7 +186,7 @@ useEffect(() => {
         window.addEventListener('mousemove', handleMouseMove);
 
         return () => {
-            clearTimeout(activityTimerRef.current);
+            clearTimeout(cursorTimerRef.current);
             window.removeEventListener('mousemove', handleMouseMove);
         };
     }
