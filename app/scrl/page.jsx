@@ -149,17 +149,15 @@ const slides = Images.map(photo => {
 
   useEffect(() => {
   let lastTime = 0;
-  const frameInterval = 1000 / 30; // 30fps
+  const frameInterval = 1000 / 30;
 
   const scrollStep = (now) => {
     if (now - lastTime >= frameInterval) {
+      window.scrollBy(0, stepSize);
+
       const maxScroll = document.body.scrollHeight - window.innerHeight;
-      const newScrollY = Math.min(window.scrollY + stepSize, maxScroll);
-
-      window.scrollTo({ top: newScrollY, behavior: 'auto' });
-
-      if (newScrollY >= maxScroll) {
-        window.scrollTo({ top: 0, behavior: 'auto' });
+      if (window.scrollY + window.innerHeight >= maxScroll) {
+        window.scrollTo(0, 0);
       }
 
       lastTime = now;
@@ -171,6 +169,7 @@ const slides = Images.map(photo => {
   scrollRef.current = requestAnimationFrame(scrollStep);
   return () => cancelAnimationFrame(scrollRef.current);
 }, []);
+
 
 
   const handleUserActivity = () => {
