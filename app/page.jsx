@@ -159,28 +159,29 @@ const newSlides = newImages.map((photo) => {
             loader={<MoreImageLoader />}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-              {images.map((photo, i) => (
-                <div key={i}>
-                  {photo.src.toLowerCase().includes('.webm') ? (
-                    <video
-                      src={photo.src}
-                      onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      alt={photo.name}
-                      src={photo.src}
-                      onClick={() => setIndex(i)}
-                      className="aspect-[16/9] object-cover cursor-zoom-in"
-                    />
-                  )}
-                </div>
-              ))}
+             {images.map((photo, i) => (
+  <div key={i} className="w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in">
+    {photo.src.toLowerCase().includes('.webm') ? (
+      <video
+        src={photo.src}
+        onClick={() => setIndex(i)}
+        className="absolute inset-0 w-full h-full object-cover"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+    ) : (
+      <img
+        alt={photo.name}
+        src={photo.src}
+        onClick={() => setIndex(i)}
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    )}
+  </div>
+))}
+
             </div>
           </InfiniteScroll>
         </div>
