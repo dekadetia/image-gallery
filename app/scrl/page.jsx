@@ -146,7 +146,7 @@ const slides = Images.map(photo => {
   }, []);
 
   useEffect(() => {
-    let scrollSpeed = 0.5;
+    let scrollSpeed = 1;
     const scrollStep = () => {
       window.scrollBy(0, scrollSpeed);
       if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
