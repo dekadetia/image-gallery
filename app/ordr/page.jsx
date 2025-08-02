@@ -439,36 +439,32 @@ setSlides(dedupedResults.map(photo => ({
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
-                <div key={i}>
-{photo.src.includes('.webm') ? (
-  <video
-    src={photo.src}
-    muted
-    autoPlay
-    loop
-    playsInline
-    preload="metadata"
-    poster="/assets/transparent.png"
+  <div
+    key={i}
+    className="w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in"
     onClick={() => setIndex(i)}
-    className="aspect-[16/9] object-cover cursor-zoom-in"
-    style={{
-      display: 'block',
-      width: '100%',
-      height: 'auto',
-      backgroundColor: 'transparent'
-    }}
-  />
-) : (
-  <img
-    alt={photo.name}
-    src={photo.src}
-    onClick={() => setIndex(i)}
-    className="aspect-[16/9] object-cover cursor-zoom-in"
-  />
-)}
+  >
+    {photo.src.includes('.webm') ? (
+      <video
+        src={photo.src}
+        muted
+        autoPlay
+        loop
+        playsInline
+        preload="metadata"
+        poster="/assets/transparent.png"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    ) : (
+      <img
+        alt={photo.name}
+        src={photo.src}
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    )}
+  </div>
+))}
 
-                </div>
-              ))}
             </div>
           </InfiniteScroll>
 
