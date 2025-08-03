@@ -307,7 +307,13 @@ transition={{ duration: 2, ease: 'easeInOut' }}
                     }}
                 />
             )}
-            {blackMode && <AudioPlayer blackMode={blackMode} showControls={showControls} />}
+{blackMode && (
+  <AudioPlayer
+    blackMode={blackMode}
+    showControls={showControls}
+    slides={slides}
+  />
+)}
         </RootLayout>
     );
 }
