@@ -300,28 +300,28 @@ body.blackmode-hide-cursor * {
   background-image: linear-gradient(to bottom, #15181b, #291B1B);
   background-size: 100% 100%;
   background-attachment: fixed;
-}
+}*/
 
 /* ☀️ Day — cool haze */
 /*.day {
   background-image: linear-gradient(to bottom, #15181b, #202534);
   background-size: 100% 100%;
   background-attachment: fixed;
-}
+}*/
 
 /* 🌇 Dusk — ghost of neon */
 /*.dusk {
   background-image: linear-gradient(to bottom, #15181b, #241922);
   background-size: 100% 100%;
   background-attachment: fixed;
-}
+}*/
 
 /* 🌌 Night — midnight glint */
 /*.night {
   background-image: linear-gradient(to bottom, #15181b, #141622);
   background-size: 100% 100%;
   background-attachment: fixed;
-}
+}*/
 
 /* ✨ Optional: smooth transition */
 /body,
