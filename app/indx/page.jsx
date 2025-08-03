@@ -126,6 +126,8 @@ const newSlides = images.map((photo) => {
         height: 1620 * 4,
         title: photo.caption,
         description: photo.dimensions,
+              director: photo.director || null,
+      year: photo.year
       })));
     } catch (error) {
       console.error("Error sorting images:", error);
@@ -151,6 +153,8 @@ const newSlides = images.map((photo) => {
         height: 1620 * 4,
         title: photo.caption,
         description: photo.dimensions,
+              director: photo.director || null,
+      year: photo.year
       })));
     } catch (error) {
       console.error("Error sorting images:", error);
@@ -177,6 +181,8 @@ const newSlides = images.map((photo) => {
         height: 1620 * 4,
         title: photo.caption,
         description: photo.dimensions,
+              director: photo.director || null,
+      year: photo.year
       })));
     } catch (error) {
       console.error("Error sorting images:", error);
