@@ -330,42 +330,34 @@ body,
 }
 
 
-/* Reset any conflicting styles */
-.yarl__container {
-  background: unset !important;
+/* Reset any transparent styles */
+.yarl__stage,
+.yarl__slide {
+  background: none !important;
   background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
-  z-index: 10000; /* ensure it sits atop */
-  position: fixed; /* ensure it covers viewport */
 }
 
-/* Morning gradient */
-.morning .yarl__container {
+/* Apply gradient to current visible slide */
+.morning .yarl__slide_current {
   background-image: linear-gradient(to bottom, #15181b, #291B1B) !important;
-  background-size: 100% 100%;
+  background-size: cover;
   background-attachment: fixed;
 }
 
-/* Day */
-.day .yarl__container {
+.day .yarl__slide_current {
   background-image: linear-gradient(to bottom, #15181b, #202534) !important;
-  background-size: 100% 100%;
+  background-size: cover;
   background-attachment: fixed;
 }
 
-/* Dusk */
-.dusk .yarl__container {
+.dusk .yarl__slide_current {
   background-image: linear-gradient(to bottom, #15181b, #241922) !important;
-  background-size: 100% 100%;
+  background-size: cover;
   background-attachment: fixed;
 }
 
-/* Night */
-.night .yarl__container {
+.night .yarl__slide_current {
   background-image: linear-gradient(to bottom, #15181b, #141622) !important;
-  background-size: 100% 100%;
+  background-size: cover;
   background-attachment: fixed;
 }
-
