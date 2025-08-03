@@ -92,7 +92,7 @@ export default function RootLayout({ children }) {
             });
           `}
         </Script>
-                </div>
+                {/* </div> */}
       </body>
     </html>
   );
