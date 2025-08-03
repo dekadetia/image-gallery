@@ -51,9 +51,7 @@ html {
     break-inside: avoid;
 }
 
-.yarl__container {
-    background-color: #15181b !important;
-}
+
 
 .yarl__slide {
     flex-direction: column;
