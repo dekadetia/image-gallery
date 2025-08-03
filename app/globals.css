@@ -295,16 +295,16 @@ body.blackmode-hide-cursor * {
     text-wrap: stable;
 }
 
-/* 🌅 Morning — cool haze */
+/* 🌅 Morning — solar warmth */
 .morning {
-  background-image: linear-gradient(to bottom, #15181b, #4f7de421);
+  background-image: linear-gradient(to bottom, #15181b, #291B1B);
   background-size: 100% 100%;
   background-attachment: fixed;
 }
 
-/* ☀️ Day — faint solar warmth */
+/* ☀️ Day — cool haze */
 .day {
-  background-image: linear-gradient(to bottom, #15181b, #ff19011a);
+  background-image: linear-gradient(to bottom, #15181b, #202534);
   background-size: 100% 100%;
   background-attachment: fixed;
 }
@@ -318,7 +318,7 @@ body.blackmode-hide-cursor * {
 
 /* 🌌 Night — midnight glint */
 .night {
-  background-image: linear-gradient(to bottom, #15181b, #0b123352);
+  background-image: linear-gradient(to bottom, #15181b, #141622);
   background-size: 100% 100%;
   background-attachment: fixed;
 }
