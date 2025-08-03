@@ -198,6 +198,15 @@ const trackTitle = currentSlide?.title || '';
 const trackYear = currentSlide?.year || '';
 const trackDirector = cleanDirectorCredit(currentSlide?.director || '');
 
+  const buttonStyle = {
+  background: 'transparent',
+  border: 'none',
+  cursor: 'pointer',
+  opacity: 0.8,
+  transition: 'opacity 0.3s ease-in-out, transform 0.2s ease-in-out',
+  padding: '0.5rem', // 📱 Better tap targets
+  borderRadius: '9999px'
+};
   
   if (!blackMode) return null;
 
@@ -255,12 +264,4 @@ const trackDirector = cleanDirectorCredit(currentSlide?.director || '');
 );
 
 
-const buttonStyle = {
-  background: 'transparent',
-  border: 'none',
-  cursor: 'pointer',
-  opacity: 0.8,
-  transition: 'opacity 0.3s ease-in-out, transform 0.2s ease-in-out',
-  padding: '0.5rem', // 📱 Better tap targets
-  borderRadius: '9999px'
-};
+
