@@ -311,7 +311,7 @@ body.blackmode-hide-cursor * {
 
 /* 🌇 Dusk — ghost of neon */
 .dusk {
-  background-image: linear-gradient(to bottom, #15181b, #ff018112);
+  background-image: linear-gradient(to bottom, #15181b, #241922);
   background-size: 100% 100%;
   background-attachment: fixed;
 }
