@@ -51,7 +51,9 @@ html {
     break-inside: avoid;
 }
 
-
+.yarl__container {
+    background-color: #15181b !important;
+}
 
 .yarl__slide {
     flex-direction: column;
@@ -325,29 +327,4 @@ body.blackmode-hide-cursor * {
 body,
 .min-h-screen {
   transition: background-image 1s ease-in-out;
-}
-
-/* Override YARL container background */
-.morning .yarl__container,
-.day .yarl__container,
-.dusk .yarl__container,
-.night .yarl__container {
-  background-image: unset !important;
-  background-color: transparent !important;
-}
-
-.morning .yarl__container {
-  background-image: linear-gradient(to bottom, #15181b, #291B1B) !important;
-}
-
-.day .yarl__container {
-  background-image: linear-gradient(to bottom, #15181b, #202534) !important;
-}
-
-.dusk .yarl__container {
-  background-image: linear-gradient(to bottom, #15181b, #241922) !important;
-}
-
-.night .yarl__container {
-  background-image: linear-gradient(to bottom, #15181b, #141622) !important;
 }
