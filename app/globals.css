@@ -51,6 +51,10 @@ html {
     break-inside: avoid;
 }
 
+.yarl__container {
+    background-color: #15181b !important;
+}
+
 .yarl__slide {
     flex-direction: column;
     padding: 3.5rem 0 3rem !important;
@@ -326,32 +330,41 @@ body,
 }
 
 
-/* Reset any transparent styles */
+/* 🧼 Reset any conflicting YARL backgrounds */
+.yarl__container,
 .yarl__stage,
-.yarl__slide {
+.yarl__slide,
+.yarl__slide_current {
   background: none !important;
   background-color: transparent !important;
 }
 
-/* Apply gradient to current visible slide */
+/* 🌅 MORNING — solar warmth */
+.morning .yarl__stage,
 .morning .yarl__slide_current {
   background-image: linear-gradient(to bottom, #15181b, #291B1B) !important;
   background-size: cover;
   background-attachment: fixed;
 }
 
+/* ☀️ DAY — cool haze */
+.day .yarl__stage,
 .day .yarl__slide_current {
   background-image: linear-gradient(to bottom, #15181b, #202534) !important;
   background-size: cover;
   background-attachment: fixed;
 }
 
+/* 🌇 DUSK — ghost of neon */
+.dusk .yarl__stage,
 .dusk .yarl__slide_current {
   background-image: linear-gradient(to bottom, #15181b, #241922) !important;
   background-size: cover;
   background-attachment: fixed;
 }
 
+/* 🌌 NIGHT — midnight glint */
+.night .yarl__stage,
 .night .yarl__slide_current {
   background-image: linear-gradient(to bottom, #15181b, #141622) !important;
   background-size: cover;
