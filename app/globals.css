@@ -328,3 +328,23 @@ body,
 .min-h-screen {
   transition: background-image 1s ease-in-out;
 }
+
+/* 🌅 Morning — solar warmth */
+.morning .yarl__container {
+  background-image: linear-gradient(to bottom, #15181b, #291B1B);
+}
+
+/* ☀️ Day — cool haze */
+.day .yarl__container {
+  background-image: linear-gradient(to bottom, #15181b, #202534);
+}
+
+/* 🌇 Dusk — ghost of neon */
+.dusk .yarl__container {
+  background-image: linear-gradient(to bottom, #15181b, #241922);
+}
+
+/* 🌌 Night — midnight glint */
+.night .yarl__container {
+  background-image: linear-gradient(to bottom, #15181b, #141622);
+}
