@@ -327,3 +327,4 @@ body.blackmode-hide-cursor * {
 body,
 .min-h-screen {
   transition: background-image 1s ease-in-out;
+}
