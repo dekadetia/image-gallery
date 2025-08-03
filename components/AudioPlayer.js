@@ -145,7 +145,16 @@ function fadeInAudio() {
   }
 }
 
-export default function AudioPlayer({ blackMode, showControls }) {
+function cleanDirectorCredit(director) {
+  if (!director) return '';
+  return director
+    .replace(/Dir\.\/DP/, 'Dir.')
+    .replace(/ · DP.*/i, '')
+    .trim();
+}
+
+
+export default function AudioPlayer({ blackMode, showControls, slides }) {
   const [muted, setMuted] = useState(false);
 
   const toggleMute = () => {
@@ -178,37 +187,73 @@ export default function AudioPlayer({ blackMode, showControls }) {
     };
   }, [blackMode]);
 
+const currentFilename = tracks[trackIndex]?.split('/').pop()?.split('?')[0] || '';
+
+const currentSlide = slides?.find(slide =>
+  slide?.src?.includes(currentFilename) ||
+  slide?.sources?.[0]?.src?.includes(currentFilename)
+);
+
+const trackTitle = currentSlide?.title || '';
+const trackYear = currentSlide?.year || '';
+const trackDirector = cleanDirectorCredit(currentSlide?.director || '');
+
+  
   if (!blackMode) return null;
 
-  return (
-    <>
-     <motion.div
-  initial={{ opacity: 0, scale: 0.95 }}
-  animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
-  transition={{ duration: 2, ease: 'easeInOut' }}
-  style={{
-    position: 'fixed',
-    bottom: '20px',
-    right: '20px',
-    display: 'flex',
-    gap: '1.25rem',
-    zIndex: 9999,
-  }}
->
-  <button onClick={skipPrev} style={buttonStyle}>
-    <FaBackward size={24} />
-  </button>
-  <button onClick={toggleMute} style={buttonStyle}>
-    {muted ? <FaVolumeMute size={24} /> : <FaVolumeUp size={24} />}
-  </button>
-  <button onClick={skipNext} style={buttonStyle}>
-    <FaForward size={24} />
-  </button>
-</motion.div>
+ return (
+  <>
+    {/* 🎞️ Caption overlay */}
+    {blackMode && currentSlide && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showControls ? 1 : 0 }}
+        transition={{ duration: 1.5, ease: 'easeInOut' }}
+        className="fixed z-[9998] text-white text-left pointer-events-none px-5 md:px-12"
+        style={{
+          bottom: '5.5rem', // above audio controls
+          left: 0
+        }}
+      >
+        {trackTitle && (
+          <div className="text-lg md:text-xl font-semibold leading-tight">{trackTitle}</div>
+        )}
+        {(trackYear || trackDirector) && (
+          <div className="text-sm text-[#99AABB] mt-[0.125rem]">
+            {trackYear && `${trackYear}${trackDirector ? ' · ' : ''}`}
+            {trackDirector}
+          </div>
+        )}
+      </motion.div>
+    )}
 
-    </>
-  );
-}
+    {/* 🎧 Audio controls */}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
+      transition={{ duration: 2, ease: 'easeInOut' }}
+      style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        display: 'flex',
+        gap: '1.25rem',
+        zIndex: 9999,
+      }}
+    >
+      <button onClick={skipPrev} style={buttonStyle}>
+        <FaBackward size={24} />
+      </button>
+      <button onClick={toggleMute} style={buttonStyle}>
+        {muted ? <FaVolumeMute size={24} /> : <FaVolumeUp size={24} />}
+      </button>
+      <button onClick={skipNext} style={buttonStyle}>
+        <FaForward size={24} />
+      </button>
+    </motion.div>
+  </>
+);
+
 
 const buttonStyle = {
   background: 'transparent',
