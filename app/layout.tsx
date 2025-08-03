@@ -68,7 +68,7 @@ export default function RootLayout({ children }) {
   `}
 </Script>
       </head>
-      <body className={inter.className} ${gradient ?? ''}`}>
+      <body className={inter.className}>
                 <div className={`min-h-screen ${gradient ?? ''}`}>
 
         <DynamicTitle /> 
