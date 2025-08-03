@@ -329,22 +329,27 @@ body,
   transition: background-image 1s ease-in-out;
 }
 
-/* 🌅 Morning — solar warmth */
-.morning .yarl__container {
-  background-image: linear-gradient(to bottom, #15181b, #291B1B);
-}
-
-/* ☀️ Day — cool haze */
-.day .yarl__container {
-  background-image: linear-gradient(to bottom, #15181b, #202534);
-}
-
-/* 🌇 Dusk — ghost of neon */
-.dusk .yarl__container {
-  background-image: linear-gradient(to bottom, #15181b, #241922);
-}
-
-/* 🌌 Night — midnight glint */
+/* Override YARL container background */
+.morning .yarl__container,
+.day .yarl__container,
+.dusk .yarl__container,
 .night .yarl__container {
-  background-image: linear-gradient(to bottom, #15181b, #141622);
+  background-image: unset !important;
+  background-color: transparent !important;
+}
+
+.morning .yarl__container {
+  background-image: linear-gradient(to bottom, #15181b, #291B1B) !important;
+}
+
+.day .yarl__container {
+  background-image: linear-gradient(to bottom, #15181b, #202534) !important;
+}
+
+.dusk .yarl__container {
+  background-image: linear-gradient(to bottom, #15181b, #241922) !important;
+}
+
+.night .yarl__container {
+  background-image: linear-gradient(to bottom, #15181b, #141622) !important;
 }
