@@ -56,6 +56,17 @@ export default function RootLayout({ children }) {
         {/* favicon */}
         <link rel="icon" href="/assets/favicon-32x32.png" />
         <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
+        <Script id="time-gradient" strategy="beforeInteractive">
+  {`
+    const h = new Date().getHours();
+    const t = h < 6 ? 'night'
+              : h < 12 ? 'morning'
+              : h < 18 ? 'day'
+              : h < 22 ? 'dusk'
+              : 'night';
+    document.documentElement.classList.add(t);
+  `}
+</Script>
       </head>
       <body className={inter.className}>
                 <div className={`min-h-screen ${gradient ?? ''}`}>
