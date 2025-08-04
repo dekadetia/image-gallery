@@ -155,17 +155,13 @@ export default function FadeGallery() {
         setBlackMode(!blackMode);
     };
 
-const handleUserActivity = () => {
-  clearTimeout(activityTimerRef.current);
-  setShowControls(false); // force a retrigger
-  requestAnimationFrame(() => {
-    setShowControls(true);
-    activityTimerRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 5000);
-  });
-};
-
+    const handleUserActivity = () => {
+        clearTimeout(activityTimerRef.current);
+        setShowControls(true);
+        activityTimerRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 5000);
+    };
 
     useEffect(() => {
         window.addEventListener('mousemove', handleUserActivity);
@@ -311,13 +307,7 @@ transition={{ duration: 2, ease: 'easeInOut' }}
                     }}
                 />
             )}
-{blackMode && (
-  <AudioPlayer
-    blackMode={blackMode}
-    showControls={showControls}
-    slides={slides}
-  />
-)}
+            {blackMode && <AudioPlayer blackMode={blackMode} showControls={showControls} />}
         </RootLayout>
     );
 }
