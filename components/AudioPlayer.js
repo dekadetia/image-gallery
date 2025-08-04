@@ -187,12 +187,18 @@ export default function AudioPlayer({ blackMode, showControls, slides }) {
     };
   }, [blackMode]);
 
-const currentFilename = tracks[trackIndex]?.split('/').pop()?.split('?')[0] || '';
-
+const currentFilename = tracks[trackIndex]
+  ?.split('/')
+  .pop()
+  ?.split('?')[0]
+  ?.replace(/\.mp3$/, '')
+  || '';
+  
 const currentSlide = slides?.find(slide =>
   slide?.src?.includes(currentFilename) ||
   slide?.sources?.[0]?.src?.includes(currentFilename)
 );
+
 
 const trackTitle = currentSlide?.title || '';
 const trackYear = currentSlide?.year || '';
