@@ -313,14 +313,35 @@ const newSlides = images.map(photo => {
 
 const dedupedResults = dedupeById(fuseResults)
 setImages(dedupedResults)
-setSlides(dedupedResults.map(photo => ({
-  src: photo.src,
-  width: 1080 * 4,
-  height: 1620 * 4,
-  title: photo.caption,
-  description: photo.dimensions,
-  director: photo.director
-})))
+setSlides(dedupedResults.map(photo => {
+  if (photo.src.includes('.webm')) {
+    return {
+      type: 'video',
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: photo.caption,
+      description: photo.dimensions,
+      director: photo.director,
+      sources: [{ src: photo.src, type: 'video/webm' }],
+      poster: '/assets/transparent.png',
+      autoPlay: true,
+      muted: true,
+      loop: true,
+      controls: false
+    };
+  } else {
+    return {
+      type: 'image',
+      src: photo.src,
+      width: 1080 * 4,
+      height: 1620 * 4,
+      title: photo.caption,
+      description: photo.dimensions,
+      director: photo.director
+    };
+  }
+}))
+
 
     }, 300)
   }, [searchQuery])
