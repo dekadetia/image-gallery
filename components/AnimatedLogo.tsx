@@ -3,8 +3,8 @@
 import { useEffect, useRef } from 'react'
 
 export default function AnimatedLogo() {
-  const logoRef = useRef<SVGSVGElement>(null)
 const idPrefix = 'letter_';
+  const logoRef = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
     const logo = logoRef.current
