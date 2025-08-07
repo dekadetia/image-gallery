@@ -328,3 +328,16 @@ body,
 .min-h-screen {
   transition: background-image 1s ease-in-out;
 }
+
+.letter-base,
+.letter-alt {
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  opacity: 1;
+  transform: translate(0, 0);
+  display: inline;
+}
+
+.letter-alt {
+  opacity: 0;
+  pointer-events: none;
+}
