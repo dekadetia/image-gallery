@@ -70,42 +70,42 @@ const showAlt = (onComplete?: () => void) => {
   let completed = 0
   const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
-  requestAnimationFrame(() => {
-    for (let i = 1; i <= 8; i++) {
-      const base = document.getElementById(`letter_${i}`)
-      const alt = document.getElementById(`letter_${i + 8}`)
 
-      if (base && alt) {
-        // Animate base out
-        gsap.to(base, {
+    // 🔧 Global layout flush before starting animations
+  document.body.offsetHeight
+
+  
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
+
+    if (base && alt) {
+      // Animate base out
+      gsap.to(base, {
+        duration: 0.5,
+        delay: exitDelay,
+        ...exitDirs[i - 1],
+      })
+
+      // Ensure alt is ready to animate
+      alt.style.display = 'inline'
+      void alt.offsetWidth // layout flush
+
+      gsap.fromTo(
+        alt,
+        enterDirs[i - 1],
+        {
           duration: 0.5,
           delay: exitDelay,
-          ...exitDirs[i - 1],
-        })
-
-        // Make alt visible and flush layout
-        alt.style.display = 'inline'
-        void alt.offsetWidth
-
-        // Animate alt in
-        gsap.set(alt, { willChange: 'transform' })
-        gsap.fromTo(
-          alt,
-          enterDirs[i - 1],
-          {
-            duration: 0.5,
-            delay: exitDelay,
-            x: 0,
-            y: 0,
-            onComplete: () => {
-              gsap.set(alt, { clearProps: 'willChange' })
-              if (++completed === 8 && onComplete) onComplete()
-            },
-          }
-        )
-      }
+          x: 0,
+          y: 0,
+          onComplete: () => {
+            if (++completed === 8 && onComplete) onComplete()
+          },
+        }
+      )
     }
-  })
+  }
 
   firstToggle = false
 }
@@ -114,44 +114,39 @@ const showAlt = (onComplete?: () => void) => {
 const reset = (onComplete?: () => void) => {
   let completed = 0
 
-  requestAnimationFrame(() => {
-    for (let i = 1; i <= 8; i++) {
-      const base = document.getElementById(`letter_${i}`)
-      const alt = document.getElementById(`letter_${i + 8}`)
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
 
-      if (base && alt) {
-        // Make base visible and flush layout
-        base.style.display = 'inline'
-        void base.offsetWidth
+    if (base && alt) {
+      // Show base, flush layout
+      base.style.display = 'inline'
+      void base.offsetWidth
 
-        // Animate base in
-        gsap.set(base, { willChange: 'transform' })
-        gsap.fromTo(
-          base,
-          exitDirs[i - 1],
-          {
-            duration: 0.5,
-            x: 0,
-            y: 0,
-            onComplete: () => {
-              gsap.set(base, { clearProps: 'willChange' })
-            },
-          }
-        )
-
-        // Animate alt out and hide it after
-        gsap.to(alt, {
+      // Animate base in
+      gsap.fromTo(
+        base,
+        exitDirs[i - 1],
+        {
           duration: 0.5,
-          ...enterDirs[i - 1],
-          onComplete: () => {
-            alt.style.display = 'none'
-            if (++completed === 8 && onComplete) onComplete()
-          },
-        })
-      }
+          x: 0,
+          y: 0,
+        }
+      )
+
+      // Animate alt out
+      gsap.to(alt, {
+        duration: 0.5,
+        ...enterDirs[i - 1],
+        onComplete: () => {
+          alt.style.display = 'none'
+          if (++completed === 8 && onComplete) onComplete()
+        },
+      })
     }
-  })
+  }
 }
+
 
 
 
