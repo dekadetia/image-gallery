@@ -114,6 +114,9 @@ const showAlt = (onComplete?: () => void) => {
 const reset = (onComplete?: () => void) => {
   let completed = 0
 
+ // 🔧 Layout flush here too
+  document.body.offsetHeight
+  
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
