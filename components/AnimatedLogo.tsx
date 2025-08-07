@@ -66,77 +66,93 @@ if (saved === 'alt') {
   }
   toggled = true // 👈 this one, not a different one
 }
-    const showAlt = (onComplete?: () => void) => {
-      let completed = 0
-      const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
+  const showAlt = (onComplete?: () => void) => {
+  let completed = 0
+  const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
+  // Set display first
+  for (let i = 1; i <= 8; i++) {
+    const alt = document.getElementById(`letter_${i + 8}`)
+    if (alt) {
+      alt.style.display = 'inline'
+    }
+  }
 
-        if (base && alt) {
-          gsap.to(base, {
+  requestAnimationFrame(() => {
+    for (let i = 1; i <= 8; i++) {
+      const base = document.getElementById(`letter_${i}`)
+      const alt = document.getElementById(`letter_${i + 8}`)
+
+      if (base && alt) {
+        // Animate base out
+        gsap.to(base, {
+          duration: 0.5,
+          delay: exitDelay,
+          ...exitDirs[i - 1],
+        })
+
+        // Animate alt in
+        gsap.fromTo(
+          alt,
+          enterDirs[i - 1],
+          {
             duration: 0.5,
             delay: exitDelay,
-            ...exitDirs[i - 1],
-          })
-
-          alt.style.display = 'inline'
-          void alt.offsetWidth // layout flush
-
-          gsap.fromTo(
-            alt,
-            enterDirs[i - 1],
-            {
-              duration: 0.5,
-              delay: exitDelay,
-              x: 0,
-              y: 0,
-              onComplete: () => {
-                if (++completed === 8 && onComplete) onComplete()
-              },
-            }
-          )
-        }
+            x: 0,
+            y: 0,
+            onComplete: () => {
+              if (++completed === 8 && onComplete) onComplete()
+            },
+          }
+        )
       }
-
-      firstToggle = false
     }
+  })
+
+  firstToggle = false
+}
+
 
   const reset = (onComplete?: () => void) => {
   let completed = 0
+
+  // Set base display first
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
-    const alt = document.getElementById(`letter_${i + 8}`)
-
-    if (base) {
-  base.style.display = 'inline'
-  void base.offsetWidth // 🔧 layout flush
-
-  gsap.fromTo(
-    base,
-    exitDirs[i - 1], // 🚀 come in from same direction it previously exited
-    {
-      duration: 0.5,
-      x: 0,
-      y: 0,
-    }
-  )
-}
-
-
-    if (alt) {
-      gsap.to(alt, {
-        duration: 0.5,
-        ...enterDirs[i - 1],
-        onComplete: () => {
-          alt.style.display = 'none'
-          if (++completed === 8 && onComplete) onComplete()
-        },
-      })
-    }
+    if (base) base.style.display = 'inline'
   }
+
+  requestAnimationFrame(() => {
+    for (let i = 1; i <= 8; i++) {
+      const base = document.getElementById(`letter_${i}`)
+      const alt = document.getElementById(`letter_${i + 8}`)
+
+      if (base) {
+        gsap.fromTo(
+          base,
+          exitDirs[i - 1],
+          {
+            duration: 0.5,
+            x: 0,
+            y: 0,
+          }
+        )
+      }
+
+      if (alt) {
+        gsap.to(alt, {
+          duration: 0.5,
+          ...enterDirs[i - 1],
+          onComplete: () => {
+            alt.style.display = 'none'
+            if (++completed === 8 && onComplete) onComplete()
+          },
+        })
+      }
+    }
+  })
 }
+
 
 
     const toggle = () => {
@@ -155,21 +171,17 @@ if (saved === 'alt') {
       isTouchInteraction = true
       longPressed = false
 
-      longPressTimer = setTimeout(() => {
-        longPressed = true
+     longPressTimer = setTimeout(() => {
+  longPressed = true
+  const isAlt = sessionStorage.getItem('logoState') === 'alt'
 
-        if (toggled) {
-          reset(() => {
-            toggled = false
-            sessionStorage.setItem('logoState', 'base')
-          })
-        } else {
-          showAlt(() => {
-            toggled = true
-            sessionStorage.setItem('logoState', 'alt')
-          })
-        }
-      }, 500)
+  if (isAlt) {
+    reset(() => sessionStorage.setItem('logoState', 'base'))
+  } else {
+    showAlt(() => sessionStorage.setItem('logoState', 'alt'))
+  }
+}, 500)
+
     })
 
     logo.addEventListener('touchend', (e) => {
