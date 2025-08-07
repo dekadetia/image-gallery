@@ -329,20 +329,39 @@ body,
   transition: background-image 1s ease-in-out;
 }
 
+/* --- Shared animation base styles --- */
 .letter-base,
 .letter-alt {
   transition: transform 0.4s ease, opacity 0.4s ease;
-  opacity: 1;
   transform: translate(0, 0);
-  display: inline;
+  opacity: 1;
+  pointer-events: auto;
 }
 
+/* --- Default visibility --- */
 .letter-alt {
   opacity: 0;
   pointer-events: none;
 }
 
-/* Initial transform offsets for ALT letters */
+/* --- Alt letters enter when logo toggled --- */
+.logo-alt .letter-alt {
+  opacity: 1;
+  transform: translate(0, 0);
+  pointer-events: auto;
+}
+
+/* --- Base letters exit when logo toggled --- */
+.logo-alt #letter_1  { transform: translateX(120px);  opacity: 0; pointer-events: none; }
+.logo-alt #letter_2  { transform: translateY(140px);  opacity: 0; pointer-events: none; }
+.logo-alt #letter_3  { transform: translateY(-140px); opacity: 0; pointer-events: none; }
+.logo-alt #letter_4  { transform: translateX(-120px); opacity: 0; pointer-events: none; }
+.logo-alt #letter_5  { transform: translateY(-140px); opacity: 0; pointer-events: none; }
+.logo-alt #letter_6  { transform: translateX(-120px); opacity: 0; pointer-events: none; }
+.logo-alt #letter_7  { transform: translateY(140px);  opacity: 0; pointer-events: none; }
+.logo-alt #letter_8  { transform: translateX(120px);  opacity: 0; pointer-events: none; }
+
+/* --- Initial transforms for alt letters --- */
 #letter_9  { transform: translateX(-120px); }
 #letter_10 { transform: translateY(-140px); }
 #letter_11 { transform: translateY(140px); }
@@ -351,27 +370,4 @@ body,
 #letter_14 { transform: translateX(120px); }
 #letter_15 { transform: translateY(-140px); }
 #letter_16 { transform: translateX(-120px); }
-
-/* When logo is toggled (ALT mode) */
-.logo-alt #letter_1  { transform: translateX(120px); }
-.logo-alt #letter_2  { transform: translateY(140px); }
-.logo-alt #letter_3  { transform: translateY(-140px); }
-.logo-alt #letter_4  { transform: translateX(-120px); }
-.logo-alt #letter_5  { transform: translateY(-140px); }
-.logo-alt #letter_6  { transform: translateX(-120px); }
-.logo-alt #letter_7  { transform: translateY(140px); }
-.logo-alt #letter_8  { transform: translateX(120px); }
-
-.logo-alt #letter_9,
-.logo-alt #letter_10,
-.logo-alt #letter_11,
-.logo-alt #letter_12,
-.logo-alt #letter_13,
-.logo-alt #letter_14,
-.logo-alt #letter_15,
-.logo-alt #letter_16 {
-  transform: translate(0, 0);
-  opacity: 1;
-  pointer-events: auto;
-}
 
