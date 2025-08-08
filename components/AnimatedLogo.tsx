@@ -35,31 +35,9 @@ export default function AnimatedLogo() {
   const idPrefix = useId()
 const isInitialAlt = typeof window !== 'undefined' && sessionStorage.getItem('logoState') === 'alt'
 
-useEffect(() => {
-  // 🧼 CLEAN INITIAL LETTER STATE BASED ON SESSION STORAGE
-  const cleanupInitialState = () => {
-    const isAlt = sessionStorage.getItem('logoState') === 'alt'
-
-    for (let i = 1; i <= 8; i++) {
-      const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-      const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
-
-      if (base) {
-        base.style.display = isAlt ? 'none' : 'inline'
-        gsap.set(base, { clearProps: 'all' }) // removes transform, opacity, etc.
-      }
-      if (alt) {
-        alt.style.display = isAlt ? 'inline' : 'none'
-        gsap.set(alt, { clearProps: 'all' })
-      }
-    }
-  }
-
-  cleanupInitialState()
-
-  const logo = document.getElementById('logo')
-  if (!logo) return
-
+  useEffect(() => {
+    const logo = document.getElementById('logo')
+    if (!logo) return
 
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
@@ -88,68 +66,64 @@ if (saved === 'alt') {
   }
   toggled = true // 👈 this one, not a different one
 }
-  const showAlt = (onComplete?: () => void) => {
-  requestAnimationFrame(() => {
-    let completed = 0
-    const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
+    const showAlt = (onComplete?: () => void) => {
+      let completed = 0
+      const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
-    for (let i = 1; i <= 8; i++) {
-      const base = document.getElementById(`letter_${i}`)
-      const alt = document.getElementById(`letter_${i + 8}`)
+      for (let i = 1; i <= 8; i++) {
+        const base = document.getElementById(`letter_${i}`)
+        const alt = document.getElementById(`letter_${i + 8}`)
 
-      if (base && alt) {
-        gsap.to(base, {
-          duration: 0.5,
-          delay: exitDelay,
-          ...exitDirs[i - 1],
-        })
-
-        alt.style.display = 'inline'
-        void alt.offsetWidth // layout flush
-
-        gsap.fromTo(
-          alt,
-          enterDirs[i - 1],
-          {
+        if (base && alt) {
+          gsap.to(base, {
             duration: 0.5,
             delay: exitDelay,
-            x: 0,
-            y: 0,
-            onComplete: () => {
-              if (++completed === 8 && onComplete) onComplete()
-            },
-          }
-        )
+            ...exitDirs[i - 1],
+          })
+
+          alt.style.display = 'inline'
+          void alt.offsetWidth // layout flush
+
+          gsap.fromTo(
+            alt,
+            enterDirs[i - 1],
+            {
+              duration: 0.5,
+              delay: exitDelay,
+              x: 0,
+              y: 0,
+              onComplete: () => {
+                if (++completed === 8 && onComplete) onComplete()
+              },
+            }
+          )
+        }
       }
+
+      firstToggle = false
     }
 
-    firstToggle = false
-  })
-}
-
-
-const reset = (onComplete?: () => void) => {
+  const reset = (onComplete?: () => void) => {
   let completed = 0
-
   for (let i = 1; i <= 8; i++) {
     const base = document.getElementById(`letter_${i}`)
     const alt = document.getElementById(`letter_${i + 8}`)
 
     if (base) {
-      base.style.display = 'inline'
-      gsap.set(base, { clearProps: 'all' }) // 🧼 make sure no transform/opacity lingering
-      void base.offsetWidth // 🧠 layout flush
+  base.style.display = 'inline'
+  void base.offsetWidth // 🔧 layout flush
 
-      gsap.fromTo(
-        base,
-        exitDirs[i - 1], // 🚀 come in from same direction it previously exited
-        {
-          duration: 0.5,
-          x: 0,
-          y: 0,
-        }
-      )
+  gsap.fromTo(
+    base,
+    exitDirs[i - 1], // 🚀 come in from same direction it previously exited
+    {
+      duration: 0.5,
+      x: 0,
+      y: 0,
     }
+  )
+}
+
 
     if (alt) {
       gsap.to(alt, {
@@ -157,7 +131,6 @@ const reset = (onComplete?: () => void) => {
         ...enterDirs[i - 1],
         onComplete: () => {
           alt.style.display = 'none'
-          gsap.set(alt, { clearProps: 'all' }) // 🧼 clean residual styles
           if (++completed === 8 && onComplete) onComplete()
         },
       })
