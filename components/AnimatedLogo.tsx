@@ -35,162 +35,208 @@ export default function AnimatedLogo() {
   const idPrefix = useId()
 const isInitialAlt = typeof window !== 'undefined' && sessionStorage.getItem('logoState') === 'alt'
 
-  useEffect(() => {
-    const logo = document.getElementById('logo')
-    if (!logo) return
+useEffect(() => {
+  const logo = document.getElementById('logo') as HTMLElement | null
+  if (!logo) return
 
-    const exitDirs = [
-      { x: 120 }, { x: 120 }, { x: 120 },
-      { y: 140 }, { y: -140 },
-      { x: -120 }, { x: -120 }, { x: -120 }
-    ]
-    const enterDirs = [
-      { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
-      { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
-    ]
+  // Directions (unchanged)
+  const exitDirs = [
+    { x: 120 }, { x: 120 }, { x: 120 },
+    { y: 140 }, { y: -140 },
+    { x: -120 }, { x: -120 }, { x: -120 }
+  ]
+  const enterDirs = [
+    { y: 140 }, { x: -120 }, { x: -120 }, { x: -120 },
+    { x: 120 }, { x: 120 }, { x: 120 }, { y: -140 }
+  ]
 
-    let longPressed = false
-    let firstToggle = true
-    let isTouchInteraction = false
-    let longPressTimer
-let toggled = false
+  // Resolve elements once
+  const pairs = Array.from({ length: 8 }, (_, i) => ({
+    base: document.getElementById(`letter_${i + 1}`) as SVGElement | null,
+    alt:  document.getElementById(`letter_${i + 9}`) as SVGElement | null,
+    exit: exitDirs[i],
+    enter: enterDirs[i],
+  }))
 
-const saved = sessionStorage.getItem('logoState')
-if (saved === 'alt') {
-  for (let i = 1; i <= 8; i++) {
-    const base = document.getElementById(`letter_${i}`)
-    const alt = document.getElementById(`letter_${i + 8}`)
+  let toggled = sessionStorage.getItem('logoState') === 'alt'
+  let longPressTimer: any = null
+  let longPressed = false
+  let busy = false
+  let firstMobileToggle = true
 
-    if (base) base.style.display = 'none'
-    if (alt) alt.style.display = 'inline'
+  // Prevent browser gesture weirdness on first long-press
+  logo.style.touchAction = 'manipulation'
+
+  // ---- INITIAL STATE (no display toggles; avoid reflow) ----
+  const setInstantState = (toAlt: boolean) => {
+    pairs.forEach(({ base, alt, enter, exit }) => {
+      if (!base || !alt) return
+      gsap.killTweensOf([base, alt])
+
+      // Base: visible in base mode, hidden in alt mode
+      gsap.set(base, {
+        x: 0, y: 0,
+        autoAlpha: toAlt ? 0 : 1,
+        force3D: true,
+        clearProps: 'willChange'
+      })
+
+      // Alt: positioned offscreen and hidden in base mode; visible and centered in alt mode
+      const start = toAlt ? { x: 0, y: 0 } : enter
+      gsap.set(alt, {
+        ...start,
+        autoAlpha: toAlt ? 1 : 0,
+        force3D: true,
+        clearProps: 'willChange'
+      })
+    })
   }
-  toggled = true // 👈 this one, not a different one
-}
-    const showAlt = (onComplete?: () => void) => {
-      let completed = 0
-      const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
+  setInstantState(toggled)
 
-        if (base && alt) {
-          gsap.to(base, {
-            duration: 0.5,
-            delay: exitDelay,
-            ...exitDirs[i - 1],
-          })
+  const afterNextPaint = () =>
+    new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
-          alt.style.display = 'inline'
-          void alt.offsetWidth // layout flush
+  const showAlt = async () => {
+    if (busy) return
+    busy = true
 
-          gsap.fromTo(
-            alt,
-            enterDirs[i - 1],
-            {
-              duration: 0.5,
-              delay: exitDelay,
-              x: 0,
-              y: 0,
-              onComplete: () => {
-                if (++completed === 8 && onComplete) onComplete()
-              },
-            }
-          )
-        }
-      }
-
-      firstToggle = false
+    // Warm first mobile toggle to avoid first-paint stutter
+    if (firstMobileToggle) {
+      await afterNextPaint()
+      firstMobileToggle = false
     }
 
-  const reset = (onComplete?: () => void) => {
-  let completed = 0
-  for (let i = 1; i <= 8; i++) {
-    const base = document.getElementById(`letter_${i}`)
-    const alt = document.getElementById(`letter_${i + 8}`)
+    let completed = 0
+    pairs.forEach(({ base, alt, exit, enter }) => {
+      if (!base || !alt) return
+      gsap.killTweensOf([base, alt])
 
-    if (base) {
-  base.style.display = 'inline'
-  void base.offsetWidth // 🔧 layout flush
+      // prepare
+      gsap.set([base, alt], { willChange: 'transform, opacity' })
+      gsap.set(alt, { ...enter, autoAlpha: 1 })
 
-  gsap.fromTo(
-    base,
-    exitDirs[i - 1], // 🚀 come in from same direction it previously exited
-    {
-      duration: 0.5,
-      x: 0,
-      y: 0,
-    }
-  )
-}
+      // out base
+      gsap.to(base, {
+        duration: 0.5,
+        ...exit,
+        overwrite: 'auto'
+      })
 
-
-    if (alt) {
+      // in alt
       gsap.to(alt, {
         duration: 0.5,
-        ...enterDirs[i - 1],
+        x: 0,
+        y: 0,
+        overwrite: 'auto',
         onComplete: () => {
-          alt.style.display = 'none'
-          if (++completed === 8 && onComplete) onComplete()
-        },
-      })
-    }
-  }
-}
-
-
-    const toggle = () => {
-      if (toggled) {
-        reset(() => sessionStorage.setItem('logoState', 'base'))
-      } else {
-        showAlt(() => sessionStorage.setItem('logoState', 'alt'))
-      }
-      toggled = !toggled
-    }
-
-
-    logo.addEventListener('mouseenter', toggle)
-
-    logo.addEventListener('touchstart', (e) => {
-      isTouchInteraction = true
-      longPressed = false
-
-      longPressTimer = setTimeout(() => {
-        longPressed = true
-
-        if (toggled) {
-          reset(() => {
-            toggled = false
-            sessionStorage.setItem('logoState', 'base')
-          })
-        } else {
-          showAlt(() => {
-            toggled = true
-            sessionStorage.setItem('logoState', 'alt')
-          })
+          if (++completed === 8) {
+            gsap.set([base, alt], { clearProps: 'willChange' })
+            busy = false
+          }
         }
-      }, 500)
+      })
     })
+  }
 
-    logo.addEventListener('touchend', (e) => {
-      isTouchInteraction = false
-      clearTimeout(longPressTimer)
-      if (longPressed) {
-        e.preventDefault()
-      }
-    })
+  const reset = async () => {
+    if (busy) return
+    busy = true
 
-    logo.addEventListener('contextmenu', (e) => {
-      if (longPressed) e.preventDefault()
-    })
-
-    return () => {
-      logo.removeEventListener('mouseenter', toggle)
-      logo.removeEventListener('touchstart', () => {})
-      logo.removeEventListener('touchend', () => {})
-      logo.removeEventListener('contextmenu', () => {})
+    if (firstMobileToggle) {
+      await afterNextPaint()
+      firstMobileToggle = false
     }
-  }, [])
+
+    let completed = 0
+    pairs.forEach(({ base, alt, exit, enter }) => {
+      if (!base || !alt) return
+      gsap.killTweensOf([base, alt])
+
+      gsap.set([base, alt], { willChange: 'transform, opacity' })
+      // prepare base offscreen in its exit dir, hidden alt will move out
+      gsap.set(base, { ...exit, autoAlpha: 1 })
+
+      // in base
+      gsap.to(base, {
+        duration: 0.5,
+        x: 0,
+        y: 0,
+        overwrite: 'auto'
+      })
+
+      // out alt
+      gsap.to(alt, {
+        duration: 0.5,
+        ...enter,
+        autoAlpha: 0,
+        overwrite: 'auto',
+        onComplete: () => {
+          if (++completed === 8) {
+            gsap.set([base, alt], { clearProps: 'willChange' })
+            busy = false
+          }
+        }
+      })
+    })
+  }
+
+  const toggle = () => {
+    if (toggled) {
+      reset()
+      sessionStorage.setItem('logoState', 'base')
+    } else {
+      showAlt()
+      sessionStorage.setItem('logoState', 'alt')
+    }
+    toggled = !toggled
+  }
+
+  // Desktop hover
+  const onEnter = () => !busy && toggle()
+
+  // Long-press with pointer events; passive false so preventDefault actually works
+  const onPointerDown = (e: PointerEvent) => {
+    // Ignore mouse right-clicks
+    if (e.pointerType === 'mouse') return
+    longPressed = false
+    // If the page might scroll, we still want to cancel context menu after long-press
+    longPressTimer = setTimeout(() => {
+      longPressed = true
+      e.preventDefault()
+      toggle()
+    }, 500)
+  }
+
+  const clearLP = () => {
+    clearTimeout(longPressTimer)
+  }
+
+  const onPointerUp = (e: PointerEvent) => {
+    if (longPressed) e.preventDefault()
+    clearLP()
+  }
+
+  const onPointerCancel = () => clearLP()
+  const onContextMenu = (e: Event) => {
+    if (longPressed) e.preventDefault()
+  }
+
+  logo.addEventListener('mouseenter', onEnter)
+  logo.addEventListener('pointerdown', onPointerDown as any, { passive: false })
+  logo.addEventListener('pointerup', onPointerUp as any, { passive: false })
+  logo.addEventListener('pointercancel', onPointerCancel as any)
+  logo.addEventListener('contextmenu', onContextMenu as any)
+
+  return () => {
+    logo.removeEventListener('mouseenter', onEnter)
+    logo.removeEventListener('pointerdown', onPointerDown as any)
+    logo.removeEventListener('pointerup', onPointerUp as any)
+    logo.removeEventListener('pointercancel', onPointerCancel as any)
+    logo.removeEventListener('contextmenu', onContextMenu as any)
+  }
+}, [])
+
 
   return (
     <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
