@@ -148,22 +148,36 @@ export default function AnimatedLogo() {
 
       <defs>
         {/* Palette — keep mapping stable */}
-        <style>{`
-          .st0{fill:#d35589;}
-          .st1{fill:#e43f25;}
-          .st2{fill:#6a3e97;}
-          .st3{fill:#d2c52a;}
-          .st4{fill:#1c6bb4;} /* deep blue (N in BTNS, first S in GLSS) */
-          .st6{fill:#4bb9ea;} /* light blue */
-          .st7{fill:#59b94f;}
-          .st8{fill:#f47f20;}
-          /* Fix counters & preserve geometry */
-          #logo path, #logo polygon {
-            fill-rule: evenodd;
-            clip-rule: evenodd;
-            vector-effect: non-scaling-stroke;
-          }
-        `}</style>
+  <style>{`
+    /* palette */
+    .st0{fill:#d35589;}
+    .st1{fill:#e43f25;}
+    .st2{fill:#6a3e97;}
+    .st3{fill:#d2c52a;}
+    .st4{fill:#1c6bb4;} /* deep blue */
+    .st6{fill:#4bb9ea;} /* light blue */
+    .st7{fill:#59b94f;}
+    .st8{fill:#f47f20;}
+
+    /* remove global fill-rule; set per-letter instead */
+
+    /* B / S letters want evenodd so counters stay intact */
+    #logo #letter_5 path,   /* B in BTNS */
+    #logo #letter_8 path,   /* S in BTNS */
+    #logo #letter_15 path,  /* first S in GLSS */
+    #logo #letter_16 path {  /* second S in GLSS */
+      fill-rule: evenodd;
+      clip-rule: evenodd;
+      vector-effect: non-scaling-stroke;
+    }
+
+    /* G needs nonzero (otherwise it “opens” into a C) */
+    #logo #letter_13 path {  /* G in GLSS */
+      fill-rule: nonzero;
+      clip-rule: nonzero;
+      vector-effect: non-scaling-stroke;
+    }
+  `}</style>
 
         {/* 2×4 clip tiles */}
         <clipPath id={`${idPrefix}_clip_letter_1`} clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="112.25" height="133.15"/></clipPath>
