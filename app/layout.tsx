@@ -69,7 +69,7 @@ export default function RootLayout({ children }) {
 </Script>
       </head>
       <body className={inter.className}>
-        {/*<div className={`min-h-screen ${gradient ?? ''}`}>*/}
+        <div className={`min-h-screen ${gradient ?? ''}`}>
 
         <DynamicTitle /> 
         <main>
@@ -92,7 +92,7 @@ export default function RootLayout({ children }) {
             });
           `}
         </Script>
-                {/* </div> */}
+                 </div> 
       </body>
     </html>
   );
