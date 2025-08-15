@@ -1,19 +1,30 @@
-// AnimatedLogo.tsx
 'use client'
 import { useEffect, useId } from 'react'
 import gsap from 'gsap'
 
-// 🔒 GLOBAL: Fix back button bfcache restore (unchanged)
+// 🔒 GLOBAL: Fix back button bfcache restore
 if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
       setTimeout(() => {
-        const isAlt = sessionStorage.getItem('logoState') === 'alt'
+        const saved = sessionStorage.getItem('logoState')
+        const isAlt = saved === 'alt'
+
         for (let i = 1; i <= 8; i++) {
           const base = document.getElementById(`letter_${i}`) as HTMLElement | null
-          const alt  = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
-          if (base) { base.style.display = isAlt ? 'none' : 'inline'; gsap.set(base, { clearProps: 'all', x:0, y:0 }) }
-          if (alt)  { alt.style.display  = isAlt ? 'inline' : 'none'; gsap.set(alt,  { clearProps: 'all', x:0, y:0 }) }
+          const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
+
+          if (base) {
+            base.style.display = isAlt ? 'none' : 'inline'
+            base.style.transform = ''
+            gsap.set(base, { clearProps: 'all' })
+          }
+
+          if (alt) {
+            alt.style.display = isAlt ? 'inline' : 'none'
+            alt.style.transform = ''
+            gsap.set(alt, { clearProps: 'all' })
+          }
         }
       }, 50)
     }
@@ -22,8 +33,7 @@ if (typeof window !== 'undefined') {
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
-  const isInitialAlt =
-    typeof window !== 'undefined' && sessionStorage.getItem('logoState') === 'alt'
+const isInitialAlt = typeof window !== 'undefined' && sessionStorage.getItem('logoState') === 'alt'
 
   useEffect(() => {
     const logo = document.getElementById('logo')
@@ -42,53 +52,92 @@ export default function AnimatedLogo() {
     let longPressed = false
     let firstToggle = true
     let isTouchInteraction = false
-    let longPressTimer: ReturnType<typeof setTimeout>
-    let toggled = sessionStorage.getItem('logoState') === 'alt'
+    let longPressTimer
+let toggled = false
 
+const saved = sessionStorage.getItem('logoState')
+if (saved === 'alt') {
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
+
+    if (base) base.style.display = 'none'
+    if (alt) alt.style.display = 'inline'
+  }
+  toggled = true // 👈 this one, not a different one
+}
     const showAlt = (onComplete?: () => void) => {
       let completed = 0
       const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
       for (let i = 1; i <= 8; i++) {
         const base = document.getElementById(`letter_${i}`)
-        const alt  = document.getElementById(`letter_${i + 8}`)
-        if (!base || !alt) continue
+        const alt = document.getElementById(`letter_${i + 8}`)
 
-        gsap.to(base, { duration: 0.5, delay: exitDelay, ...exitDirs[i-1] })
-        ;(alt as HTMLElement).style.display = 'inline'
-        void (alt as HTMLElement).offsetWidth
-        gsap.fromTo(alt, enterDirs[i-1], {
-          duration: 0.5, delay: exitDelay, x: 0, y: 0,
-          onComplete: () => { if (++completed === 8 && onComplete) onComplete() }
-        })
+        if (base && alt) {
+          gsap.to(base, {
+            duration: 0.5,
+            delay: exitDelay,
+            ...exitDirs[i - 1],
+          })
+
+          alt.style.display = 'inline'
+          void alt.offsetWidth // layout flush
+
+          gsap.fromTo(
+            alt,
+            enterDirs[i - 1],
+            {
+              duration: 0.5,
+              delay: exitDelay,
+              x: 0,
+              y: 0,
+              onComplete: () => {
+                if (++completed === 8 && onComplete) onComplete()
+              },
+            }
+          )
+        }
       }
 
       firstToggle = false
     }
 
-    const reset = (onComplete?: () => void) => {
-      let completed = 0
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt  = document.getElementById(`letter_${i + 8}`)
+  const reset = (onComplete?: () => void) => {
+  let completed = 0
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
 
-        if (base) {
-          ;(base as HTMLElement).style.display = 'inline'
-          void (base as HTMLElement).offsetWidth
-          gsap.fromTo(base, exitDirs[i-1], { duration: 0.5, x: 0, y: 0 })
-        }
+    if (base) {
+  base.style.display = 'inline'
+  void base.offsetWidth // 🔧 layout flush
 
-        if (alt) {
-          gsap.to(alt, {
-            duration: 0.5, ...enterDirs[i-1],
-            onComplete: () => {
-              ;(alt as HTMLElement).style.display = 'none'
-              if (++completed === 8 && onComplete) onComplete()
-            }
-          })
-        }
-      }
+  gsap.fromTo(
+    base,
+    exitDirs[i - 1], // 🚀 come in from same direction it previously exited
+    {
+      duration: 0.5,
+      x: 0,
+      y: 0,
     }
+  )
+}
+
+
+    if (alt) {
+      gsap.to(alt, {
+        duration: 0.5,
+        ...enterDirs[i - 1],
+        onComplete: () => {
+          alt.style.display = 'none'
+          if (++completed === 8 && onComplete) onComplete()
+        },
+      })
+    }
+  }
+}
+
 
     const toggle = () => {
       if (toggled) {
@@ -99,196 +148,113 @@ export default function AnimatedLogo() {
       toggled = !toggled
     }
 
-    const onMouseEnter = toggle
-    const onTouchStart = () => {
+
+    logo.addEventListener('mouseenter', toggle)
+
+    logo.addEventListener('touchstart', (e) => {
       isTouchInteraction = true
       longPressed = false
+
       longPressTimer = setTimeout(() => {
         longPressed = true
+
         if (toggled) {
-          reset(() => { toggled = false; sessionStorage.setItem('logoState', 'base') })
+          reset(() => {
+            toggled = false
+            sessionStorage.setItem('logoState', 'base')
+          })
         } else {
-          showAlt(() => { toggled = true; sessionStorage.setItem('logoState', 'alt') })
+          showAlt(() => {
+            toggled = true
+            sessionStorage.setItem('logoState', 'alt')
+          })
         }
       }, 500)
-    }
-    const onTouchEnd = (e: TouchEvent) => {
+    })
+
+    logo.addEventListener('touchend', (e) => {
       isTouchInteraction = false
       clearTimeout(longPressTimer)
-      if (longPressed) e.preventDefault()
-    }
-    const onContextMenu = (e: MouseEvent) => { if (longPressed) e.preventDefault() }
+      if (longPressed) {
+        e.preventDefault()
+      }
+    })
 
-    logo.addEventListener('mouseenter', onMouseEnter)
-    logo.addEventListener('touchstart', onTouchStart as any, { passive: true } as any)
-    logo.addEventListener('touchend', onTouchEnd as any)
-    logo.addEventListener('contextmenu', onContextMenu as any)
+    logo.addEventListener('contextmenu', (e) => {
+      if (longPressed) e.preventDefault()
+    })
 
     return () => {
-      logo.removeEventListener('mouseenter', onMouseEnter)
-      logo.removeEventListener('touchstart', onTouchStart as any)
-      logo.removeEventListener('touchend', onTouchEnd as any)
-      logo.removeEventListener('contextmenu', onContextMenu as any)
+      logo.removeEventListener('mouseenter', toggle)
+      logo.removeEventListener('touchstart', () => {})
+      logo.removeEventListener('touchend', () => {})
+      logo.removeEventListener('contextmenu', () => {})
     }
   }, [])
 
   return (
-    <svg
-      id="logo"
-      className="w-40 h-auto"
-      viewBox="0 0 449 266.3"
-      xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="xMidYMid meet"
-      shapeRendering="geometricPrecision"
-    >
-      {/* Frame (unchanged) */}
-      <g>
-        <polygon points="339.9 266.3 338.9 266.3 338.9 133.6 227.9 133.6 227.9 266.3 226.9 266.3 226.9 133.6 116 133.6 116 266.3 115 266.3 115 133.6 0 133.6 0 132.6 115 132.6 115 0 116 0 116 132.6 226.9 132.6 226.9 0 227.9 0 227.9 132.6 338.9 132.6 338.9 0 339.9 0 339.9 132.6 449 132.6 449 133.6 339.9 133.6 339.9 266.3" fill="#6e6e73"/>
-      </g>
-
-      <defs>
-        {/* Palette — keep mapping stable */}
-  <style>{`
-    /* palette */
-    .st0{fill:#d35589;}
-    .st1{fill:#e43f25;}
-    .st2{fill:#6a3e97;}
-    .st3{fill:#d2c52a;}
-    .st4{fill:#1c6bb4;} /* deep blue */
-    .st6{fill:#4bb9ea;} /* light blue */
-    .st7{fill:#59b94f;}
-    .st8{fill:#f47f20;}
-
-    /* remove global fill-rule; set per-letter instead */
-
-    /* B / S letters want evenodd so counters stay intact */
-    #logo #letter_5 path,   /* B in BTNS */
-    #logo #letter_8 path,   /* S in BTNS */
-    #logo #letter_15 path,  /* first S in GLSS */
-    #logo #letter_16 path {  /* second S in GLSS */
-      fill-rule: evenodd;
-      clip-rule: evenodd;
-      vector-effect: non-scaling-stroke;
-    }
-
-    /* G needs nonzero (otherwise it “opens” into a C) */
-    #logo #letter_13 path {  /* G in GLSS */
-      fill-rule: nonzero;
-      clip-rule: nonzero;
-      vector-effect: non-scaling-stroke;
-    }
-  `}</style>
-
-        {/* 2×4 clip tiles */}
-        <clipPath id={`${idPrefix}_clip_letter_1`} clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="112.25" height="133.15"/></clipPath>
-        <clipPath id={`${idPrefix}_clip_letter_2`} clipPathUnits="userSpaceOnUse"><rect x="112.25" y="0" width="112.25" height="133.15"/></clipPath>
-        <clipPath id={`${idPrefix}_clip_letter_3`} clipPathUnits="userSpaceOnUse"><rect x="224.5" y="0" width="112.25" height="133.15"/></clipPath>
-        <clipPath id={`${idPrefix}_clip_letter_4`} clipPathUnits="userSpaceOnUse"><rect x="336.75" y="0" width="112.25" height="133.15"/></clipPath>
-        <clipPath id={`${idPrefix}_clip_letter_5`} clipPathUnits="userSpaceOnUse"><rect x="0" y="133.15" width="112.25" height="133.15"/></clipPath>
-        <clipPath id={`${idPrefix}_clip_letter_6`} clipPathUnits="userSpaceOnUse"><rect x="112.25" y="133.15" width="112.25" height="133.15"/></clipPath>
-        <clipPath id={`${idPrefix}_clip_letter_7`} clipPathUnits="userSpaceOnUse"><rect x="224.5" y="133.15" width="112.25" height="133.15"/></clipPath>
-        <clipPath id={`${idPrefix}_clip_letter_8`} clipPathUnits="userSpaceOnUse"><rect x="336.75" y="133.15" width="112.25" height="133.15"/></clipPath>
-      </defs>
-
-      {/* ===== Set A (base) — TNDR / BTNS ===== */}
-      {/* T */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_1)`}>
-        <g id="letter_1" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
-          <g className="glyph"><path className="st1" d="M44.5,57.6h-13.2v-21.4h51.6v21.3h-12.9v41.8h-25.4v-41.7Z"/></g>
-        </g>
-      </g>
-      {/* N */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_2)`}>
-        <g id="letter_2" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
-          <g className="glyph"><path className="st3" d="M144.1,34.5l34.3,20.7v-19h19.6v63.2h-54l.2-64.8Z"/></g>
-        </g>
-      </g>
-      {/* D */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_3)`}>
-        <g id="letter_3" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
-          <g className="glyph"><path className="st6" d="M255.9,37.1h28.2c16.8,0,28.9,17,28.9,32.3s-13.4,30.8-30.5,30.8h-26.5l-.2-63.2Z"/></g>
-        </g>
-      </g>
-      {/* R */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_4)`}>
-        <g id="letter_4" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
-          <g className="glyph"><path className="st2" d="M369.6,36.1h31.9c10.1,0,17.9,9.1,17.9,18.7s-3.7,15.4-11.3,18.3l11.7,26.2h-50.2v-63.2Z"/></g>
-        </g>
-      </g>
-      {/* B */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_5)`}>
-        <g id="letter_5" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
-          <g className="glyph"><path className="st8" d="M32,168.3h23.3c10.9,0,24.5,2.1,24.5,16.4s-9.1,14.1-12.7,15.4c5,2.2,10.7,6.4,10.7,16.7s-7.7,17.2-19,17.2H31.8l.2-63.2Z"/></g>
-        </g>
-      </g>
-      {/* T */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_6)`}>
-        <g id="letter_6" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
-          <g className="glyph"><path className="st7" d="M158.7,189.7h-13.2v-21.4h51.6v21.3h-12.9v41.8h-25.4v-41.7Z"/></g>
-        </g>
-      </g>
-      {/* N (BTNS) — should be deep blue #1c6bb4 */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_7)`}>
-        <g id="letter_7" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
-          <g className="glyph"><path className="st4" d="M257.3,167.6l34.3,20.7v-19h19.6v63.2h-54l.2-64.8Z"/></g>
-        </g>
-      </g>
-      {/* S */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_8)`}>
-        <g id="letter_8" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
-          <g className="glyph"><path className="st0" d="M380.6,205.8c-6.1-5.4-8.6-10.4-8.6-18,0-12.8,10.5-22.6,23.6-22.6,9.7,0,17.3,5.1,20.4,13.2l-9.6,10.1c-3.9-6.6-8.8-11.7-16.1-11.7-7.8,0-12.5,5.1-12.5,11.3s3.3,8.9,11.7,12.7l4.8,2.2c8.3,3.8,15.6,9.4,15.6,17.6,0,12.8-10.5,22.6-23.6,22.6s-20.5-7.6-22.6-18.2l9.6-10.1Z"/></g>
-        </g>
-      </g>
-
-      {/* ===== Set B (alt) — BLND / GLSS ===== */}
-      {/* B */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_1)`}>
-        <g id="letter_9" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
-          <g className="glyph"><path className="st1" d="M33.7,36.1h23.3c10.9,0,24.5,2.1,24.5,16.4s-9.1,14.1-12.7,15.4c5,2.2,10.7,6.4,10.7,16.7s-7.7,17.2-19,17.2h-32.8l.2-63.2Z"/></g>
-        </g>
-      </g>
-      {/* L */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_2)`}>
-        <g id="letter_10" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
-          <g className="glyph"><path className="st3" d="M150.6,36.1h18.2v34.8h21.1v28.3h-39.3v-63.2Z"/></g>
-        </g>
-      </g>
-      {/* N */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_3)`}>
-        <g id="letter_11" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
-          <g className="glyph"><path className="st6" d="M257.5,35.5l34.3,20.7v-19h19.6v63.2h-54l.2-64.8Z"/></g>
-        </g>
-      </g>
-      {/* D */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_4)`}>
-        <g id="letter_12" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
-          <g className="glyph"><path className="st2" d="M363.8,36.1h28.2c16.8,0,28.9,17,28.9,32.3s-13.4,30.8-30.5,30.8h-26.5l-.2-63.2Z"/></g>
-        </g>
-      </g>
-      {/* G */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_5)`}>
-        <g id="letter_13" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
-          <g className="glyph"><path className="st8" d="M24.9,200.5c0-18.1,13.9-33.5,32.1-33.5s24.9,8.1,30.1,22.3l-19.6,13.4c-2.7-5.5-6.5-10.4-11.1-10.4-7.1,0-12.1,7-12.1,14.3s5.2,14.2,12.3,14.2c5.5,0,8.7-2.4,11.8-5.6l13.2,14.3c-6.4,7-16,11.8-27.9,11.8-18.4,0-32-15.3-32-32.4Z"/></g>
-        </g>
-      </g>
-      {/* L */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_6)`}>
-        <g id="letter_14" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
-          <g className="glyph"><path className="st7" d="M153.7,168.3h18.2v34.8h21.1v28.3h-39.3v-63.2Z"/></g>
-        </g>
-      </g>
-      {/* S (first in GLSS) — should be deep blue #1c6bb4 */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_7)`}>
-        <g id="letter_15" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
-          <g className="glyph"><path className="st4" d="M270.6,206.8c-6.1-5.4-8.6-10.4-8.6-18,0-12.8,10.5-22.6,23.6-22.6,9.7,0,17.3,5.1,20.4,13.2l-9.6,10.1c-3.9-6.6-8.8-11.7-16.1-11.7-7.8,0-12.5,5.1-12.5,11.3s3.3,8.9,11.7,12.7l4.8,2.2c8.3,3.8,15.6,9.4,15.6,17.6,0,12.8-10.5,22.6-23.6,22.6s-20.5-7.6-22.6-18.2l9.6-10.1Z"/></g>
-        </g>
-      </g>
-      {/* S (second in GLSS) */}
-      <g clipPath={`url(#${idPrefix}_clip_letter_8)`}>
-        <g id="letter_16" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
-          <g className="glyph"><path className="st0" d="M378.3,205.8c-6.1-5.4-8.6-10.4-8.6-18,0-12.8,10.5-22.6,23.6-22.6,9.7,0,17.3,5.1,20.4,13.2l-9.6,10.1c-3.9-6.6-8.8-11.7-16.1-11.7-7.8,0-12.5,5.1-12.5,11.3s3.3,8.9,11.7,12.7l4.8,2.2c8.3,3.8,15.6,9.4,15.6,17.6,0,12.8-10.5,22.6-23.6,22.6s-20.5-7.6-22.6-18.2l9.6-10.1Z"/></g>
-        </g>
-      </g>
-    </svg>
-  )
+    <svg className="w-40 h-auto" id="logo" viewBox="0 0 449 266.3" xmlns="http://www.w3.org/2000/svg">
+    
+     <defs><clipPath id={`${idPrefix}_clip_letter_1`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="0.0" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_2`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="112.25" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_3`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="224.5" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_4`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="336.75" y="0.0" /></clipPath><clipPath id={`${idPrefix}_clip_letter_5`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="0.0" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_6`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="112.25" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_7`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="224.5" y="133.15" /></clipPath><clipPath id={`${idPrefix}_clip_letter_8`} clipPathUnits="userSpaceOnUse"><rect height="133.15" width="112.25" x="336.75" y="133.15" /></clipPath></defs>
+<g id="g">
+<polygon points="339.9 266.3 338.9 266.3 338.9 133.6 227.9 133.6 227.9 266.3 226.9 266.3 226.9 133.6 116 133.6 116 266.3 115 266.3 115 133.6 0 133.6 0 132.6 115 132.6 115 0 116 0 116 132.6 226.9 132.6 226.9 0 227.9 0 227.9 132.6 338.9 132.6 338.9 0 339.9 0 339.9 132.6 449 132.6 449 133.6 339.9 133.6 339.9 266.3" style={ { fill: "#6e6e73", strokewidth: 0.0 } } />
+</g>
+<g clipPath={`url(#${idPrefix}_clip_letter_1)`}><g id="letter_1" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m49,40.8c0-3.8-.1-4-2.5-4h-5.1c-8.4,0-10.8,1-14.2,8.4-.6.5-2.6.3-2.9-.6,1.5-4.9,2.9-10.6,3.6-13.8.2-.3.5-.4,1-.4.4,0,.7.1.9.4.5,2.3,1.7,2.4,7.9,2.4h37.2c4.5,0,5.8-.3,6.9-2.4.4-.2.7-.4,1.1-.4.5,0,1,.2,1.2.5-.9,3.7-1.6,11.6-1.4,14.5-.5.7-2,.9-2.8.3-1.2-7.1-2.9-8.8-12.7-8.8h-5.2c-2.4,0-2.5.2-2.5,4v39.3c0,9.7.8,9.9,5.1,10.4l3.3.4c.6.6.5,2.3-.2,2.6-5.3-.2-9.4-.3-13.4-.3s-8.3.1-14.1.3c-.7-.4-.8-2.2-.2-2.6l3.8-.5c4.3-.5,5.1-.6,5.1-10.3v-39.4h.1Z" style={ { fill: "#e43f25", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_2)`}><g id="letter_2" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m197.2,78c0,2.7,0,13.5.3,15.6-.7,1-2.4,1.4-3.5,1.3-1.5-1.9-3.7-4.6-10.3-12l-21.3-24.3c-5.8-6.7-8.8-10.1-10.4-11.5-.3,0-.3,1-.3,5.8v17.8c0,6.8.1,15.2,1.6,17.9.8,1.4,2.4,2,4.6,2.3l2,.3c.8.6.7,2.4-.2,2.6-3.4-.2-6.9-.3-10.4-.3-3.8,0-6.3.1-9.5.3-.7-.5-.9-2-.2-2.6l2-.5c1.7-.4,3.4-.6,4-2.1,1.2-2.8,1.2-10.7,1.2-17.9v-21.6c0-7.1.1-8.6-3-11.2-1-.8-3.6-1.5-4.8-1.8l-1.4-.3c-.6-.5-.5-2.4.4-2.6,3.5.4,8.5.3,10.7.3,1.9,0,4.1-.1,6.3-.3,1.5,3.9,11.5,15.4,14.7,18.9l9.1,9.8c3.8,4.2,12.3,13.8,13.2,14.4.3-.3.3-.7.3-2.2v-17.8c0-6.8-.1-15.2-1.7-17.9-.8-1.4-2.3-2-4.6-2.3l-2.1-.3c-.8-.6-.7-2.4.2-2.6,3.6.2,6.9.3,10.5.3,3.9,0,6.3-.1,9.6-.3.7.5.9,2,.2,2.6l-2.1.5c-1.7.4-3.3.6-3.9,2.1-1.3,2.8-1.3,10.7-1.3,17.9v21.7h.1Z" style={ { fill: "#d2c52a", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_3)`}><g id="letter_3" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m258.6,47.1c0-8.7-.1-10-4.4-10.4l-1.9-.2c-.6-.5-.6-2.1.1-2.6,6.6-.5,13.8-.8,22.8-.8s14.8.7,21.5,3.1c10.9,4,18.7,13.7,18.7,27.2,0,10.1-5,20.5-16.3,26.2-6.5,3.3-14.3,4.4-22.6,4.4-5.6,0-9.8-.5-13.2-.5s-7.6.1-11.6.3c-.7-.4-.8-2-.2-2.6l2-.3c4.3-.5,5.1-.8,5.1-10.5v-33.3Zm10.6,29.8c0,8.8.6,13.6,10.3,13.6,16.2,0,23.5-11.5,23.5-26.9,0-18-10.5-26.8-25.7-26.8-3.8,0-6.7.7-7.4,1.3-.6.5-.7,2.5-.7,6.7v32.1h0Z" style={ { fill: "#4bb9ea", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_4)`}><g id="letter_4" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m375.4,48.5c0-8.7-.1-9.8-4.4-10.3l-2.4-.3c-.6-.6-.6-2.1.1-2.6,5.7-.5,13.5-.8,20.9-.8s13.3.9,17.3,3.1c4.6,2.5,8,6.7,8,13.3,0,8.4-6.5,12.6-10.9,14.4-.5.3-.4,1,0,1.5,7.3,12.3,11.8,20,16.1,23.6,2.6,2.2,5.2,2.7,6.3,2.8.5.4.5,1.4.2,1.8-1.1.3-2.8.5-6,.5-8.7,0-13.5-3.6-19-12-2.5-3.8-5-8.8-7.2-12.4-1.6-2.7-2.6-3.1-5.6-3.1-2.7,0-2.8.1-2.8,2v11.7c0,9.7.8,9.9,5.1,10.5l2,.3c.6.6.5,2.3-.2,2.6-4-.2-8.1-.3-12.1-.3s-8.1.1-12.3.3c-.7-.4-1-2-.2-2.6l2-.3c4.3-.5,5.1-.8,5.1-10.5v-33.2Zm10.6,13.1c0,2.9,0,3.1,4.4,3.1,8.9,0,13-4.4,13-13,0-7.2-4.6-13.5-12.6-13.5-4.7,0-4.8.3-4.8,4.5v18.9Z" style={ { fill: "#6a3e97", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_5)`}><g id="letter_5" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<path d="m37,189.3c0-8.7-.1-9.8-4.8-10.3l-2.6-.3c-.7-.6-.7-2.1.1-2.6,4.5-.4,11.8-.8,22.8-.8,8.4,0,15.1.7,19.6,3.1,4.6,2.5,7,6.1,7,11.8,0,5.4-4.3,9.5-11.3,11.6-.4.1-.6.4-.6.5,0,.2.2.4.8.5,7.6,1.1,16.1,5.6,16.1,15.8,0,4.2-1.5,8.7-6.1,12.1-4.7,3.6-11.3,5.1-22.7,5.1-4.4,0-8.6-.3-12.4-.3-4.4,0-9.1.1-13.5.3-.8-.4-.9-2-.2-2.6l2.2-.3c4.7-.5,5.6-.8,5.6-10.5v-33.1Zm11.6,10c0,2.4.3,2.5,4.3,2.5,9.4,0,13.7-3.4,13.7-11.6s-6.5-11.2-12.7-11.2c-5,0-5.3.2-5.3,3.8v16.5Zm0,21.4c0,8.3,1,11.7,9.7,11.7,6.9,0,13-4.1,13-12.2,0-9.4-7-14.9-18.1-14.9-4.4,0-4.6.5-4.6,2.4,0,0,0,13,0,13Z" style={ { fill: "#f47f20", strokewidth: 0.0 } } />
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_6)`}><g id="letter_6" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m166.8,183.6c0-3.8-.1-4-2.5-4h-5.1c-8.4,0-10.8,1-14.2,8.4-.6.5-2.6.3-2.9-.6,1.5-4.9,2.9-10.6,3.6-13.8.2-.3.5-.4,1-.4.4,0,.7.1.9.4.5,2.3,1.7,2.4,7.9,2.4h37.2c4.5,0,5.8-.3,6.9-2.4.4-.2.7-.4,1.1-.4.5,0,1,.2,1.2.5-.9,3.7-1.6,11.6-1.4,14.5-.5.7-2,.9-2.8.3-1.2-7.1-2.9-8.8-12.7-8.8h-5.2c-2.4,0-2.5.2-2.5,4v39.3c0,9.7.8,9.9,5.1,10.4l3.3.4c.6.6.5,2.3-.2,2.6-5.3-.2-9.4-.3-13.4-.3s-8.3.1-14.1.3c-.7-.4-.8-2.2-.2-2.6l3.8-.5c4.3-.5,5.1-.6,5.1-10.3v-39.4h.1Z" style={ { fill: "#59b94f", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_7)`}><g id="letter_7" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m312,220.5c0,2.7,0,13.5.3,15.6-.7,1-2.4,1.4-3.5,1.3-1.5-1.9-3.7-4.6-10.3-12l-21.3-24.4c-5.8-6.7-8.8-10.1-10.4-11.5-.3,0-.3,1-.3,5.8v17.8c0,6.8.1,15.2,1.6,17.9.8,1.4,2.4,2,4.6,2.3l2,.3c.8.6.7,2.4-.2,2.6-3.4-.2-6.9-.3-10.4-.3-3.8,0-6.3.1-9.5.3-.7-.5-.9-2-.2-2.6l2-.5c1.7-.4,3.4-.6,4-2.1,1.2-2.8,1.2-10.7,1.2-17.9v-21.6c0-7.1.1-8.6-3-11.2-1-.8-3.6-1.5-4.8-1.8l-1.4-.3c-.6-.5-.5-2.4.4-2.6,3.5.4,8.5.3,10.7.3,1.9,0,4.1-.1,6.3-.3,1.5,3.9,11.5,15.4,14.7,18.9l9.1,9.8c3.8,4.2,12.3,13.8,13.2,14.4.3-.3.3-.7.3-2.2v-17.8c0-6.8-.1-15.2-1.7-17.9-.8-1.4-2.3-2-4.6-2.3l-2.1-.3c-.8-.6-.7-2.4.2-2.6,3.6.2,6.9.3,10.5.3,3.9,0,6.3-.1,9.6-.3.7.5.9,2,.2,2.6l-2.1.5c-1.7.4-3.3.6-3.9,2.1-1.3,2.8-1.3,10.7-1.3,17.9v21.8h.1Z" style={ { fill: "#1c6bb4", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_8)`}><g id="letter_8" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m375.3,233.4c-2-1.9-3.4-8.2-3.3-13.8.7-.9,2.5-1,3.4-.4,2,4.6,8,14.4,18.8,14.4,8.4,0,13.2-4.2,13.2-9.7,0-5.2-3-9.4-11.3-13.2l-4.8-2.2c-8.3-3.8-15.6-9.4-15.6-17.6,0-9,8.2-16.7,24.3-16.7,5.7,0,9.9,1.1,15.1,1.9,1.2,2,2.3,8,2.3,12.3-.6.8-2.5.9-3.5.3-1.7-4.7-5.5-10.8-14.9-10.8-8.8,0-12.5,4.7-12.5,9.6,0,3.8,3.2,7.9,10.5,11.1l6.9,3c7.2,3.1,15.1,8.7,15.1,17.9,0,10.4-9.6,17.8-25.6,17.8-10.2-.1-15.9-2.8-18.1-3.9Z" style={ { fill: "#d35589", strokewidth: 0.0 } } />
+</g>
+</g></g>
+<g clipPath={`url(#${idPrefix}_clip_letter_1)`}><g id="letter_9" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
+<path d="m37,46.5c0-8.7-.1-9.8-4.8-10.3l-2.6-.3c-.7-.6-.7-2.1.1-2.6,4.5-.4,11.8-.8,22.8-.8,8.4,0,15.1.7,19.6,3.1,4.6,2.5,7,6.1,7,11.8,0,5.4-4.3,9.5-11.3,11.6-.4.1-.6.4-.6.5,0,.2.2.4.8.5,7.6,1.1,16.1,5.6,16.1,15.8,0,4.2-1.5,8.7-6.1,12.1-4.7,3.6-11.3,5.1-22.7,5.1-4.4,0-8.6-.3-12.4-.3-4.4,0-9.1.1-13.5.3-.8-.4-.9-2-.2-2.6l2.2-.3c4.7-.5,5.6-.8,5.6-10.5v-33.1Zm11.6,10c0,2.4.3,2.5,4.3,2.5,9.4,0,13.7-3.4,13.7-11.6s-6.5-11.2-12.7-11.2c-5,0-5.3.2-5.3,3.8v16.5Zm0,21.4c0,8.3,1,11.7,9.7,11.7,6.9,0,13-4.1,13-12.2,0-9.4-7-14.9-18.1-14.9-4.4,0-4.6.5-4.6,2.4,0,0,0,13,0,13Z" style={ { fill: "#e43f25", strokewidth: 0.0 } } />
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_2)`}><g id="letter_10" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
+<path d="m166.5,77.8c0,4.6.2,7.9,1.6,9.5,1.1,1.3,2.6,2,9.9,2,10.2,0,11.7-.5,15.9-9.9.9-.5,2.4-.2,2.9.6-.7,3.9-2.8,10.9-3.9,13.4-3.9-.2-11.8-.3-22.1-.3h-9.6c-4.7,0-9.3.1-13.2.3-.7-.4-1-2.2-.2-2.7l2.8-.5c4.3-.7,5.2-.8,5.2-10.4v-34.3c0-9.6-.8-9.9-5.2-10.5l-2.6-.4c-.6-.5-.6-2.3.2-2.7,4.6.2,8.8.3,13,.3s8.2-.1,12.3-.3c.8.4.9,2.2.2,2.7l-2,.4c-4.3.7-5.2.9-5.2,10.5v32.3h0Z" style={ { fill: "#d2c52a", strokewidth: 0.0 } } />
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_3)`}><g id="letter_11" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m309.8,78.7c0,2.7,0,13.5.3,15.6-.7,1-2.4,1.4-3.5,1.3-1.5-1.9-3.7-4.6-10.3-12l-21.3-24.3c-5.8-6.7-8.8-10.1-10.4-11.5-.3,0-.3,1-.3,5.8v17.8c0,6.8.1,15.2,1.6,17.9.8,1.4,2.4,2,4.6,2.3l2,.3c.8.6.7,2.4-.2,2.6-3.4-.2-6.9-.3-10.4-.3-3.8,0-6.3.1-9.5.3-.7-.5-.9-2-.2-2.6l2-.5c1.7-.4,3.4-.6,4-2.1,1.2-2.8,1.2-10.7,1.2-17.9v-21.6c0-7.1.1-8.6-3-11.2-1-.8-3.6-1.5-4.8-1.8l-1.4-.3c-.6-.5-.5-2.4.4-2.6,3.5.4,8.5.3,10.7.3,1.9,0,4.1-.1,6.3-.3,1.5,3.9,11.5,15.4,14.7,18.9l9.1,9.8c3.8,4.2,12.3,13.8,13.2,14.4.3-.3.3-.7.3-2.2v-17.8c0-6.8-.1-15.2-1.7-17.9-.8-1.4-2.3-2-4.6-2.3l-2.1-.3c-.8-.6-.7-2.4.2-2.6,3.6.2,6.9.3,10.5.3,3.9,0,6.3-.1,9.6-.3.7.5.9,2,.2,2.6l-2.1.5c-1.7.4-3.3.6-3.9,2.1-1.3,2.8-1.3,10.7-1.3,17.9v21.7h.1Z" style={ { fill: "#4bb9ea", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_4)`}><g id="letter_12" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m371.2,47.8c0-8.7-.1-10-4.4-10.4l-1.9-.2c-.6-.5-.6-2.1.1-2.6,6.6-.5,13.8-.8,22.8-.8s14.8.7,21.5,3.1c10.9,4,18.7,13.7,18.7,27.2,0,10.1-5,20.5-16.3,26.2-6.5,3.3-14.3,4.4-22.6,4.4-5.6,0-9.8-.5-13.2-.5s-7.6.1-11.6.3c-.7-.4-.8-2-.2-2.6l2-.3c4.3-.5,5.1-.8,5.1-10.5v-33.3Zm10.6,29.8c0,8.8.6,13.6,10.3,13.6,16.2,0,23.5-11.5,23.5-26.9,0-18-10.5-26.8-25.7-26.8-3.8,0-6.7.7-7.4,1.3-.6.5-.7,2.5-.7,6.7v32.1h0Z" style={ { fill: "#6a3e97", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_5)`}><g id="letter_13" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
+<path d="m81.5,226.2c0,3.2.5,5.6,2.2,6.4.3.4.3,1.1-.1,1.4-1,0-2.7.4-4.4.7-5.7,1.4-12.6,2.5-17.9,2.5-11.1,0-21.5-2.9-28.4-10.1-5.4-5.6-8.1-13.4-8.1-21.1s2.7-15.7,8.5-21.6c6.5-6.9,16.6-10.9,29.4-10.9,4.3,0,9,.7,12.3,1.4,2.1.5,4.8.8,5.9.8.1,2.8.7,7.5,1.2,14.6-.5.9-2.5,1-2.9.2-2-8.9-8.6-13.4-17.7-13.4-16.2,0-24,11.7-24,27.4,0,7.4,1.7,15.3,6.6,21.2s12.3,7.8,17.8,7.8c4.4,0,7.1-.7,8.2-2.1.6-.8.8-2.5.8-5.8v-3.3c0-6.5-.1-7.1-6.3-8.1l-3.3-.6c-.6-.6-.6-2.2.1-2.7,3.6.2,8,.3,14.4.3,4.1,0,7.3-.1,11.2-.3.9.5,1,2,.2,2.7l-1.7.3c-3.4.6-4,1.3-4,6.9v5.4h0Z" style={ { fill: "#f47f20", strokewidth: 0.0 } } />
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_6)`}><g id="letter_14" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
+<path d="m169,220.6c0,4.6.2,7.9,1.6,9.5,1.1,1.3,2.6,2,9.9,2,10.2,0,11.7-.5,15.9-9.9.9-.5,2.4-.2,2.9.6-.7,3.9-2.8,10.9-3.9,13.4-3.9-.2-11.8-.3-22.1-.3h-9.6c-4.7,0-9.3.1-13.2.3-.7-.4-1-2.2-.2-2.7l2.8-.5c4.3-.7,5.2-.8,5.2-10.4v-34.3c0-9.6-.8-9.9-5.2-10.5l-2.6-.4c-.6-.5-.6-2.3.2-2.7,4.6.2,8.8.3,13,.3s8.2-.1,12.3-.3c.8.4.9,2.2.2,2.7l-2,.4c-4.3.7-5.2.9-5.2,10.5v32.3h0Z" style={ { fill: "#59b94f", strokewidth: 0.0 } } />
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_7)`}><g id="letter_15" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m264.5,233.4c-2-1.9-3.4-8.2-3.3-13.8.7-.9,2.5-1,3.4-.4,2,4.6,8,14.4,18.8,14.4,8.4,0,13.2-4.2,13.2-9.7,0-5.2-3-9.4-11.3-13.2l-4.8-2.2c-8.3-3.8-15.6-9.4-15.6-17.6,0-9,8.2-16.7,24.3-16.7,5.7,0,9.9,1.1,15.1,1.9,1.2,2,2.3,8,2.3,12.3-.6.8-2.5.9-3.5.3-1.7-4.7-5.5-10.8-14.9-10.8-8.8,0-12.5,4.7-12.5,9.6,0,3.8,3.2,7.9,10.5,11.1l6.9,3c7.2,3.1,15.1,8.7,15.1,17.9,0,10.4-9.6,17.8-25.6,17.8-10.2-.1-15.9-2.8-18.1-3.9Z" style={ { fill: "#1c6bb4", strokewidth: 0.0 } } />
+</g>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_8)`}><g id="letter_16" style={{ display: isInitialAlt ? 'inline' : 'none' }}>
+<g style={ { isolation: "isolate" } }>
+<path d="m375.3,233.4c-2-1.9-3.4-8.2-3.3-13.8.7-.9,2.5-1,3.4-.4,2,4.6,8,14.4,18.8,14.4,8.4,0,13.2-4.2,13.2-9.7,0-5.2-3-9.4-11.3-13.2l-4.8-2.2c-8.3-3.8-15.6-9.4-15.6-17.6,0-9,8.2-16.7,24.3-16.7,5.7,0,9.9,1.1,15.1,1.9,1.2,2,2.3,8,2.3,12.3-.6.8-2.5.9-3.5.3-1.7-4.7-5.5-10.8-14.9-10.8-8.8,0-12.5,4.7-12.5,9.6,0,3.8,3.2,7.9,10.5,11.1l6.9,3c7.2,3.1,15.1,8.7,15.1,17.9,0,10.4-9.6,17.8-25.6,17.8-10.2-.1-15.9-2.8-18.1-3.9Z" style={ { fill: "#d35589", strokewidth: 0.0 } } />
+</g>
+</g></g>
+</svg>
+  );
 }
