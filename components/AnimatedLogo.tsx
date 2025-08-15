@@ -10,8 +10,8 @@ export default function AnimatedLogo() {
   return (
     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
       viewBox="0 0 1200 900" style={{ enableBackground: 'new 0 0 1200 900' }} xmlSpace="preserve">
-      <style>
-      .st0 {
+      <style
+        dangerouslySetInnerHTML={{ __html: `.st0 {
         fill: #d35589;
       }
 
@@ -47,8 +47,8 @@ export default function AnimatedLogo() {
 
       .st8 {
         fill: #f47f20;
-      }
-    </style>
+      }` }}
+      />
       <g id="letter_1"><g id="T">
     <path class="st1" d="M44.5,57.6h-13.2v-21.4h51.6v21.3h-12.9v41.8h-25.4v-41.7Z"/>
   </g></g>
