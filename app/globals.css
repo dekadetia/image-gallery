@@ -55,9 +55,10 @@ html {
     background-color: #15181b !important;
 }
 
-@media (max-width: 1920px)
+@media (max-width: 1920px) {
 .w-40 {
     width: 11rem !important;
+}
 }
 
 .yarl__slide {
