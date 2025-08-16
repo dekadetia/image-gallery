@@ -56,7 +56,7 @@ html {
 }
 
 @media screen and (max-width: 1920px)
-.w-40 {
+.block w-40 {
     width: 11rem !important;
 }
 
