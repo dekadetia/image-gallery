@@ -350,11 +350,6 @@ body: JSON.stringify({
 
   return !userIsLogged ? (
     <>
-      <Link href={"/"}>
-  <div id="logo" className="w-40 h-auto cursor-pointer">
-    <AnimatedLogo />
-  </div>
-      </Link>
       <div className="w-full h-screen bg-black grid place-items-center">
         <form
           className="max-w-screen-xl mx-auto rounded-lg border border-solid border-white space-y-4 px-8 py-10 flex flex-col"
@@ -394,11 +389,7 @@ body: JSON.stringify({
     </>
   ) : (
     <>
-      <Link href={"/"}>
-  <div id="logo" className="w-40 h-auto cursor-pointer">
-    <AnimatedLogo />
-  </div>
-      </Link>
+
 
       <div className="w-full p-6">
         <div className="flex items-center justify-between mb-4">
