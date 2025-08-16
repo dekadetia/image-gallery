@@ -14,6 +14,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import { errorToast, successToast } from "../../utils/toast";
 import Link from "next/link";
 import Loader from "../../components/loader/loader";
+import AnimatedLogo from '../../components/AnimatedLogo';
 
 const schema = Yup.object().shape({
   username: Yup.string().required("Username is required"),
@@ -350,11 +351,9 @@ body: JSON.stringify({
   return !userIsLogged ? (
     <>
       <Link href={"/"}>
-        <img
-          src="/assets/logo.svg"
-          className="object-contain w-40 mx-auto my-6"
-          alt=""
-        />
+  <div id="logo" className="w-40 h-auto cursor-pointer">
+    <AnimatedLogo />
+  </div>
       </Link>
       <div className="w-full h-screen bg-black grid place-items-center">
         <form
