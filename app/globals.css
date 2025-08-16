@@ -55,7 +55,7 @@ html {
     background-color: #15181b !important;
 }
 
-@media screen and (max-width: 2100px)
+@media (max-width: 1920px)
 .w-40 {
     width: 11rem !important;
 }
