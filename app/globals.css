@@ -296,35 +296,46 @@ body.blackmode-hide-cursor * {
 }
 
 /* 🌅 Morning — solar warmth */
-.morning {
+/*.morning {
   background-image: linear-gradient(to bottom, #15181b, #291B1B);
   background-size: 100% 100%;
   background-attachment: fixed;
-}
+}*/
 
 /* ☀️ Day — cool haze */
-.day {
+/*.day {
   background-image: linear-gradient(to bottom, #15181b, #202534);
   background-size: 100% 100%;
   background-attachment: fixed;
-}
+}*/
 
 /* 🌇 Dusk — ghost of neon */
-.dusk {
+/*.dusk {
   background-image: linear-gradient(to bottom, #15181b, #241922);
   background-size: 100% 100%;
   background-attachment: fixed;
-}
+}*/
 
 /* 🌌 Night — midnight glint */
-.night {
+/*.night {
   background-image: linear-gradient(to bottom, #15181b, #141622);
   background-size: 100% 100%;
   background-attachment: fixed;
-}
+}*/
 
 /* ✨ Optional: smooth transition */
-body,
+/*body,
 .min-h-screen {
   transition: background-image 1s ease-in-out;
+}*/
+
+:root {
+  --logo-base: 10rem;   /* matches w-40 */
+  --logo-dpr-comp: 1;   /* updated by script below */
+}
+
+/* Overrides any w-40 on #logo, so you don't have to touch each page */
+#logo {
+  width: clamp(8rem, calc(var(--logo-base) * var(--logo-dpr-comp)), 14rem);
+  height: auto;
 }
