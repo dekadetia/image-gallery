@@ -395,11 +395,9 @@ body: JSON.stringify({
   ) : (
     <>
       <Link href={"/"}>
-        <img
-          src="/assets/logo.svg"
-          className="object-contain w-40 mx-auto my-6"
-          alt=""
-        />
+  <div id="logo" className="w-40 h-auto cursor-pointer">
+    <AnimatedLogo />
+  </div>
       </Link>
 
       <div className="w-full p-6">
