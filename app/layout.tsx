@@ -53,7 +53,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* favicon */}
-        <link rel="icon" href="/assets/favicon-32x32.png" />
+        <link rel="icon" href="/assets/favicon-96x96.png" />
         <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
         <Script id="time-gradient" strategy="beforeInteractive">
   {`
