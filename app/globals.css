@@ -55,16 +55,9 @@ html {
     background-color: #15181b !important;
 }
 
-@media (max-width: 1920px) {
+@media (max-resolution: 180dpi) {
 .w-40 {
     width: 11rem !important;
-}
-}
-
-
-@media (min-width: 1921px) {
-.w-40 {
-    max-width: 10rem !important;
 }
 }
 
