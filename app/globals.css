@@ -324,36 +324,7 @@ body.blackmode-hide-cursor * {
 }*/
 
 /* ✨ Optional: smooth transition */
-/*body,
+body,
 .min-h-screen {
   transition: background-image 1s ease-in-out;
-}*/
-/* keep your DPR sizing from earlier */
-:root {
-  --logo-base: 11rem;     /* try 11rem if you like */
-  --logo-dpr-comp: 1;
-}
-#logo {
-  width: clamp(8rem, calc(var(--logo-base) * var(--logo-dpr-comp)), 18rem);
-  height: auto;
-
-  /* force true centering regardless of width changes */
-  display: block;               /* not inline */
-  margin-inline: auto;          /* center horizontally */
-}
-
-/* make the immediate child (your AnimatedLogo root or <svg>) block-centered */
-#logo > * {
-  display: block;
-  margin-inline: auto;
-}
-
-/* remove baseline wobble if the child is an <svg> */
-#logo svg {
-  display: block;               /* no baseline gap */
-}
-
-/* defensive: never let transforms land on the centering container */
-#logo {
-  transform: none !important;
 }
