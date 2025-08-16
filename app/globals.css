@@ -57,7 +57,7 @@ html {
 
 @media screen and (max-width: 1920px)
 .w-40 {
-    width: 11rem;
+    width: 11rem !important;
 }
 
 .yarl__slide {
