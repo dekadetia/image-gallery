@@ -67,6 +67,27 @@ export default function RootLayout({ children }) {
     document.documentElement.classList.add(t);
   `}
 </Script>
+        <Script id="dpr-scaler" strategy="beforeInteractive">
+          {`
+            (function () {
+              var TARGET_DPR = 2;
+              function apply() {
+                var dpr = window.devicePixelRatio || 1;
+                var comp = TARGET_DPR / dpr;
+                var clamped = Math.max(0.6, Math.min(1.8, comp));
+                document.documentElement.style.setProperty('--logo-dpr-comp', clamped.toString());
+              }
+              apply();
+              window.addEventListener('resize', apply);
+              try {
+                var m2 = window.matchMedia('(resolution: 2dppx)');
+                var m3 = window.matchMedia('(resolution: 3dppx)');
+                m2.addEventListener && m2.addEventListener('change', apply);
+                m3.addEventListener && m3.addEventListener('change', apply);
+              } catch (_) {}
+            })();
+          `}
+        </Script>
       </head>
       <body className={inter.className}>
         <div className={`min-h-screen ${gradient ?? ''}`}>
