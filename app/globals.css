@@ -55,6 +55,11 @@ html {
     background-color: #15181b !important;
 }
 
+@media screen and (max-width: 1920px)
+.w-40
+    width: 11rem;
+}
+
 .yarl__slide {
     flex-direction: column;
     padding: 3.5rem 0 3rem !important;
