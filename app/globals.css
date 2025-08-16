@@ -330,7 +330,7 @@ body.blackmode-hide-cursor * {
 }*/
 
 :root {
-  --logo-base: 10rem;   /* matches w-40 */
+  --logo-base: 11rem;   /* matches w-40 */
   --logo-dpr-comp: 1;   /* updated by script below */
 }
 
