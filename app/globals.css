@@ -61,6 +61,13 @@ html {
 }
 }
 
+
+@media (min-width: 1921px) {
+.w-40 {
+    max-width: 10rem !important;
+}
+}
+
 .yarl__slide {
     flex-direction: column;
     padding: 3.5rem 0 3rem !important;
