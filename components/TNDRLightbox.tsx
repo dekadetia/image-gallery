@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import YARL from 'yet-another-react-lightbox'
 import Video from 'yet-another-react-lightbox/plugins/video'
 
@@ -15,7 +15,6 @@ export default function TNDRLightbox({
   setIndex: (n: number) => void
   render?: any
 }) {
-  const router = useRouter()
   const pathname = usePathname()
   const [internalIndex, setInternalIndex] = useState(parentIndex)
 
@@ -24,7 +23,7 @@ export default function TNDRLightbox({
     setInternalIndex(parentIndex)
   }, [parentIndex])
 
-  // 🎯 Auto-open when direct permalink like /film/50039.the.last.of.sheila is hit
+  // 🎯 Auto-open if the current URL is /film/<slug>
   useEffect(() => {
     const match = pathname.match(/^\/film\/([^/]+)$/)
     if (match && slides?.length > 0 && internalIndex < 0) {
@@ -44,7 +43,7 @@ export default function TNDRLightbox({
     }
   }, [pathname, slides])
 
-  // 🧭 When opening, push /film/<id>.<slug> to the URL
+  // 🧭 When opening, update URL silently (no navigation)
   useEffect(() => {
     if (internalIndex >= 0 && slides?.[internalIndex]) {
       const slide = slides[internalIndex]
@@ -54,26 +53,40 @@ export default function TNDRLightbox({
         .replace(/\.$/, '')
       const id = slide.src.match(/\/(\d+)\./)?.[1] || ''
       const slug = id ? `${id}.${base}` : base
-      if (!pathname.startsWith(`/film/${slug}`)) {
-        router.push(`/film/${slug}`, { scroll: false })
+      const newURL = `/film/${slug}`
+
+      if (!window.location.pathname.startsWith(newURL)) {
+        window.history.pushState({}, '', newURL)
       }
     }
   }, [internalIndex])
 
-  // 🚪 Handle close
+  // 🚪 Close handler — revert URL + clear state
   const handleClose = () => {
     setInternalIndex(-1)
     parentSetIndex?.(-1)
     setTimeout(() => {
-      if (pathname.startsWith('/film/')) {
-        router.push('/', { scroll: false })
-      } else {
-        router.back()
+      if (window.location.pathname.startsWith('/film/')) {
+        window.history.pushState({}, '', '/')
       }
-    }, 150)
+    }, 100)
   }
 
-  // 🧹 Cleanup on unmount (safety net)
+  // 🔙 Handle Back button (popstate)
+  useEffect(() => {
+    const onPopState = () => {
+      if (window.location.pathname.startsWith('/film/')) {
+        // If user hits back, close the lightbox
+        setInternalIndex(-1)
+        parentSetIndex?.(-1)
+        window.history.pushState({}, '', '/')
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  // 🧹 Cleanup (safety net)
   useEffect(() => {
     return () => {
       document.body.style.overflow = ''
@@ -82,7 +95,7 @@ export default function TNDRLightbox({
     }
   }, [])
 
-  // ⛔ Don’t render if closed
+  // ⛔ Don’t render unless open
   if (internalIndex < 0) return null
 
   return (
