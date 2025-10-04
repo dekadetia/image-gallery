@@ -6,11 +6,17 @@ import gsap from 'gsap'
 if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
-      // Use rAF so this runs immediately after the DOM snapshot is painted back
       requestAnimationFrame(() => {
         const saved = sessionStorage.getItem('logoState')
         const isAlt = saved === 'alt'
 
+        // Step 1: Hide everything (avoid overlap flash)
+        for (let i = 1; i <= 16; i++) {
+          const el = document.getElementById(`letter_${i}`)
+          if (el) el.style.display = 'none'
+        }
+
+        // Step 2: Show only the correct set
         for (let i = 1; i <= 8; i++) {
           const base = document.getElementById(`letter_${i}`) as HTMLElement | null
           const alt = document.getElementById(`letter_${i + 8}`) as HTMLElement | null
@@ -31,6 +37,7 @@ if (typeof window !== 'undefined') {
     }
   })
 }
+
 
 export default function AnimatedLogo() {
   const idPrefix = useId()
