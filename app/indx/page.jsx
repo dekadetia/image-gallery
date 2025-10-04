@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 
-import Lightbox from "@/components/TNDRLightbox"
+import Lightbox from "../../components/TNDRLightbox"
 import Video from 'yet-another-react-lightbox/plugins/video'
 import Footer from "../../components/Footer";
 import Fuse from 'fuse.js';
