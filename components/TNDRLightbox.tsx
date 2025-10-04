@@ -4,39 +4,31 @@ import { useEffect } from 'react'
 import YARL from 'yet-another-react-lightbox'
 import Video from 'yet-another-react-lightbox/plugins/video'
 
-/**
- * TNDRLightbox
- * Wraps yet-another-react-lightbox with:
- * - permalink-aware open/close
- * - automatic return to previous page without reload
- * - safe defaults matching your existing setup
- */
-
 export default function TNDRLightbox({
   slides,
   index,
   setIndex,
   render,
-}: {
-  slides: any[]
-  index: number
-  setIndex: (n: number) => void
-  render?: any
 }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Close behavior
+  // ✅ close logic – allow cleanup before navigation
   const handleClose = () => {
+    // trigger YARL internal cleanup first
     setIndex(-1)
-    if (pathname.startsWith('/images/')) {
-      router.push('/', { scroll: false })
-    } else {
-      router.back()
-    }
+
+    // wait a short moment so body overflow resets
+    setTimeout(() => {
+      if (pathname.startsWith('/images/')) {
+        router.push('/', { scroll: false })
+      } else {
+        router.back()
+      }
+    }, 150) // 150–200 ms is plenty
   }
 
-  // When a permalink is loaded directly (e.g. /images/foo)
+  // ✅ open when hitting permalink directly
   useEffect(() => {
     const match = pathname.match(/^\/images\/([^/]+)$/)
     if (match && slides?.length > 0 && index === -1) {
