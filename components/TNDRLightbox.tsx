@@ -1,37 +1,48 @@
 'use client'
 import { useRouter, usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import YARL from 'yet-another-react-lightbox'
 import Video from 'yet-another-react-lightbox/plugins/video'
 
 export default function TNDRLightbox({ slides, index, setIndex, render }) {
   const router = useRouter()
   const pathname = usePathname()
+  const wasOpen = useRef(false)
 
-  // 🧹 remove any leftover YARL body locks
+  // 🧹 Clean up scroll locks safely
   const unlockBody = () => {
-    document.body.style.overflow = ''
-    document.body.style.touchAction = ''
-    document.body.classList.remove('yarl__no_scroll')
+    const body = document.body
+    body.style.overflow = ''
+    body.style.touchAction = ''
+    body.classList.remove('yarl__no_scroll')
   }
 
+  // Run cleanup every time Lightbox closes
+  useEffect(() => {
+    const isOpen = index >= 0
+    if (wasOpen.current && !isOpen) {
+      // Lightbox just closed → cleanup
+      requestAnimationFrame(unlockBody)
+      setTimeout(unlockBody, 200)
+    }
+    wasOpen.current = isOpen
+  }, [index])
+
+  // Close behavior
   const handleClose = () => {
     setIndex(-1)
-
-    // give YARL a frame to unmount, then force-clear body lock
-    requestAnimationFrame(() => {
+    // wait a little to ensure cleanup runs
+    setTimeout(() => {
       unlockBody()
-      setTimeout(unlockBody, 100) // safety double-tap
-
       if (pathname.startsWith('/images/')) {
         router.push('/', { scroll: false })
       } else {
         router.back()
       }
-    })
+    }, 150)
   }
 
-  // auto-open when permalink hit directly
+  // Auto-open when direct permalink
   useEffect(() => {
     const match = pathname.match(/^\/images\/([^/]+)$/)
     if (match && slides?.length > 0 && index === -1) {
@@ -47,10 +58,8 @@ export default function TNDRLightbox({ slides, index, setIndex, render }) {
     }
   }, [pathname, slides])
 
-  // extra safety: clear any stale lock if component ever unmounts
-  useEffect(() => {
-    return () => unlockBody()
-  }, [])
+  // Failsafe cleanup if component ever unmounts
+  useEffect(() => () => unlockBody(), [])
 
   return (
     <YARL
