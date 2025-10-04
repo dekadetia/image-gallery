@@ -1,25 +1,24 @@
-"use client"; 
+"use client";
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-
-import Lightbox from "../../components/TNDRLightbox"
-import Video from 'yet-another-react-lightbox/plugins/video'
+import { usePathname, useRouter } from "next/navigation"; // 🆕 add this
+import Lightbox from "../../components/TNDRLightbox";
+import Video from "yet-another-react-lightbox/plugins/video";
 import Footer from "../../components/Footer";
-import Fuse from 'fuse.js';
+import Fuse from "fuse.js";
 import { BsSortAlphaDown } from "react-icons/bs";
 import { TbClockDown, TbClockUp } from "react-icons/tb";
 import { RxCross1 } from "react-icons/rx";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import RootLayout from "../layout";
 import Loader from "../../components/loader/loader";
-import AnimatedLogo from '../../components/AnimatedLogo';
-import { clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-
+import AnimatedLogo from "../../components/AnimatedLogo";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export default function Index() {
@@ -32,9 +31,18 @@ export default function Index() {
   const wasCalled = useRef(false);
   const [nextPageToken, setNextPageToken] = useState(null);
   const [hasMore, setHasMore] = useState(true);
-  // Search Input State
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const pathname = usePathname(); // 🆕
+  const router = useRouter(); // 🆕
+
+  // 🧭 If a user lands on /film/... → silently render /indx
+  useEffect(() => {
+    if (pathname.startsWith("/film/")) {
+      router.replace("/indx", { scroll: false });
+    }
+  }, [pathname]);
 
   const getImages = async (token) => {
     try {
@@ -42,9 +50,7 @@ export default function Index() {
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ lastVisibleDocId: token }),
         }
       );
@@ -52,83 +58,95 @@ export default function Index() {
       if (response.ok) {
         const data = await response.json();
         const images = data.images;
-
         if (images.length === 0) {
           setHasMore(false);
           return;
         }
 
         setNextPageToken(data.nextPageToken);
-        console.log(images)
         setImages(images);
 
-const newSlides = images.map((photo) => {
-  const width = 1080 * 4;
-  const height = 1620 * 4;
+        const newSlides = images.map((photo) => {
+          const width = 1080 * 4;
+          const height = 1620 * 4;
 
-  if (photo.src.toLowerCase().includes('.webm')) {
-    return {
-      type: 'video',
-      width,
-      height,
-      title: `${photo.caption}`,
-      description: photo.dimensions,
-      director: photo.director || null,
-      year: photo.year,
-      sources: [{
-        src: photo.src,
-        type: 'video/webm'
-      }],
-      poster: '/assets/transparent.png',
-      autoPlay: true,
-      muted: true,
-      loop: true,
-      controls: false
-    };
-  } else {
-    return {
-      type: 'image',
-      src: photo.src,
-      width,
-      height,
-      title: `${photo.caption}`,
-      description: photo.dimensions,
-      director: photo.director || null,
-      year: photo.year
-    };
-  }
-});
-
+          if (photo.src.toLowerCase().includes(".webm")) {
+            return {
+              type: "video",
+              width,
+              height,
+              title: `${photo.caption}`,
+              description: photo.dimensions,
+              director: photo.director || null,
+              year: photo.year,
+              sources: [{ src: photo.src, type: "video/webm" }],
+              poster: "/assets/transparent.png",
+              autoPlay: true,
+              muted: true,
+              loop: true,
+              controls: false,
+            };
+          } else {
+            return {
+              type: "image",
+              src: photo.src,
+              width,
+              height,
+              title: `${photo.caption}`,
+              description: photo.dimensions,
+              director: photo.director || null,
+              year: photo.year,
+            };
+          }
+        });
 
         setSlides((prevSlides) => [...prevSlides, ...newSlides]);
       }
     } catch (error) {
       console.error("Error fetching files:", error);
     }
-
     __loader(false);
   };
+
+  // 🧭 When slides are loaded, check if we're at /film/... and auto-open
+  useEffect(() => {
+    const match = pathname.match(/^\/film\/([^/]+)$/);
+    if (match && slides.length > 0 && index === -1) {
+      const slug = match[1];
+      const found = slides.findIndex((s) => {
+        const base = (s.title || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, ".")
+          .replace(/\.$/, "");
+        const id = s.src.match(/\/(\d+)\./)?.[1] || "";
+        return `${id}.${base}` === slug;
+      });
+      if (found !== -1) setIndex(found);
+    }
+  }, [pathname, slides]);
 
   const sortImagesByYear = async () => {
     try {
       __loader(true);
       const sortedImages = await new Promise((resolve) => {
-        const sorted = [...Images].sort((a, b) => parseInt(b.year) - parseInt(a.year));
+        const sorted = [...Images].sort(
+          (a, b) => parseInt(b.year) - parseInt(a.year)
+        );
         resolve(sorted);
       });
-
       setSorted(true);
       setImages(sortedImages);
-
-      setSlides(sortedImages.map((photo) => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-              director: photo.director || null,
-      year: photo.year
-      })));
+      setSlides(
+        sortedImages.map((photo) => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+          director: photo.director || null,
+          year: photo.year,
+        }))
+      );
     } catch (error) {
       console.error("Error sorting images:", error);
     } finally {
@@ -140,22 +158,24 @@ const newSlides = images.map((photo) => {
     try {
       __loader(true);
       const sortedImages = await new Promise((resolve) => {
-        const sorted = [...Images].sort((a, b) => parseInt(a.year) - parseInt(b.year));
+        const sorted = [...Images].sort(
+          (a, b) => parseInt(a.year) - parseInt(b.year)
+        );
         resolve(sorted);
       });
-
       setSorted(false);
       setImages(sortedImages);
-
-      setSlides(sortedImages.map((photo) => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-              director: photo.director || null,
-      year: photo.year
-      })));
+      setSlides(
+        sortedImages.map((photo) => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+          director: photo.director || null,
+          year: photo.year,
+        }))
+      );
     } catch (error) {
       console.error("Error sorting images:", error);
     } finally {
@@ -172,18 +192,18 @@ const newSlides = images.map((photo) => {
         );
         resolve(sorted);
       });
-
       setImages(sortedImages);
-
-      setSlides(sortedImages.map((photo) => ({
-        src: photo.src,
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-              director: photo.director || null,
-      year: photo.year
-      })));
+      setSlides(
+        sortedImages.map((photo) => ({
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+          director: photo.director || null,
+          year: photo.year,
+        }))
+      );
     } catch (error) {
       console.error("Error sorting images:", error);
     } finally {
@@ -191,166 +211,143 @@ const newSlides = images.map((photo) => {
     }
   };
 
-  // Search Handling Functions
   const openLightboxByImage = (photo) => {
-const matchedIndex = slides.findIndex((slide) => {
-  if (slide.type === 'video') {
-    return slide.sources[0].src === photo.src;
-  }
-  return slide.src === photo.src;
-});
-    if (matchedIndex !== -1) {
-      setIndex(matchedIndex);
-    }
+    const matchedIndex = slides.findIndex((slide) => {
+      if (slide.type === "video") {
+        return slide.sources[0].src === photo.src;
+      }
+      return slide.src === photo.src;
+    });
+    if (matchedIndex !== -1) setIndex(matchedIndex);
   };
 
-// 🔥 Strict years first, then hybrid search for others
-const rawQuery = searchQuery.trim().toLowerCase();
-const queryParts = rawQuery.split(/\s+/);
+  const rawQuery = searchQuery.trim().toLowerCase();
+  const queryParts = rawQuery.split(/\s+/);
+  let filteredImages;
 
-let filteredImages;
-
-if (!rawQuery) {
-  filteredImages = Images;
-} else if (/^\d{4}$/.test(rawQuery)) {
-  // 🎯 Exact 4-digit year (e.g., 1933)
-  filteredImages = Images.filter(img => String(img.year) === rawQuery);
-} else if (/^\d{3}$/.test(rawQuery) || /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
-  // 🎯 Decade queries (e.g., 193, 193x, 1930s → 1930–1939)
-  const decadePrefix = rawQuery.slice(0, 3);
-  filteredImages = Images.filter(img =>
-    String(img.year).startsWith(decadePrefix)
-  );
-} else {
-  // 🔥 Fuse for captions and alphaname
-  const fuse = new Fuse(Images, {
-    keys: [
-      { name: 'caption', weight: 0.6 },
-      { name: 'alphaname', weight: 0.4 }
-    ],
-    threshold: 0.3,
-    distance: 200,
-    includeScore: true
-  });
-  const fuseResults = fuse.search(rawQuery).map(r => r.item);
-
-  // 🔥 Autocomplete for director and dimensions
-  const autocompleteResults = Images.filter(img => {
-    const dir = img.director?.toLowerCase() || '';
-    const dim = img.dimensions?.slice(0, 6).toLowerCase() || '';
-
-    return queryParts.every(part =>
-      dir.split(/\s+/).some(word => word.startsWith(part)) ||
-      dim.startsWith(part)
+  if (!rawQuery) {
+    filteredImages = Images;
+  } else if (/^\d{4}$/.test(rawQuery)) {
+    filteredImages = Images.filter((img) => String(img.year) === rawQuery);
+  } else if (
+    /^\d{3}$/.test(rawQuery) ||
+    /^\d{3}x$/.test(rawQuery) ||
+    /^\d{4}s$/.test(rawQuery)
+  ) {
+    const decadePrefix = rawQuery.slice(0, 3);
+    filteredImages = Images.filter((img) =>
+      String(img.year).startsWith(decadePrefix)
     );
-  });
-
-  // 🔥 Combine and deduplicate
-  const seen = new Set();
-  filteredImages = [...fuseResults, ...autocompleteResults].filter(img => {
-    const key = img.src;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-
-
+  } else {
+    const fuse = new Fuse(Images, {
+      keys: [
+        { name: "caption", weight: 0.6 },
+        { name: "alphaname", weight: 0.4 },
+      ],
+      threshold: 0.3,
+      distance: 200,
+      includeScore: true,
+    });
+    const fuseResults = fuse.search(rawQuery).map((r) => r.item);
+    const autocompleteResults = Images.filter((img) => {
+      const dir = img.director?.toLowerCase() || "";
+      const dim = img.dimensions?.slice(0, 6).toLowerCase() || "";
+      return queryParts.every(
+        (part) =>
+          dir.split(/\s+/).some((word) => word.startsWith(part)) ||
+          dim.startsWith(part)
+      );
+    });
+    const seen = new Set();
+    filteredImages = [...fuseResults, ...autocompleteResults].filter((img) => {
+      const key = img.src;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
 
   useEffect(() => {
     if (wasCalled.current) return;
     wasCalled.current = true;
-
     __loader(true);
     getImages(nextPageToken);
   }, []);
 
-// 🩹 MutationObserver to remove title="Close"
-useEffect(() => {
+  useEffect(() => {
     const observer = new MutationObserver(() => {
-        document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
-            btn.removeAttribute('title');
-        });
+      document
+        .querySelectorAll('.yarl__button[title="Close"]')
+        .forEach((btn) => btn.removeAttribute("title"));
     });
-
     observer.observe(document.body, { childList: true, subtree: true });
-
     return () => observer.disconnect();
-}, []);
-  
-  // 🔥 Auto-focus search input when searchOpen becomes true
-useEffect(() => {
-  if (searchOpen && searchInputRef.current) {
-    // Delay focus until after React has fully rendered the input
-    setTimeout(() => {
-      searchInputRef.current.focus();
-    }, 0);
-  }
-}, [searchOpen]);
+  }, []);
+
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current.focus(), 0);
+    }
+  }, [searchOpen]);
 
   return (
     <RootLayout>
       <div className="w-full flex justify-center items-center py-9">
         <div className="w-full grid place-items-center">
-<Link href="/">
-  <div id="logo" className="w-40 h-auto cursor-pointer">
-    <AnimatedLogo />
-  </div>
-</Link>
+          <Link href="/">
+            <div id="logo" className="w-40 h-auto cursor-pointer">
+              <AnimatedLogo />
+            </div>
+          </Link>
           <div className="h-12 overflow-hidden w-full grid place-items-center !mt-[1rem] !mb-0">
-            {
-              searchOpen ? (
-                // Showing Search Input
-                <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
-                  <div className="relative w-full">
-<input
-  ref={searchInputRef} // 👈 adds programmatic focus
-  type="text"
-  placeholder=""
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
-  onKeyDown={(e) => {
-    // ⎋ Close search box on Escape key
-    if (e.key === 'Escape') {
-      searchInputRef.current.blur(); // optional: removes focus
-      setSearchOpen(false);          // closes the search box
-      setSearchQuery('');            // optional: clears text
-    }
-  }}
-  className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
-/>
-
-                    <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
-                      <RxCross1 className="absolute right-3 top-2.5 text-white" />
-                    </div>
-                  </div>
-                </div>
-                // Closed Search && showing navigation panel
-              ) :
-                <div className="flex gap-[2.3rem] items-center -mt-[2px]">
-                  <BsSortAlphaDown
-                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                    onClick={sortImagesAlphabetically}
+            {searchOpen ? (
+              <div className="w-full lg:w-[32.1%] flex justify-center mt-2 mb-6 px-4">
+                <div className="relative w-full">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder=""
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        searchInputRef.current.blur();
+                        setSearchOpen(false);
+                        setSearchQuery("");
+                      }
+                    }}
+                    className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white focus:outline-none text-sm bg-transparent"
                   />
-
-                  <div onClick={() => setSearchOpen(true)}>
-                    <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+                  <div
+                    onClick={() => setSearchOpen(false)}
+                    className="cursor-pointer"
+                  >
+                    <RxCross1 className="absolute right-3 top-2.5 text-white" />
                   </div>
-
-                  {!isSorted ? (
-                    <TbClockDown
-                      className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                      onClick={sortImagesByYear}
-                    />
-                  ) : (
-                    <TbClockUp
-                      className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
-                      onClick={sortImagesOldestFirst}
-                    />
-                  )}
                 </div>
-            }
+              </div>
+            ) : (
+              <div className="flex gap-[2.3rem] items-center -mt-[2px]">
+                <BsSortAlphaDown
+                  className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                  onClick={sortImagesAlphabetically}
+                />
+                <div onClick={() => setSearchOpen(true)}>
+                  <FaMagnifyingGlass className="cursor-pointer transition-all duration-200 hover:scale-105 text-xl" />
+                </div>
+                {!isSorted ? (
+                  <TbClockDown
+                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                    onClick={sortImagesByYear}
+                  />
+                ) : (
+                  <TbClockUp
+                    className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl"
+                    onClick={sortImagesOldestFirst}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -377,33 +374,38 @@ useEffect(() => {
         )}
 
         {slides && (
-<Lightbox
-  index={index}
-  slides={slides}
-  open={index >= 0}
-  close={() => setIndex(-1)}
-  plugins={[Video]}
-  render={{
-    slideFooter: ({ slide }) => (
-<div className={cn(
-  "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
-  slide.type === 'video' && 'relative top-auto bottom-unset'
-)}>
+          <Lightbox
+            slides={slides}
+            index={index}
+            setIndex={setIndex}
+            render={{
+              slideFooter: ({ slide }) => (
+                <div
+                  className={cn(
+                    "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
+                    slide.type === "video" &&
+                      "relative top-auto bottom-unset"
+                  )}
+                >
                   {slide.title && (
                     <div className="yarl__slide_title">{slide.title}</div>
                   )}
-                  <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                  <div
+                    className={cn("!space-y-0", slide.director && "!mb-5")}
+                  >
                     {slide.director && (
                       <div className="yarl__slide_description !text-[#99AABB]">
                         <span className="font-medium">{slide.director}</span>
                       </div>
                     )}
                     {slide.description && (
-                      <div className="yarl__slide_description">{slide.description}</div>
+                      <div className="yarl__slide_description">
+                        {slide.description}
+                      </div>
                     )}
                   </div>
                 </div>
-              )
+              ),
             }}
           />
         )}
