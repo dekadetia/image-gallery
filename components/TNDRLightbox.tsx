@@ -4,31 +4,34 @@ import { useEffect } from 'react'
 import YARL from 'yet-another-react-lightbox'
 import Video from 'yet-another-react-lightbox/plugins/video'
 
-export default function TNDRLightbox({
-  slides,
-  index,
-  setIndex,
-  render,
-}) {
+export default function TNDRLightbox({ slides, index, setIndex, render }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  // ✅ close logic – allow cleanup before navigation
+  // 🧹 remove any leftover YARL body locks
+  const unlockBody = () => {
+    document.body.style.overflow = ''
+    document.body.style.touchAction = ''
+    document.body.classList.remove('yarl__no_scroll')
+  }
+
   const handleClose = () => {
-    // trigger YARL internal cleanup first
     setIndex(-1)
 
-    // wait a short moment so body overflow resets
-    setTimeout(() => {
+    // give YARL a frame to unmount, then force-clear body lock
+    requestAnimationFrame(() => {
+      unlockBody()
+      setTimeout(unlockBody, 100) // safety double-tap
+
       if (pathname.startsWith('/images/')) {
         router.push('/', { scroll: false })
       } else {
         router.back()
       }
-    }, 150) // 150–200 ms is plenty
+    })
   }
 
-  // ✅ open when hitting permalink directly
+  // auto-open when permalink hit directly
   useEffect(() => {
     const match = pathname.match(/^\/images\/([^/]+)$/)
     if (match && slides?.length > 0 && index === -1) {
@@ -43,6 +46,11 @@ export default function TNDRLightbox({
       if (found !== -1) setIndex(found)
     }
   }, [pathname, slides])
+
+  // extra safety: clear any stale lock if component ever unmounts
+  useEffect(() => {
+    return () => unlockBody()
+  }, [])
 
   return (
     <YARL
