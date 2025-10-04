@@ -19,22 +19,23 @@ export default function TNDRLightbox({
   const pathname = usePathname()
   const [internalIndex, setInternalIndex] = useState(parentIndex)
 
-  // 🔄 keep local index in sync with parent
+  // 🔄 Keep internal index synced with parent
   useEffect(() => {
     setInternalIndex(parentIndex)
   }, [parentIndex])
 
-  // 🎯 auto-open when a permalink like /images/foo.bar.1989 is hit directly
+  // 🎯 Auto-open when direct permalink like /film/50039.the.last.of.sheila is hit
   useEffect(() => {
-    const match = pathname.match(/^\/images\/([^/]+)$/)
+    const match = pathname.match(/^\/film\/([^/]+)$/)
     if (match && slides?.length > 0 && internalIndex < 0) {
       const slug = match[1]
       const found = slides.findIndex((s) => {
-        const t = (s.title || '')
+        const base = (s.title || '')
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '.')
           .replace(/\.$/, '')
-        return t === slug
+        const id = s.src.match(/\/(\d+)\./)?.[1] || ''
+        return `${id}.${base}` === slug
       })
       if (found !== -1) {
         setInternalIndex(found)
@@ -43,26 +44,28 @@ export default function TNDRLightbox({
     }
   }, [pathname, slides])
 
-  // 🧭 when opening, update URL to /images/<slug>
+  // 🧭 When opening, push /film/<id>.<slug> to the URL
   useEffect(() => {
     if (internalIndex >= 0 && slides?.[internalIndex]) {
       const slide = slides[internalIndex]
-      const slug = (slide.title || '')
+      const base = (slide.title || '')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '.')
         .replace(/\.$/, '')
-      if (!pathname.startsWith(`/images/${slug}`)) {
-        router.push(`/images/${slug}`, { scroll: false })
+      const id = slide.src.match(/\/(\d+)\./)?.[1] || ''
+      const slug = id ? `${id}.${base}` : base
+      if (!pathname.startsWith(`/film/${slug}`)) {
+        router.push(`/film/${slug}`, { scroll: false })
       }
     }
   }, [internalIndex])
 
-  // 🚪 close behavior
+  // 🚪 Handle close
   const handleClose = () => {
     setInternalIndex(-1)
     parentSetIndex?.(-1)
     setTimeout(() => {
-      if (pathname.startsWith('/images/')) {
+      if (pathname.startsWith('/film/')) {
         router.push('/', { scroll: false })
       } else {
         router.back()
@@ -70,7 +73,7 @@ export default function TNDRLightbox({
     }, 150)
   }
 
-  // 🧹 cleanup if ever unmounted
+  // 🧹 Cleanup on unmount (safety net)
   useEffect(() => {
     return () => {
       document.body.style.overflow = ''
@@ -79,7 +82,7 @@ export default function TNDRLightbox({
     }
   }, [])
 
-  // render only when open
+  // ⛔ Don’t render if closed
   if (internalIndex < 0) return null
 
   return (
