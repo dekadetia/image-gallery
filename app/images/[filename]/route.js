@@ -1,45 +1,43 @@
 import { NextResponse } from 'next/server'
 
 // Optional: your Firebase bucket name (from .env or hardcoded)
-const BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'tndrbtns.appspot.com'
+const BUCKET =
+  process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'tndrbtns.appspot.com'
 
 /**
- * Proxy image requests like:
+ * Handles requests like:
  *   https://www.tndr.ltd/images/40560.lost.in.new.york.1989.webp
- * to:
- *   https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/images%2F40560.lost.in.new.york.1989.webp?alt=media
  */
-
 export async function GET(request, { params }) {
-  const filename = params.filename
-
-  // Encode the filename for Firebase's URL structure
-  const encodedName = encodeURIComponent(filename)
-  const firebaseURL = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/images%2F${encodedName}?alt=media`
-
   try {
-    // Stream from Firebase Storage
-    const res = await fetch(firebaseURL, {
-      headers: {
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
-    })
+    const filename = params?.filename || params?.slug || ''
+    if (!filename) {
+      return NextResponse.json({ error: 'Missing filename' }, { status: 400 })
+    }
+
+    // Firebase expects *path encoding*, not full URI encoding
+    // So we only encode spaces and special chars, not slashes
+    const encoded = encodeURIComponent(filename).replace(/%2F/g, '/')
+    const firebaseURL = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/images%2F${encoded}?alt=media`
+
+    const res = await fetch(firebaseURL)
 
     if (!res.ok) {
+      console.error(`Failed to fetch ${firebaseURL}: ${res.statusText}`)
       return NextResponse.json(
-        { error: `Failed to fetch image: ${res.statusText}` },
+        { error: `Failed to fetch image (${res.status})` },
         { status: res.status }
       )
     }
 
-    // Clone headers for better caching on Vercel Edge
-    const headers = new Headers(res.headers)
+    // Copy headers for content type and caching
+    const headers = new Headers()
+    const contentType = res.headers.get('content-type') || 'image/webp'
+    headers.set('Content-Type', contentType)
     headers.set('Cache-Control', 'public, max-age=31536000, immutable')
 
-    return new NextResponse(res.body, {
-      status: 200,
-      headers,
-    })
+    // Stream the response body
+    return new NextResponse(res.body, { status: 200, headers })
   } catch (err) {
     console.error('Proxy error:', err)
     return NextResponse.json(
