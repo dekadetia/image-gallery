@@ -77,30 +77,31 @@ if (saved === 'alt') {
 }
 
     
-    const showAlt = (onComplete?: () => void) => {
-      let completed = 0
-      const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
+  const showAlt = (onComplete?: () => void) => {
+  let completed = 0
+  const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
-      for (let i = 1; i <= 8; i++) {
-        const base = document.getElementById(`letter_${i}`)
-        const alt = document.getElementById(`letter_${i + 8}`)
+  for (let i = 1; i <= 8; i++) {
+    const base = document.getElementById(`letter_${i}`)
+    const alt = document.getElementById(`letter_${i + 8}`)
 
-        if (base && alt) {
-          gsap.to(base, {
-            duration: 0.5,
-            delay: exitDelay,
-            ...exitDirs[i - 1],
-          })
+    if (base && alt) {
+      // Animate base OUT
+      gsap.to(base, {
+        duration: 0.5,
+        delay: exitDelay,
+        ...exitDirs[i - 1],
+        onComplete: () => {
+          base.style.display = 'none'   // hide base once it's fully out
 
+          // Now animate alt IN
           alt.style.display = 'inline'
           void alt.offsetWidth // layout flush
-
           gsap.fromTo(
             alt,
             enterDirs[i - 1],
             {
               duration: 0.5,
-              delay: exitDelay,
               x: 0,
               y: 0,
               onComplete: () => {
@@ -108,11 +109,14 @@ if (saved === 'alt') {
               },
             }
           )
-        }
-      }
-
-      firstToggle = false
+        },
+      })
     }
+  }
+
+  firstToggle = false
+}
+
 
   const reset = (onComplete?: () => void) => {
   let completed = 0
