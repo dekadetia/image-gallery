@@ -6,7 +6,8 @@ import gsap from 'gsap'
 if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
-      setTimeout(() => {
+      // Use rAF so this runs immediately after the DOM snapshot is painted back
+      requestAnimationFrame(() => {
         const saved = sessionStorage.getItem('logoState')
         const isAlt = saved === 'alt'
 
@@ -26,7 +27,7 @@ if (typeof window !== 'undefined') {
             gsap.set(alt, { clearProps: 'all' })
           }
         }
-      }, 50)
+      })
     }
   })
 }
@@ -66,12 +67,6 @@ if (saved === 'alt') {
     if (alt) alt.style.display = 'inline'
   }
   toggled = true // 👈 this one, not a different one
-}
-
-        // 🔧 Remove inline display styles after mount to avoid clashes on bfcache restore
-for (let i = 1; i <= 16; i++) {
-const el = document.getElementById(`letter_${i}`)
-if (el) el.style.removeProperty('display')
 }
 
     
