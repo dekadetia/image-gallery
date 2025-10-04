@@ -161,32 +161,34 @@ const createImage = async (e) => {
           console.error(error);
         },
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log("File available at", downloadURL);
-          const fileName = image.name;
+        const fileName = image.name;
+const cleanURL = `https://www.tndr.ltd/images/${encodeURIComponent(fileName)}`;
 
-          // Send metadata + file URL to backend
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/firebase/create`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                caption,
-                director,
-                photographer,
-                year,
-                alphaname,
-                dimensions,
-                fileURL: downloadURL,
-                name: fileName,
-                contentType: image.type || "image/webp",
-                size: image.size,
-              }),
-            }
-          );
+console.log("File stored at", cleanURL);
+
+// Send metadata + clean file URL to backend
+const response = await fetch(
+  `${process.env.NEXT_PUBLIC_APP_URL}/firebase/create`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      caption,
+      director,
+      photographer,
+      year,
+      alphaname,
+      dimensions,
+      fileURL: cleanURL,
+      name: fileName,
+      contentType: image.type || "image/webp",
+      size: image.size,
+    }),
+  }
+);
+
 
           if (response.ok) {
             successToast("Metadata saved successfully!");
