@@ -39,11 +39,6 @@ const isInitialAlt = typeof window !== 'undefined' && sessionStorage.getItem('lo
     const logo = document.getElementById('logo')
     if (!logo) return
 
-    // 🔧 Remove inline display styles after mount to avoid clashes on bfcache restore
-for (let i = 1; i <= 16; i++) {
-const el = document.getElementById(`letter_${i}`)
-if (el) el.style.removeProperty('display')
-}
 
     const exitDirs = [
       { x: 120 }, { x: 120 }, { x: 120 },
@@ -72,6 +67,14 @@ if (saved === 'alt') {
   }
   toggled = true // 👈 this one, not a different one
 }
+
+        // 🔧 Remove inline display styles after mount to avoid clashes on bfcache restore
+for (let i = 1; i <= 16; i++) {
+const el = document.getElementById(`letter_${i}`)
+if (el) el.style.removeProperty('display')
+}
+
+    
     const showAlt = (onComplete?: () => void) => {
       let completed = 0
       const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
