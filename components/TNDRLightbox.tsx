@@ -1,13 +1,27 @@
 'use client'
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import YARL from 'yet-another-react-lightbox'
 import Video from 'yet-another-react-lightbox/plugins/video'
 
-export default function TNDRLightbox({ slides, index, setIndex, render }) {
-  // simple local close
-  const handleClose = () => setIndex(-1)
+export default function TNDRLightbox({
+  slides,
+  index: parentIndex,
+  setIndex: parentSetIndex,
+  render,
+}) {
+  const [internalIndex, setInternalIndex] = useState(parentIndex)
 
-  // cleanup guard
+  // keep internal state in sync with parent
+  useEffect(() => {
+    setInternalIndex(parentIndex)
+  }, [parentIndex])
+
+  const handleClose = () => {
+    setInternalIndex(-1)
+    parentSetIndex?.(-1) // let parent know it's closed
+  }
+
+  // cleanup if ever unmounted
   useEffect(() => {
     return () => {
       document.body.style.overflow = ''
@@ -16,12 +30,12 @@ export default function TNDRLightbox({ slides, index, setIndex, render }) {
     }
   }, [])
 
-  // only render when open
-  if (index < 0) return null
+  // render nothing unless actually open
+  if (internalIndex < 0) return null
 
   return (
     <YARL
-      index={index}
+      index={internalIndex}
       slides={slides}
       open
       close={handleClose}
