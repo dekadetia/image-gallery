@@ -77,7 +77,7 @@ if (saved === 'alt') {
 }
 
     
-  const showAlt = (onComplete?: () => void) => {
+const showAlt = (onComplete?: () => void) => {
   let completed = 0
   const exitDelay = firstToggle && isTouchInteraction ? 0.2 : 0
 
@@ -92,30 +92,32 @@ if (saved === 'alt') {
         delay: exitDelay,
         ...exitDirs[i - 1],
         onComplete: () => {
-          base.style.display = 'none'   // hide base once it's fully out
-
-          // Now animate alt IN
-          alt.style.display = 'inline'
-          void alt.offsetWidth // layout flush
-          gsap.fromTo(
-            alt,
-            enterDirs[i - 1],
-            {
-              duration: 0.5,
-              x: 0,
-              y: 0,
-              onComplete: () => {
-                if (++completed === 8 && onComplete) onComplete()
-              },
-            }
-          )
+          base.style.display = 'none'
         },
       })
+
+      // Animate alt IN simultaneously
+      alt.style.display = 'inline'
+      void alt.offsetWidth // flush layout
+      gsap.fromTo(
+        alt,
+        enterDirs[i - 1],
+        {
+          duration: 0.5,
+          delay: exitDelay,
+          x: 0,
+          y: 0,
+          onComplete: () => {
+            if (++completed === 8 && onComplete) onComplete()
+          },
+        }
+      )
     }
   }
 
   firstToggle = false
 }
+
 
 
   const reset = (onComplete?: () => void) => {
