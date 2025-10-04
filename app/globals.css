@@ -332,3 +332,16 @@ body,
 .min-h-screen {
   transition: background-image 1s ease-in-out;
 }
+
+/* Alt letters (9–16) hidden by default */
+#logo #letter_9,
+#logo #letter_10,
+#logo #letter_11,
+#logo #letter_12,
+#logo #letter_13,
+#logo #letter_14,
+#logo #letter_15,
+#logo #letter_16 {
+  display: none;
+}
+
