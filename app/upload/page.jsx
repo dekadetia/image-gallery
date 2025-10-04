@@ -138,13 +138,19 @@ export default function Page() {
 
   try {
     for (const image of images) {
-const storageRef = ref(storage, `images/${image.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, image);
+      // ✅ Store new uploads in /images instead of /uploads
+      const storageRef = ref(storage, `images/${image.name}`);
+
+      // ✅ Pass the correct content type to avoid application/octet-stream
+      const uploadTask = uploadBytesResumable(storageRef, image, {
+        contentType: image.type || "image/webp",
+      });
 
       uploadTask.on(
         "state_changed",
         (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           console.log(`Upload is ${progress}% done`);
         },
         (error) => {
@@ -154,8 +160,7 @@ const storageRef = ref(storage, `images/${image.name}`);
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           console.log("File available at", downloadURL);
-const fileName = image.name; // Grab original filename
-
+          const fileName = image.name;
 
           // Send metadata + file URL to backend
           const response = await fetch(
@@ -165,18 +170,18 @@ const fileName = image.name; // Grab original filename
               headers: {
                 "Content-Type": "application/json",
               },
-body: JSON.stringify({
-  caption,
-  director,
-  photographer,
-  year,
-  alphaname,
-  dimensions,
-  fileURL: downloadURL,
-  name: fileName,               // <-- ADD this
-  contentType: image.type,      // <-- ADD this
-  size: image.size              // <-- ADD this
-}),
+              body: JSON.stringify({
+                caption,
+                director,
+                photographer,
+                year,
+                alphaname,
+                dimensions,
+                fileURL: downloadURL,
+                name: fileName,
+                contentType: image.type || "image/webp", // ✅ match the same type
+                size: image.size,
+              }),
             }
           );
 
@@ -196,6 +201,7 @@ body: JSON.stringify({
 
   setImages([]);
 };
+
 
 
   const updateImageData = async () => {
