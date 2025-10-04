@@ -16,10 +16,18 @@ export async function GET(request, { params }) {
     }
 
     // Firebase expects *path encoding*, not full URI encoding
-    // So we only encode spaces and special chars, not slashes
     const encoded = encodeURIComponent(filename).replace(/%2F/g, '/')
-    const firebaseURL = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/images%2F${encoded}?alt=media`
 
+    // 🔍 Step 1: Fetch metadata to get 'updated' timestamp
+    const metaURL = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/images%2F${encoded}`
+    const metaRes = await fetch(metaURL)
+    const meta = await metaRes.json()
+    const updated = meta?.updated ? new Date(meta.updated).getTime() : Date.now()
+
+    // 🔁 Step 2: Add timestamp-based cache-buster
+    const firebaseURL = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/images%2F${encoded}?alt=media&v=${updated}`
+
+    // Fetch the actual media file
     const res = await fetch(firebaseURL)
 
     if (!res.ok) {
@@ -30,11 +38,13 @@ export async function GET(request, { params }) {
       )
     }
 
-    // Copy headers for content type and caching
+    // Copy headers for content type and shorter caching
     const headers = new Headers()
     const contentType = res.headers.get('content-type') || 'image/webp'
     headers.set('Content-Type', contentType)
-    headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+
+    // ⚙️ Cache for 60 seconds max to allow quick overwrite propagation
+    headers.set('Cache-Control', 'public, max-age=60')
 
     // Stream the response body
     return new NextResponse(res.body, { status: 200, headers })
