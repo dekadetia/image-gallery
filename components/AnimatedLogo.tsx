@@ -199,33 +199,33 @@ if (saved === 'alt') {
 <g id="g">
 <polygon points="339.9 266.3 338.9 266.3 338.9 133.6 227.9 133.6 227.9 266.3 226.9 266.3 226.9 133.6 116 133.6 116 266.3 115 266.3 115 133.6 0 133.6 0 132.6 115 132.6 115 0 116 0 116 132.6 226.9 132.6 226.9 0 227.9 0 227.9 132.6 338.9 132.6 338.9 0 339.9 0 339.9 132.6 449 132.6 449 133.6 339.9 133.6 339.9 266.3" style={ { fill: "#6e6e73", strokewidth: 0.0 } } />
 </g>
-<g clipPath={`url(#${idPrefix}_clip_letter_1)`}><g id="letter_1" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+<g clipPath={`url(#${idPrefix}_clip_letter_1)`}><g id="letter_1 ">
 <g style={ { isolation: "isolate" } }>
 <path d="M44.5,57.6h-13.2v-21.4h51.6v21.3h-12.9v41.8h-25.4v-41.7Z" style={ { fill: "#e43f25", strokewidth: 0.0 } } />
 </g>
-</g></g><g clipPath={`url(#${idPrefix}_clip_letter_2)`}><g id="letter_2" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_2)`}><g id="letter_2 ">
 <g style={ { isolation: "isolate" } }>
 <path d="M144.1,34.5l34.3,20.7v-19h19.6v63.2h-54l.2-64.8Z" style={ { fill: "#d2c52a", strokewidth: 0.0 } } />
 </g>
-</g></g><g clipPath={`url(#${idPrefix}_clip_letter_3)`}><g id="letter_3" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_3)`}><g id="letter_3 ">
 <g style={ { isolation: "isolate" } }>
 <path d="M255.9,37.1h28.2c16.8,0,28.9,17,28.9,32.3s-13.4,30.8-30.5,30.8h-26.5l-.2-63.2Z" style={ { fill: "#4bb9ea", strokewidth: 0.0 } } />
 </g>
-</g></g><g clipPath={`url(#${idPrefix}_clip_letter_4)`}><g id="letter_4" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_4)`}><g id="letter_4 ">
 <g style={ { isolation: "isolate" } }>
 <path d="M369.6,36.1h31.9c10.1,0,17.9,9.1,17.9,18.7s-3.7,15.4-11.3,18.3l11.7,26.2h-50.2v-63.2Z" style={ { fill: "#6a3e97", strokewidth: 0.0 } } />
 </g>
-</g></g><g clipPath={`url(#${idPrefix}_clip_letter_5)`}><g id="letter_5" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_5)`}><g id="letter_5 ">
 <path d="M32,168.3h23.3c10.9,0,24.5,2.1,24.5,16.4s-2.7,10-6.9,12.9c5,2.2,10.7,6.4,10.7,16.7s-7.7,17.2-19,17.2H31.8l.2-63.2Z" style={ { fill: "#f47f20", strokewidth: 0.0 } } />
-</g></g><g clipPath={`url(#${idPrefix}_clip_letter_6)`}><g id="letter_6" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_6)`}><g id="letter_6 ">
 <g style={ { isolation: "isolate" } }>
 <path d="M158.7,189.7h-13.2v-21.4h51.6v21.3h-12.9v41.8h-25.4v-41.7Z" style={ { fill: "#59b94f", strokewidth: 0.0 } } />
 </g>
-</g></g><g clipPath={`url(#${idPrefix}_clip_letter_7)`}><g id="letter_7" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_7)`}><g id="letter_7 ">
 <g style={ { isolation: "isolate" } }>
 <path d="M257.3,167.6l34.3,20.7v-19h19.6v63.2h-54l.2-64.8Z" style={ { fill: "#1c6bb4", strokewidth: 0.0 } } />
 </g>
-</g></g><g clipPath={`url(#${idPrefix}_clip_letter_8)`}><g id="letter_8" style={{ display: isInitialAlt ? 'none' : 'inline' }}>
+</g></g><g clipPath={`url(#${idPrefix}_clip_letter_8)`}><g id="letter_8 ">
 <g style={ { isolation: "isolate" } }>
 <path d="M380.6,205.8c-6.1-5.4-8.6-10.4-8.6-18,0-12.1,9.9-21.1,22-21.1s17.7,4.1,20.5,13l-9.9,10.1c8.6,4.4,12.6,12.7,12.6,21.6,0,12.8-10.5,22.6-23.6,22.6s-20.5-7.6-22.6-18.2l9.6-10.1Z" style={ { fill: "#d35589", strokewidth: 0.0 } } />
 </g>
