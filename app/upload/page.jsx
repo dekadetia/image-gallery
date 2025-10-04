@@ -138,7 +138,7 @@ export default function Page() {
 
   try {
     for (const image of images) {
-      const storageRef = ref(storage, `uploads/${image.name}`);
+const storageRef = ref(storage, `images/${image.name}`);
       const uploadTask = uploadBytesResumable(storageRef, image);
 
       uploadTask.on(
