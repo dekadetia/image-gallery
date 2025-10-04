@@ -128,7 +128,7 @@ export default function Page() {
     }
   };
 
- const createImage = async (e) => {
+const createImage = async (e) => {
   e.preventDefault();
 
   if (images.length === 0) {
@@ -141,10 +141,13 @@ export default function Page() {
       // ✅ Store new uploads in /images instead of /uploads
       const storageRef = ref(storage, `images/${image.name}`);
 
-      // ✅ Pass the correct content type to avoid application/octet-stream
-      const uploadTask = uploadBytesResumable(storageRef, image, {
+      // ✅ Explicitly pass contentType and empty metadata
+      const metadata = {
         contentType: image.type || "image/webp",
-      });
+        metadata: {} // 🚫 prevents Firebase from generating download tokens
+      };
+
+      const uploadTask = uploadBytesResumable(storageRef, image, metadata);
 
       uploadTask.on(
         "state_changed",
@@ -179,7 +182,7 @@ export default function Page() {
                 dimensions,
                 fileURL: downloadURL,
                 name: fileName,
-                contentType: image.type || "image/webp", // ✅ match the same type
+                contentType: image.type || "image/webp",
                 size: image.size,
               }),
             }
@@ -201,6 +204,7 @@ export default function Page() {
 
   setImages([]);
 };
+
 
 
 
