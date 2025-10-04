@@ -7,33 +7,35 @@ import Video from 'yet-another-react-lightbox/plugins/video'
 export default function TNDRLightbox({ slides, index, setIndex, render }) {
   const router = useRouter()
   const pathname = usePathname()
-  const wasOpen = useRef(false)
+  const currentPath = useRef(pathname)
 
-  // 🧹 Clean up scroll locks safely
-  const unlockBody = () => {
-    const body = document.body
-    body.style.overflow = ''
-    body.style.touchAction = ''
-    body.classList.remove('yarl__no_scroll')
+  // 🚨 Detect navigation — unmount YARL when route changes
+  useEffect(() => {
+    if (pathname !== currentPath.current) {
+      setIndex(-1) // force close
+      const portals = document.querySelectorAll('.yarl__portal, .yarl__portal_root')
+      portals.forEach((el) => el.remove()) // kill leftover containers
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+      document.body.classList.remove('yarl__no_scroll')
+      currentPath.current = pathname
+    }
+  }, [pathname])
+
+  // 🧹 Failsafe cleanup for stuck portals
+  const cleanup = () => {
+    const portals = document.querySelectorAll('.yarl__portal, .yarl__portal_root')
+    portals.forEach((el) => el.remove())
+    document.body.style.overflow = ''
+    document.body.style.touchAction = ''
+    document.body.classList.remove('yarl__no_scroll')
   }
 
-  // Run cleanup every time Lightbox closes
-  useEffect(() => {
-    const isOpen = index >= 0
-    if (wasOpen.current && !isOpen) {
-      // Lightbox just closed → cleanup
-      requestAnimationFrame(unlockBody)
-      setTimeout(unlockBody, 200)
-    }
-    wasOpen.current = isOpen
-  }, [index])
-
-  // Close behavior
+  // ✅ Normal close logic
   const handleClose = () => {
     setIndex(-1)
-    // wait a little to ensure cleanup runs
     setTimeout(() => {
-      unlockBody()
+      cleanup()
       if (pathname.startsWith('/images/')) {
         router.push('/', { scroll: false })
       } else {
@@ -42,7 +44,7 @@ export default function TNDRLightbox({ slides, index, setIndex, render }) {
     }, 150)
   }
 
-  // Auto-open when direct permalink
+  // 🎯 Auto-open when permalink is loaded directly
   useEffect(() => {
     const match = pathname.match(/^\/images\/([^/]+)$/)
     if (match && slides?.length > 0 && index === -1) {
@@ -58,8 +60,7 @@ export default function TNDRLightbox({ slides, index, setIndex, render }) {
     }
   }, [pathname, slides])
 
-  // Failsafe cleanup if component ever unmounts
-  useEffect(() => () => unlockBody(), [])
+  useEffect(() => () => cleanup(), [])
 
   return (
     <YARL
