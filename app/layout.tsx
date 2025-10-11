@@ -8,7 +8,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DynamicTitle from "../components/DynamicTitle";
 import { FIREBASE_APP } from "../firebase/firebase-config";
-import { useTimeGradient } from "../components/useTimeGradient";
+// import { useTimeGradient } from "../components/useTimeGradient"; // ⛔ Gradient system disabled
 
 /* ---------------------------
    Local font optimization
@@ -34,7 +34,7 @@ const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
    Root Layout (Client)
 --------------------------- */
 export default function RootLayout({ children }) {
-  const gradient = useTimeGradient();
+  // const gradient = useTimeGradient(); // ⛔ Disabled gradient hook
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -59,7 +59,7 @@ export default function RootLayout({ children }) {
           crossOrigin="anonymous"
         />
 
-        {/* Time-of-day gradient initialization */}
+        {/* ⛔ Time-of-day gradient initialization disabled
         <Script id="time-gradient" strategy="beforeInteractive">
           {`
             const h = new Date().getHours();
@@ -71,12 +71,14 @@ export default function RootLayout({ children }) {
             document.documentElement.classList.add(t);
           `}
         </Script>
+        */}
       </head>
 
       <body className={`${graphik.className} ${tiempos.variable}`}>
         <DynamicTitle />
 
-        <main className={`min-h-screen ${gradient ?? ""}`}>
+        {/* ⛔ Removed gradient class from <main> */}
+        <main className="min-h-screen">
           <ToastContainer />
         </main>
 
