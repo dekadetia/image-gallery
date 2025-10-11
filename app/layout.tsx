@@ -1,18 +1,10 @@
-'use client';
-
 import localFont from "next/font/local";
 import "./globals.css";
 import "yet-another-react-lightbox/styles.css";
-import Script from "next/script";
-import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import DynamicTitle from "../components/DynamicTitle";
-import { FIREBASE_APP } from "../firebase/firebase-config";
-// import { useTimeGradient } from "../components/useTimeGradient"; // gradient disabled
+import Script from "next/script";
+import ClientShell from "../components/ClientShell"; // new small wrapper
 
-/* ---------------------------
-   Local font optimization
---------------------------- */
 const graphik = localFont({
   src: "./../public/fonts/graphik-web.woff",
   variable: "--font-graphik",
@@ -25,17 +17,13 @@ const tiempos = localFont({
   display: "swap",
 });
 
-/* ---------------------------
-   Analytics
---------------------------- */
 const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
 
-/* ---------------------------
-   Root Layout (Client)
---------------------------- */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // const gradient = useTimeGradient(); // disabled
-
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -57,23 +45,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="font/otf"
           crossOrigin="anonymous"
         />
-
-        {/* Gradient script disabled */}
-        {/*
-        <Script id="time-gradient" strategy="beforeInteractive">
-          {`/* disabled */`}
-        </Script>
-        */}
       </head>
 
       <body className={`${graphik.className} ${tiempos.variable}`}>
-        <DynamicTitle />
-
-        {/* ✅ children are inside main; no forced 100 vh spacing */}
-        <main>
-          {children}
-          <ToastContainer />
-        </main>
+        {/* Client-only logic lives inside this component */}
+        <ClientShell>{children}</ClientShell>
 
         {/* Google Analytics */}
         <Script
