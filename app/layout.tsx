@@ -8,7 +8,8 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DynamicTitle from "../components/DynamicTitle";
 import { FIREBASE_APP } from "../firebase/firebase-config";
-// import { useTimeGradient } from "../components/useTimeGradient"; // ⛔ Gradient system disabled
+// Gradient disabled:
+// import { useTimeGradient } from "../components/useTimeGradient";
 
 /* ---------------------------
    Local font optimization
@@ -33,8 +34,9 @@ const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
 /* ---------------------------
    Root Layout (Client)
 --------------------------- */
-export default function RootLayout({ children }) {
-  // const gradient = useTimeGradient(); // ⛔ Disabled gradient hook
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Gradient disabled:
+  // const gradient = useTimeGradient();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -59,17 +61,9 @@ export default function RootLayout({ children }) {
           crossOrigin="anonymous"
         />
 
-        {/* ⛔ Time-of-day gradient initialization disabled
+        {/* Gradient disabled:
         <Script id="time-gradient" strategy="beforeInteractive">
-          {`
-            const h = new Date().getHours();
-            const t = h < 6 ? 'night'
-                      : h < 12 ? 'morning'
-                      : h < 18 ? 'day'
-                      : h < 22 ? 'dusk'
-                      : 'night';
-            document.documentElement.classList.add(t);
-          `}
+          {`/* disabled */`}
         </Script>
         */}
       </head>
@@ -77,12 +71,11 @@ export default function RootLayout({ children }) {
       <body className={`${graphik.className} ${tiempos.variable}`}>
         <DynamicTitle />
 
-        {/* ⛔ Removed gradient class from <main> */}
-        <main className="min-h-screen">
+        {/* No min-h-screen, children are inside <main> */}
+        <main>
+          {children}
           <ToastContainer />
         </main>
-
-        {children}
 
         {/* Google Analytics */}
         <Script
