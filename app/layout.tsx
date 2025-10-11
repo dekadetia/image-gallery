@@ -1,3 +1,5 @@
+'use client';
+
 import localFont from "next/font/local";
 import "./globals.css";
 import "yet-another-react-lightbox/styles.css";
@@ -6,7 +8,6 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DynamicTitle from "../components/DynamicTitle";
 import { FIREBASE_APP } from "../firebase/firebase-config";
-import type { Metadata } from "next";
 import { useTimeGradient } from "../components/useTimeGradient";
 
 /* ---------------------------
@@ -25,61 +26,24 @@ const tiempos = localFont({
 });
 
 /* ---------------------------
-   Site metadata
---------------------------- */
-export const metadata: Metadata = {
-  title: `𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`,
-  description: "A screenshot diary",
-  icons: {
-    apple: [
-      {
-        url: "/assets/apple-touch-icon.png",
-        sizes: "180x180",
-        type: "image/png",
-      },
-    ],
-    icon: [
-      { url: "/assets/favicon-96x96.png", sizes: "96x96", type: "image/png" },
-    ],
-    other: [
-      { rel: "manifest", url: "/assets/site.webmanifest" },
-      {
-        rel: "mask-icon",
-        url: "/assets/safari-pinned-tab.svg",
-        color: "#15181b",
-      },
-    ],
-  },
-  themeColor: "#15181b",
-  other: {
-    "msapplication-TileColor": "#00aba9",
-  },
-};
-
-/* ---------------------------
    Analytics
 --------------------------- */
 const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
 
 /* ---------------------------
-   Root Layout
+   Root Layout (Client)
 --------------------------- */
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // ❗ You can’t call hooks like useTimeGradient() directly here
-  // because layout.tsx is now a server component.
-  // Move gradient logic into a small client wrapper if needed.
+export default function RootLayout({ children }) {
+  const gradient = useTimeGradient();
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Favicons */}
+        {/* Favicons & title */}
         <link rel="icon" href="/assets/favicon-96x96.png" />
+        <title>𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒</title>
 
-        {/* Preload fallback for non-JS or crawlers */}
+        {/* Preload fonts for performance */}
         <link
           rel="preload"
           href="/fonts/graphik-web.woff"
@@ -94,8 +58,6 @@ export default function RootLayout({
           type="font/otf"
           crossOrigin="anonymous"
         />
-
-        <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
 
         {/* Time-of-day gradient initialization */}
         <Script id="time-gradient" strategy="beforeInteractive">
@@ -113,9 +75,11 @@ export default function RootLayout({
 
       <body className={`${graphik.className} ${tiempos.variable}`}>
         <DynamicTitle />
-        <main>
+
+        <main className={`min-h-screen ${gradient ?? ""}`}>
           <ToastContainer />
         </main>
+
         {children}
 
         {/* Google Analytics */}
