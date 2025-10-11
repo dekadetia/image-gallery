@@ -1,5 +1,3 @@
-'use client';
-
 import localFont from "next/font/local";
 import "./globals.css";
 import "yet-another-react-lightbox/styles.css";
@@ -71,7 +69,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const gradient = useTimeGradient();
+  // ❗ You can’t call hooks like useTimeGradient() directly here
+  // because layout.tsx is now a server component.
+  // Move gradient logic into a small client wrapper if needed.
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -112,13 +112,10 @@ export default function RootLayout({
       </head>
 
       <body className={`${graphik.className} ${tiempos.variable}`}>
-        {/* Optional dynamic title / animation */}
         <DynamicTitle />
-
         <main>
           <ToastContainer />
         </main>
-
         {children}
 
         {/* Google Analytics */}
