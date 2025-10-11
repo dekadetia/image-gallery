@@ -8,8 +8,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DynamicTitle from "../components/DynamicTitle";
 import { FIREBASE_APP } from "../firebase/firebase-config";
-// Gradient disabled:
-// import { useTimeGradient } from "../components/useTimeGradient";
+// import { useTimeGradient } from "../components/useTimeGradient"; // gradient disabled
 
 /* ---------------------------
    Local font optimization
@@ -35,17 +34,15 @@ const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
    Root Layout (Client)
 --------------------------- */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // Gradient disabled:
-  // const gradient = useTimeGradient();
+  // const gradient = useTimeGradient(); // disabled
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Favicons & title */}
         <link rel="icon" href="/assets/favicon-96x96.png" />
         <title>𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒</title>
 
-        {/* Preload fonts for performance */}
+        {/* Preload fonts */}
         <link
           rel="preload"
           href="/fonts/graphik-web.woff"
@@ -61,7 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           crossOrigin="anonymous"
         />
 
-        {/* Gradient disabled:
+        {/* Gradient script disabled */}
+        {/*
         <Script id="time-gradient" strategy="beforeInteractive">
           {`/* disabled */`}
         </Script>
@@ -71,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${graphik.className} ${tiempos.variable}`}>
         <DynamicTitle />
 
-        {/* No min-h-screen, children are inside <main> */}
+        {/* ✅ children are inside main; no forced 100 vh spacing */}
         <main>
           {children}
           <ToastContainer />
