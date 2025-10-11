@@ -1,21 +1,35 @@
 'use client';
-import { Inter } from "next/font/google";
+
+import localFont from "next/font/local";
 import "./globals.css";
 import "yet-another-react-lightbox/styles.css";
 import Script from "next/script";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import DynamicTitle from '../components/DynamicTitle';
+import DynamicTitle from "../components/DynamicTitle";
 import { FIREBASE_APP } from "../firebase/firebase-config";
 import type { Metadata } from "next";
-import { useTimeGradient } from '../components/useTimeGradient';
+import { useTimeGradient } from "../components/useTimeGradient";
 
+/* ---------------------------
+   Local font optimization
+--------------------------- */
+const graphik = localFont({
+  src: "./../public/fonts/graphik-web.woff",
+  variable: "--font-graphik",
+  display: "swap",
+});
 
-const inter = Inter({ subsets: ["latin"] });
+const tiempos = localFont({
+  src: "./../public/fonts/TiemposText-Semibold.otf",
+  variable: "--font-tiempos",
+  display: "swap",
+});
 
-const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
-
-const metadata: Metadata = {
+/* ---------------------------
+   Site metadata
+--------------------------- */
+export const metadata: Metadata = {
   title: `𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`,
   description: "A screenshot diary",
   icons: {
@@ -44,39 +58,70 @@ const metadata: Metadata = {
   },
 };
 
+/* ---------------------------
+   Analytics
+--------------------------- */
+const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
 
-export default function RootLayout({ children }) {
-
-  const gradient = useTimeGradient(); 
+/* ---------------------------
+   Root Layout
+--------------------------- */
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const gradient = useTimeGradient();
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* favicon */}
+        {/* Favicons */}
         <link rel="icon" href="/assets/favicon-96x96.png" />
-        <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
-        <Script id="time-gradient" strategy="beforeInteractive">
-  {`
-    const h = new Date().getHours();
-    const t = h < 6 ? 'night'
-              : h < 12 ? 'morning'
-              : h < 18 ? 'day'
-              : h < 22 ? 'dusk'
-              : 'night';
-    document.documentElement.classList.add(t);
-  `}
-</Script>
-      </head>
-      <body className={inter.className}>
-        {/*<div className={`min-h-screen ${gradient ?? ''}`}>*/}
 
-        <DynamicTitle /> 
+        {/* Preload fallback for non-JS or crawlers */}
+        <link
+          rel="preload"
+          href="/fonts/graphik-web.woff"
+          as="font"
+          type="font/woff"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/TiemposText-Semibold.otf"
+          as="font"
+          type="font/otf"
+          crossOrigin="anonymous"
+        />
+
+        <title>{`𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒`}</title>
+
+        {/* Time-of-day gradient initialization */}
+        <Script id="time-gradient" strategy="beforeInteractive">
+          {`
+            const h = new Date().getHours();
+            const t = h < 6 ? 'night'
+                      : h < 12 ? 'morning'
+                      : h < 18 ? 'day'
+                      : h < 22 ? 'dusk'
+                      : 'night';
+            document.documentElement.classList.add(t);
+          `}
+        </Script>
+      </head>
+
+      <body className={`${graphik.className} ${tiempos.variable}`}>
+        {/* Optional dynamic title / animation */}
+        <DynamicTitle />
+
         <main>
           <ToastContainer />
         </main>
 
         {children}
 
+        {/* Google Analytics */}
         <Script
           strategy="afterInteractive"
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
@@ -91,7 +136,6 @@ export default function RootLayout({ children }) {
             });
           `}
         </Script>
-                {/* </div> */}
       </body>
     </html>
   );
