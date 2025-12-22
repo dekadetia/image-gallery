@@ -19,13 +19,13 @@ import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 function dedupeById(items) {
-  const seen = new Set();
+  const seen = new Set()
   return items.filter(item => {
-    const key = item.id || item.src;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    const key = item.id || item.src
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 export function cn(...inputs) {
@@ -33,8 +33,10 @@ export function cn(...inputs) {
 }
 
 export default function Order() {
+  const PAGE_SIZE = 99
+
   const searchInputRef = useRef(null)
-  const [isSorted, setSorted] = useState(false)
+  const [isSorted, setSorted] = useState(false) // used only for clock direction UI
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
@@ -60,15 +62,15 @@ export default function Order() {
   function buildSlidesFromPhotos(images) {
     return images.map(photo => {
       const base = {
-        src: photo.src,               // <-- ALWAYS EXISTS NOW (critical fix)
+        src: photo.src, // ALWAYS EXISTS NOW
         width: 1080 * 4,
         height: 1620 * 4,
         title: photo.caption,
         description: photo.dimensions,
         director: photo.director,
-      };
+      }
 
-      if (photo.src.includes('.webm')) {
+      if (photo.src && photo.src.includes('.webm')) {
         return {
           ...base,
           type: 'video',
@@ -77,32 +79,35 @@ export default function Order() {
           autoPlay: true,
           muted: true,
           loop: true,
-          controls: false
-        };
+          controls: false,
+        }
       }
 
       return {
         ...base,
-        type: 'image'
-      };
-    });
+        type: 'image',
+      }
+    })
   }
 
   /* ---------------------------------------------------
-                FETCH PAGINATED ORDERED IMAGES
+                FETCH PAGINATED ORDERED IMAGES (default)
      --------------------------------------------------- */
-  const getImages = async (token) => {
+  const getImages = async token => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_by_key: 'alphaname',
-          order_by_value: 'asc',
-          size_limit: 99,
-          lastVisibleDocId: token
-        })
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_by_key: 'alphaname',
+            order_by_value: 'asc',
+            size_limit: PAGE_SIZE,
+            lastVisibleDocId: token,
+          }),
+        }
+      )
 
       if (response.ok) {
         const data = await response.json()
@@ -121,7 +126,6 @@ export default function Order() {
           return [...prev, ...unique]
         })
 
-        /* FIXED SLIDE BUILDER + SAFE DEDUPE */
         const newSlides = buildSlidesFromPhotos(images)
         setSlides(prev => {
           const seen = new Set(prev.map(s => s.src))
@@ -131,8 +135,9 @@ export default function Order() {
       }
     } catch (err) {
       console.error('Error fetching files:', err)
+    } finally {
+      __loader(false)
     }
-    __loader(false)
   }
 
   /* ---------------------------------------------------
@@ -140,7 +145,9 @@ export default function Order() {
      --------------------------------------------------- */
   const getAllImagesNoLimit = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images-no-limit`)
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images-no-limit`
+      )
       const data = await res.json()
       if (data.success) {
         setFullImages(dedupeById(data.images))
@@ -153,27 +160,36 @@ export default function Order() {
   /* ---------------------------------------------------
                      SORTED LOAD
      --------------------------------------------------- */
-  const sortImages = async (order_key, order_value, order_key_2, order_value_2, size, token) => {
+  const sortImages = async (
+    order_key,
+    order_value,
+    order_key_2,
+    order_value_2,
+    size,
+    token
+  ) => {
     try {
       __order_key(order_key)
       __order_value(order_value)
       __order_key_2(order_key_2)
       __order_value_2(order_value_2)
       __sort_loader(true)
-      setSorted(!isSorted)
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_by_key,
-          order_by_value,
-          order_by_key_2,
-          order_by_value_2,
-          size_limit: size,
-          lastVisibleDocId: token
-        })
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_by_key,
+            order_by_value,
+            order_by_key_2,
+            order_by_value_2,
+            size_limit: size,
+            lastVisibleDocId: token,
+          }),
+        }
+      )
 
       if (response.ok) {
         const data = await response.json()
@@ -192,7 +208,6 @@ export default function Order() {
           return [...prev, ...unique]
         })
 
-        /* FIXED SLIDE BUILDER + SAFE DEDUPE */
         const newSlides = buildSlidesFromPhotos(images)
         setSlides(prev => {
           const seen = new Set(prev.map(s => s.src))
@@ -222,10 +237,18 @@ export default function Order() {
 
   const loadMoreByCondition = () => {
     if (searchQuery.trim()) return
+
     if (order_key === 'alphaname') {
-      sortImages(order_key, order_value, null, null, 99, nextPageToken)
+      sortImages(order_key, order_value, null, null, PAGE_SIZE, nextPageToken)
     } else if (order_key === 'year' && order_key_2 === 'alphaname') {
-      sortImages(order_key, order_value, order_key_2, order_value_2, 99, nextPageToken)
+      sortImages(
+        order_key,
+        order_value,
+        order_key_2,
+        order_value_2,
+        PAGE_SIZE,
+        nextPageToken
+      )
     } else {
       getImages(nextPageToken)
     }
@@ -239,8 +262,8 @@ export default function Order() {
     wasCalled.current = true
     __loader(true)
     getAllImagesNoLimit()
-    getImages(nextPageToken)
-    setSorted(true)
+    getImages(null)
+    setSorted(true) // your prior default behavior
   }, [])
 
   /* ---------------------------------------------------
@@ -249,9 +272,9 @@ export default function Order() {
   useEffect(() => {
     if (!slides.length) return
     const observer = new MutationObserver(() => {
-      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn =>
-        btn.removeAttribute('title')
-      )
+      document
+        .querySelectorAll('.yarl__button[title="Close"]')
+        .forEach(btn => btn.removeAttribute('title'))
     })
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
@@ -276,8 +299,12 @@ export default function Order() {
         return
       }
 
-      if (/^\d{4}$/.test(rawQuery) || /^\d{3}$/.test(rawQuery) ||
-          /^\d{3}x$/.test(rawQuery) || /^\d{4}s$/.test(rawQuery)) {
+      if (
+        /^\d{4}$/.test(rawQuery) ||
+        /^\d{3}$/.test(rawQuery) ||
+        /^\d{3}x$/.test(rawQuery) ||
+        /^\d{4}s$/.test(rawQuery)
+      ) {
         fetchBackendSearch(rawQuery)
         return
       }
@@ -286,11 +313,11 @@ export default function Order() {
         keys: [
           { name: 'caption', weight: 0.7 },
           { name: 'alphaname', weight: 0.2 },
-          { name: 'director', weight: 0.1 }
+          { name: 'director', weight: 0.1 },
         ],
         threshold: 0.3,
         distance: 100,
-        includeScore: true
+        includeScore: true,
       })
 
       const results = fuse.search(rawQuery).map(r => r.item)
@@ -303,24 +330,25 @@ export default function Order() {
       const deduped = dedupeById(results)
       setImages(deduped)
       setSlides(buildSlidesFromPhotos(deduped))
-
     }, 300)
   }, [searchQuery])
 
   async function fetchBackendSearch(queryText) {
     try {
       __loader(true)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queryText })
-      })
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queryText }),
+        }
+      )
       const data = await res.json()
 
       const deduped = dedupeById(data.results)
       setImages(deduped)
       setSlides(buildSlidesFromPhotos(deduped))
-
     } catch (err) {
       console.error('Backend search failed:', err)
     } finally {
@@ -333,11 +361,9 @@ export default function Order() {
      --------------------------------------------------- */
   return (
     <RootLayout>
-
       {/* NAVIGATION */}
       <div className="w-full flex justify-center items-center pt-9 pb-[1.69rem]">
         <div className="w-full grid place-items-center space-y-6">
-
           <Link href="/">
             <div id="logo" className="w-40 h-auto cursor-pointer">
               <AnimatedLogo />
@@ -362,7 +388,10 @@ export default function Order() {
                     }}
                     className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white bg-transparent focus:outline-none text-sm"
                   />
-                  <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
+                  <div
+                    onClick={() => setSearchOpen(false)}
+                    className="cursor-pointer"
+                  >
                     <RxCross1 className="absolute right-3 top-2.5 text-white" />
                   </div>
                 </div>
@@ -374,20 +403,30 @@ export default function Order() {
                   onClick={() => {
                     clearValues().then(() => {
                       __loader(true)
-                      sortImages('alphaname', 'asc', null, null, Images.length, null)
+                      // alpha sort should NOT flip the clock UI state
+                      sortImages('alphaname', 'asc', null, null, PAGE_SIZE, null)
                     })
                   }}
                 />
                 <div onClick={() => setSearchOpen(true)}>
                   <FaMagnifyingGlass className="cursor-pointer text-xl hover:scale-105 transition-all" />
                 </div>
+
                 {!isSorted ? (
                   <TbClockDown
                     className="cursor-pointer text-2xl hover:scale-105 transition-all"
                     onClick={() => {
                       clearValues().then(() => {
                         __loader(true)
-                        sortImages('year', 'desc', 'alphaname', 'asc', Images.length, null)
+                        setSorted(true) // desc mode
+                        sortImages(
+                          'year',
+                          'desc',
+                          'alphaname',
+                          'asc',
+                          PAGE_SIZE,
+                          null
+                        )
                       })
                     }}
                   />
@@ -397,7 +436,15 @@ export default function Order() {
                     onClick={() => {
                       clearValues().then(() => {
                         __loader(true)
-                        sortImages('year', 'asc', 'alphaname', 'asc', Images.length, null)
+                        setSorted(false) // asc mode
+                        sortImages(
+                          'year',
+                          'asc',
+                          'alphaname',
+                          'asc',
+                          PAGE_SIZE,
+                          null
+                        )
                       })
                     }}
                   />
@@ -411,7 +458,6 @@ export default function Order() {
       {/* GRID */}
       {!loader ? (
         <div className="px-4 lg:px-16 pb-10 relative top-[.5px]">
-
           <InfiniteScroll
             className="mt-[-2px]"
             dataLength={Images.length}
@@ -426,7 +472,7 @@ export default function Order() {
                   className="w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in"
                   onClick={() => setIndex(i)}
                 >
-                  {photo.src.includes('.webm') ? (
+                  {photo.src && photo.src.includes('.webm') ? (
                     <video
                       src={photo.src}
                       muted
@@ -461,13 +507,15 @@ export default function Order() {
                 slideFooter: ({ slide }) => (
                   <div
                     className={cn(
-                      "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
+                      'lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content',
                       slide.type === 'video' && 'relative top-auto bottom-unset'
                     )}
                   >
-                    {slide.title && <div className="yarl__slide_title">{slide.title}</div>}
+                    {slide.title && (
+                      <div className="yarl__slide_title">{slide.title}</div>
+                    )}
 
-                    <div className={cn("!space-y-0", slide.director && "!mb-5")}>
+                    <div className={cn('!space-y-0', slide.director && '!mb-5')}>
                       {slide.director && (
                         <div className="yarl__slide_description !text-[#99AABB]">
                           <span className="font-medium">{slide.director}</span>
@@ -480,11 +528,10 @@ export default function Order() {
                       )}
                     </div>
                   </div>
-                )
+                ),
               }}
             />
           )}
-
         </div>
       ) : (
         <Loader />
