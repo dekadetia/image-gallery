@@ -36,7 +36,7 @@ export default function Order() {
   const PAGE_SIZE = 99
 
   const searchInputRef = useRef(null)
-  const [isSorted, setSorted] = useState(false) // used only for the clock icon toggle
+  const [isSorted, setSorted] = useState(false)
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
@@ -60,7 +60,7 @@ export default function Order() {
       UNIVERSAL FIXED SLIDE BUILDER (for images + videos)
      --------------------------------------------------- */
   function buildSlidesFromPhotos(images) {
-    return images
+    return (images || [])
       .filter(p => !!p?.src)
       .map(photo => {
         const base = {
@@ -85,56 +85,84 @@ export default function Order() {
           }
         }
 
-        return {
-          ...base,
-          type: 'image',
-        }
+        return { ...base, type: 'image' }
       })
   }
 
   /* ---------------------------------------------------
-                FETCH PAGINATED ORDERED IMAGES
+           HELPER: build payload without null/undefined
+     --------------------------------------------------- */
+  function buildOrderPayload({
+    order_by_key,
+    order_by_value,
+    order_by_key_2,
+    order_by_value_2,
+    size_limit,
+    lastVisibleDocId,
+  }) {
+    const payload = {
+      order_by_key,
+      order_by_value,
+      size_limit,
+    }
+
+    // IMPORTANT: omit optional keys entirely if not provided
+    if (order_by_key_2) payload.order_by_key_2 = order_by_key_2
+    if (order_by_value_2) payload.order_by_value_2 = order_by_value_2
+    if (lastVisibleDocId) payload.lastVisibleDocId = lastVisibleDocId
+
+    return payload
+  }
+
+  /* ---------------------------------------------------
+                FETCH PAGINATED ORDERED IMAGES (default)
      --------------------------------------------------- */
   const getImages = async token => {
     try {
+      const payload = buildOrderPayload({
+        order_by_key: 'alphaname',
+        order_by_value: 'asc',
+        size_limit: PAGE_SIZE,
+        lastVisibleDocId: token,
+      })
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            order_by_key: 'alphaname',
-            order_by_value: 'asc',
-            size_limit: PAGE_SIZE,
-            lastVisibleDocId: token,
-          }),
+          body: JSON.stringify(payload),
         }
       )
 
-      if (response.ok) {
-        const data = await response.json()
-        const images = data.images || []
-
-        if (images.length === 0) {
-          setHasMore(false)
-          return
-        }
-
-        setNextPageToken(data.nextPageToken)
-
-        setImages(prev => {
-          const seen = new Set(prev.map(i => i.id))
-          const unique = images.filter(i => !seen.has(i.id))
-          return [...prev, ...unique]
-        })
-
-        const newSlides = buildSlidesFromPhotos(images)
-        setSlides(prev => {
-          const seen = new Set(prev.map(s => s.src))
-          const unique = newSlides.filter(s => !seen.has(s.src))
-          return [...prev, ...unique]
-        })
+      if (!response.ok) {
+        const txt = await response.text().catch(() => '')
+        console.error('getImages non-OK:', response.status, txt)
+        return
       }
+
+      const data = await response.json()
+      const images = data.images || []
+
+      if (images.length === 0) {
+        setHasMore(false)
+        return
+      }
+
+      setNextPageToken(data.nextPageToken)
+
+      setImages(prev => {
+        const seen = new Set(prev.map(i => i.id))
+        const unique = images.filter(i => !seen.has(i.id))
+        return [...prev, ...unique]
+      })
+
+      const newSlides = buildSlidesFromPhotos(images)
+      setSlides(prev => {
+        const seen = new Set(prev.map(s => s.src))
+        const unique = newSlides.filter(s => !seen.has(s.src))
+        return [...prev, ...unique]
+      })
     } catch (err) {
       console.error('Error fetching files:', err)
     } finally {
@@ -177,46 +205,53 @@ export default function Order() {
       __order_value_2(order_value_2)
       __sort_loader(true)
 
+      const payload = buildOrderPayload({
+        order_by_key,
+        order_by_value,
+        order_by_key_2,
+        order_by_value_2,
+        size_limit: size,
+        lastVisibleDocId: token,
+      })
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-ordered-images`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            order_by_key,
-            order_by_value,
-            order_by_key_2,
-            order_by_value_2,
-            size_limit: size,
-            lastVisibleDocId: token,
-          }),
+          body: JSON.stringify(payload),
         }
       )
 
-      if (response.ok) {
-        const data = await response.json()
-        const images = data.images || []
-
-        if (images.length === 0) {
-          setHasMore(false)
-          return
-        }
-
-        setNextPageToken(data.nextPageToken)
-
-        setImages(prev => {
-          const seen = new Set(prev.map(i => i.id))
-          const unique = images.filter(i => !seen.has(i.id))
-          return [...prev, ...unique]
-        })
-
-        const newSlides = buildSlidesFromPhotos(images)
-        setSlides(prev => {
-          const seen = new Set(prev.map(s => s.src))
-          const unique = newSlides.filter(s => !seen.has(s.src))
-          return [...prev, ...unique]
-        })
+      if (!response.ok) {
+        const txt = await response.text().catch(() => '')
+        console.error('sortImages non-OK:', response.status, txt, payload)
+        setHasMore(false)
+        return
       }
+
+      const data = await response.json()
+      const images = data.images || []
+
+      if (images.length === 0) {
+        setHasMore(false)
+        return
+      }
+
+      setNextPageToken(data.nextPageToken)
+
+      setImages(prev => {
+        const seen = new Set(prev.map(i => i.id))
+        const unique = images.filter(i => !seen.has(i.id))
+        return [...prev, ...unique]
+      })
+
+      const newSlides = buildSlidesFromPhotos(images)
+      setSlides(prev => {
+        const seen = new Set(prev.map(s => s.src))
+        const unique = newSlides.filter(s => !seen.has(s.src))
+        return [...prev, ...unique]
+      })
     } catch (err) {
       console.error('Sort fetch error:', err)
     } finally {
@@ -239,17 +274,11 @@ export default function Order() {
 
   const loadMoreByCondition = () => {
     if (searchQuery.trim()) return
+
     if (order_key === 'alphaname') {
       sortImages(order_key, order_value, null, null, PAGE_SIZE, nextPageToken)
     } else if (order_key === 'year' && order_key_2 === 'alphaname') {
-      sortImages(
-        order_key,
-        order_value,
-        order_key_2,
-        order_value_2,
-        PAGE_SIZE,
-        nextPageToken
-      )
+      sortImages(order_key, order_value, order_key_2, order_value_2, PAGE_SIZE, nextPageToken)
     } else {
       getImages(nextPageToken)
     }
@@ -264,8 +293,7 @@ export default function Order() {
     __loader(true)
     getAllImagesNoLimit()
     getImages(null)
-    // NOTE: we no longer flip isSorted inside sortImages. This is just the initial clock UI state.
-    setSorted(false)
+    setSorted(true)
   }, [])
 
   /* ---------------------------------------------------
@@ -346,8 +374,14 @@ export default function Order() {
           body: JSON.stringify({ queryText }),
         }
       )
-      const data = await res.json()
 
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '')
+        console.error('Backend search non-OK:', res.status, txt)
+        return
+      }
+
+      const data = await res.json()
       const deduped = dedupeById(data.results || [])
       setImages(deduped)
       setSlides(buildSlidesFromPhotos(deduped))
@@ -402,7 +436,7 @@ export default function Order() {
                   onClick={() => {
                     clearValues().then(() => {
                       __loader(true)
-                      // IMPORTANT: never pass Images.length here (it becomes 0 right after clearValues)
+                      // IMPORTANT: don't send order_by_key_2/null fields anymore
                       sortImages('alphaname', 'asc', null, null, PAGE_SIZE, null)
                     })
                   }}
@@ -418,7 +452,6 @@ export default function Order() {
                     onClick={() => {
                       clearValues().then(() => {
                         __loader(true)
-                        // this click means "load DESC" and then show the UP icon next
                         setSorted(true)
                         sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
                       })
@@ -430,7 +463,6 @@ export default function Order() {
                     onClick={() => {
                       clearValues().then(() => {
                         __loader(true)
-                        // this click means "load ASC" and then show the DOWN icon next
                         setSorted(false)
                         sortImages('year', 'asc', 'alphaname', 'asc', PAGE_SIZE, null)
                       })
