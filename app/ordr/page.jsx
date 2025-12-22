@@ -36,7 +36,7 @@ export default function Order() {
   const PAGE_SIZE = 99
 
   const searchInputRef = useRef(null)
-  const [isSorted, setSorted] = useState(false) // used only for clock direction UI
+  const [isSorted, setSorted] = useState(false) // used only for the clock icon toggle
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
@@ -60,38 +60,40 @@ export default function Order() {
       UNIVERSAL FIXED SLIDE BUILDER (for images + videos)
      --------------------------------------------------- */
   function buildSlidesFromPhotos(images) {
-    return images.map(photo => {
-      const base = {
-        src: photo.src, // ALWAYS EXISTS NOW
-        width: 1080 * 4,
-        height: 1620 * 4,
-        title: photo.caption,
-        description: photo.dimensions,
-        director: photo.director,
-      }
+    return images
+      .filter(p => !!p?.src)
+      .map(photo => {
+        const base = {
+          src: photo.src,
+          width: 1080 * 4,
+          height: 1620 * 4,
+          title: photo.caption,
+          description: photo.dimensions,
+          director: photo.director,
+        }
 
-      if (photo.src && photo.src.includes('.webm')) {
+        if (photo.src.includes('.webm')) {
+          return {
+            ...base,
+            type: 'video',
+            sources: [{ src: photo.src, type: 'video/webm' }],
+            poster: '/assets/transparent.png',
+            autoPlay: true,
+            muted: true,
+            loop: true,
+            controls: false,
+          }
+        }
+
         return {
           ...base,
-          type: 'video',
-          sources: [{ src: photo.src, type: 'video/webm' }],
-          poster: '/assets/transparent.png',
-          autoPlay: true,
-          muted: true,
-          loop: true,
-          controls: false,
+          type: 'image',
         }
-      }
-
-      return {
-        ...base,
-        type: 'image',
-      }
-    })
+      })
   }
 
   /* ---------------------------------------------------
-                FETCH PAGINATED ORDERED IMAGES (default)
+                FETCH PAGINATED ORDERED IMAGES
      --------------------------------------------------- */
   const getImages = async token => {
     try {
@@ -111,7 +113,7 @@ export default function Order() {
 
       if (response.ok) {
         const data = await response.json()
-        const images = data.images
+        const images = data.images || []
 
         if (images.length === 0) {
           setHasMore(false)
@@ -193,7 +195,7 @@ export default function Order() {
 
       if (response.ok) {
         const data = await response.json()
-        const images = data.images
+        const images = data.images || []
 
         if (images.length === 0) {
           setHasMore(false)
@@ -237,7 +239,6 @@ export default function Order() {
 
   const loadMoreByCondition = () => {
     if (searchQuery.trim()) return
-
     if (order_key === 'alphaname') {
       sortImages(order_key, order_value, null, null, PAGE_SIZE, nextPageToken)
     } else if (order_key === 'year' && order_key_2 === 'alphaname') {
@@ -263,7 +264,8 @@ export default function Order() {
     __loader(true)
     getAllImagesNoLimit()
     getImages(null)
-    setSorted(true) // your prior default behavior
+    // NOTE: we no longer flip isSorted inside sortImages. This is just the initial clock UI state.
+    setSorted(false)
   }, [])
 
   /* ---------------------------------------------------
@@ -272,9 +274,9 @@ export default function Order() {
   useEffect(() => {
     if (!slides.length) return
     const observer = new MutationObserver(() => {
-      document
-        .querySelectorAll('.yarl__button[title="Close"]')
-        .forEach(btn => btn.removeAttribute('title'))
+      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn =>
+        btn.removeAttribute('title')
+      )
     })
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
@@ -346,7 +348,7 @@ export default function Order() {
       )
       const data = await res.json()
 
-      const deduped = dedupeById(data.results)
+      const deduped = dedupeById(data.results || [])
       setImages(deduped)
       setSlides(buildSlidesFromPhotos(deduped))
     } catch (err) {
@@ -388,10 +390,7 @@ export default function Order() {
                     }}
                     className="w-full pl-1.5 pr-10 pt-[.45rem] pb-[.5rem] border-b border-b-white bg-transparent focus:outline-none text-sm"
                   />
-                  <div
-                    onClick={() => setSearchOpen(false)}
-                    className="cursor-pointer"
-                  >
+                  <div onClick={() => setSearchOpen(false)} className="cursor-pointer">
                     <RxCross1 className="absolute right-3 top-2.5 text-white" />
                   </div>
                 </div>
@@ -403,11 +402,12 @@ export default function Order() {
                   onClick={() => {
                     clearValues().then(() => {
                       __loader(true)
-                      // alpha sort should NOT flip the clock UI state
+                      // IMPORTANT: never pass Images.length here (it becomes 0 right after clearValues)
                       sortImages('alphaname', 'asc', null, null, PAGE_SIZE, null)
                     })
                   }}
                 />
+
                 <div onClick={() => setSearchOpen(true)}>
                   <FaMagnifyingGlass className="cursor-pointer text-xl hover:scale-105 transition-all" />
                 </div>
@@ -418,15 +418,9 @@ export default function Order() {
                     onClick={() => {
                       clearValues().then(() => {
                         __loader(true)
-                        setSorted(true) // desc mode
-                        sortImages(
-                          'year',
-                          'desc',
-                          'alphaname',
-                          'asc',
-                          PAGE_SIZE,
-                          null
-                        )
+                        // this click means "load DESC" and then show the UP icon next
+                        setSorted(true)
+                        sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
                       })
                     }}
                   />
@@ -436,15 +430,9 @@ export default function Order() {
                     onClick={() => {
                       clearValues().then(() => {
                         __loader(true)
-                        setSorted(false) // asc mode
-                        sortImages(
-                          'year',
-                          'asc',
-                          'alphaname',
-                          'asc',
-                          PAGE_SIZE,
-                          null
-                        )
+                        // this click means "load ASC" and then show the DOWN icon next
+                        setSorted(false)
+                        sortImages('year', 'asc', 'alphaname', 'asc', PAGE_SIZE, null)
                       })
                     }}
                   />
@@ -468,11 +456,11 @@ export default function Order() {
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
                 <div
-                  key={i}
+                  key={photo?.id || photo?.src || i}
                   className="w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in"
                   onClick={() => setIndex(i)}
                 >
-                  {photo.src && photo.src.includes('.webm') ? (
+                  {photo?.src?.includes('.webm') ? (
                     <video
                       src={photo.src}
                       muted
@@ -485,8 +473,8 @@ export default function Order() {
                     />
                   ) : (
                     <img
-                      alt={photo.name}
-                      src={photo.src}
+                      alt={photo?.name || ''}
+                      src={photo?.src}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                   )}
@@ -511,9 +499,7 @@ export default function Order() {
                       slide.type === 'video' && 'relative top-auto bottom-unset'
                     )}
                   >
-                    {slide.title && (
-                      <div className="yarl__slide_title">{slide.title}</div>
-                    )}
+                    {slide.title && <div className="yarl__slide_title">{slide.title}</div>}
 
                     <div className={cn('!space-y-0', slide.director && '!mb-5')}>
                       {slide.director && (
@@ -522,9 +508,7 @@ export default function Order() {
                         </div>
                       )}
                       {slide.description && (
-                        <div className="yarl__slide_description">
-                          {slide.description}
-                        </div>
+                        <div className="yarl__slide_description">{slide.description}</div>
                       )}
                     </div>
                   </div>
