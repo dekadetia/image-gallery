@@ -20,8 +20,9 @@ import { twMerge } from 'tailwind-merge'
 
 function dedupeById(items) {
   const seen = new Set()
-  return items.filter(item => {
-    const key = item.id || item.src
+  return (items || []).filter(item => {
+    const key = item?.id || item?.src
+    if (!key) return false
     if (seen.has(key)) return false
     seen.add(key)
     return true
@@ -178,6 +179,14 @@ export default function Order() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images-no-limit`
       )
+
+      // DON'T let a 500 here cascade into other issues
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '')
+        console.error('getAllImagesNoLimit non-OK:', res.status, txt)
+        return
+      }
+
       const data = await res.json()
       if (data.success) {
         setFullImages(dedupeById(data.images))
@@ -205,11 +214,12 @@ export default function Order() {
       __order_value_2(order_value_2)
       __sort_loader(true)
 
+      // ✅ FIX: map local param names -> payload names (prevents ReferenceError)
       const payload = buildOrderPayload({
-        order_by_key,
-        order_by_value,
-        order_by_key_2,
-        order_by_value_2,
+        order_by_key: order_key,
+        order_by_value: order_value,
+        order_by_key_2: order_key_2,
+        order_by_value_2: order_value_2,
         size_limit: size,
         lastVisibleDocId: token,
       })
@@ -436,7 +446,6 @@ export default function Order() {
                   onClick={() => {
                     clearValues().then(() => {
                       __loader(true)
-                      // IMPORTANT: don't send order_by_key_2/null fields anymore
                       sortImages('alphaname', 'asc', null, null, PAGE_SIZE, null)
                     })
                   }}
