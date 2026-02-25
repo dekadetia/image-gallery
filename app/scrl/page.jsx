@@ -18,44 +18,32 @@ import AudioPlayer from '../../components/AudioPlayer';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export function cn(...inputs: any[]) {
+export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
 /**
  * Plays only when near/in viewport. Pauses when out of view.
- * (Lightweight—no unloading of src to avoid rebuffer flashes.)
+ * Minimal behavior change: keeps src attached, just pauses.
  */
-function ViewportVideo({
-  src,
-  className
-}: {
-  src: string;
-  className?: string;
-}) {
-  const ref = useRef<HTMLVideoElement | null>(null);
+function ViewportVideo({ src, className }) {
+  const ref = useRef(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
     const obs = new IntersectionObserver(
-      async ([entry]) => {
+      ([entry]) => {
         if (!el) return;
 
         if (entry.isIntersecting) {
-          // Attempt to play; ignore errors (autoplay policies, etc.)
-          try {
-            await el.play();
-          } catch {
-            // no-op
-          }
+          el.play().catch(() => {});
         } else {
           el.pause();
         }
       },
       {
-        // Start/stop slightly before it enters/leaves view
         root: null,
         rootMargin: '200px 0px 200px 0px',
         threshold: 0.01
@@ -84,17 +72,17 @@ function ViewportVideo({
 
 export default function Scrl() {
   const [index, setIndex] = useState(-1);
-  const [Images, setImages] = useState<any[]>([]);
+  const [Images, setImages] = useState([]);
   const [loader, __loader] = useState(true);
   const [autosMode, setAutosMode] = useState(false);
   const [hideCursor, setHideCursor] = useState(false);
   const [showControls, setShowControls] = useState(false);
 
-  const scrollRafRef = useRef<number | null>(null);
-  const cursorTimerRef = useRef<any>(null);
-  const activityTimerRef = useRef<any>(null);
+  const scrollRafRef = useRef(null);
+  const cursorTimerRef = useRef(null);
+  const activityTimerRef = useRef(null);
   const wasCalled = useRef(false);
-  const seenImageIds = useRef<Set<string>>(new Set());
+  const seenImageIds = useRef(new Set());
 
   const slides = Images.map(photo => {
     const src = photo.src ?? '';
@@ -133,7 +121,7 @@ export default function Scrl() {
     }
   });
 
-  const getImages = async (load?: string) => {
+  const getImages = async load => {
     if (load !== 'load more') {
       __loader(true);
     }
@@ -152,9 +140,9 @@ export default function Scrl() {
         const images = data.images;
 
         const uniqueImages = images.filter(
-          (img: any) => !seenImageIds.current.has(img.id)
+          img => !seenImageIds.current.has(img.id)
         );
-        uniqueImages.forEach((img: any) => seenImageIds.current.add(img.id));
+        uniqueImages.forEach(img => seenImageIds.current.add(img.id));
 
         setImages(prev => [...prev, ...uniqueImages]);
       } else {
@@ -185,7 +173,7 @@ export default function Scrl() {
         const data = await response.json();
         const images = data.images;
 
-        images.forEach((img: any) => seenImageIds.current.add(img.id));
+        images.forEach(img => seenImageIds.current.add(img.id));
         setImages(images);
       } else {
         console.error('Failed to get files');
@@ -208,18 +196,19 @@ export default function Scrl() {
   }, []);
 
   /**
-   * ✅ Time-based autoscroll (consistent speed even if FPS drops due to videos decoding).
+   * ✅ Time-based autoscroll:
+   * consistent px/sec even when FPS drops due to video decode/paint.
    */
   useEffect(() => {
     const isFirefox =
       typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent);
 
-    // Pixels per second. Tune as needed.
+    // px/sec (tune)
     const speed = isFirefox ? 120 : 60;
 
     let last = performance.now();
 
-    const step = (now: number) => {
+    const step = now => {
       const dt = now - last;
       last = now;
 
@@ -305,7 +294,7 @@ export default function Scrl() {
     }
   }, [hideCursor, autosMode]);
 
-  const handleImageClick = (imageId: string) => {
+  const handleImageClick = imageId => {
     const idx = Images.findIndex(img => img.id === imageId);
     if (idx !== -1) setIndex(idx);
   };
@@ -338,11 +327,9 @@ export default function Scrl() {
   // 🩹 MutationObserver to remove title="Close"
   useEffect(() => {
     const observer = new MutationObserver(() => {
-      document
-        .querySelectorAll('.yarl__button[title="Close"]')
-        .forEach(btn => {
-          btn.removeAttribute('title');
-        });
+      document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
+        btn.removeAttribute('title');
+      });
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
@@ -489,9 +476,7 @@ export default function Scrl() {
         />
       )}
 
-      {autosMode && (
-        <AudioPlayer blackMode={autosMode} showControls={showControls} />
-      )}
+      {autosMode && <AudioPlayer blackMode={autosMode} showControls={showControls} />}
       {!loader && !autosMode && <Footer />}
     </RootLayout>
   );
