@@ -18,60 +18,122 @@ import AudioPlayer from '../../components/AudioPlayer';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export function cn(...inputs) {
+export function cn(...inputs: any[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Plays only when near/in viewport. Pauses when out of view.
+ * (Lightweight—no unloading of src to avoid rebuffer flashes.)
+ */
+function ViewportVideo({
+  src,
+  className
+}: {
+  src: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      async ([entry]) => {
+        if (!el) return;
+
+        if (entry.isIntersecting) {
+          // Attempt to play; ignore errors (autoplay policies, etc.)
+          try {
+            await el.play();
+          } catch {
+            // no-op
+          }
+        } else {
+          el.pause();
+        }
+      },
+      {
+        // Start/stop slightly before it enters/leaves view
+        root: null,
+        rootMargin: '200px 0px 200px 0px',
+        threshold: 0.01
+      }
+    );
+
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      poster="/assets/transparent.png"
+      disablePictureInPicture
+      className={className}
+    />
+  );
 }
 
 export default function Scrl() {
   const [index, setIndex] = useState(-1);
-  const [Images, setImages] = useState([]);
+  const [Images, setImages] = useState<any[]>([]);
   const [loader, __loader] = useState(true);
   const [autosMode, setAutosMode] = useState(false);
   const [hideCursor, setHideCursor] = useState(false);
   const [showControls, setShowControls] = useState(false);
-  const scrollRef = useRef(null);
-  const cursorTimerRef = useRef(null);
-  const activityTimerRef = useRef(null);
+
+  const scrollRafRef = useRef<number | null>(null);
+  const cursorTimerRef = useRef<any>(null);
+  const activityTimerRef = useRef<any>(null);
   const wasCalled = useRef(false);
-  const seenImageIds = useRef(new Set());
+  const seenImageIds = useRef<Set<string>>(new Set());
 
-const slides = Images.map(photo => {
-  const src = photo.src ?? '';
-  if (src.toLowerCase().includes('.webm')) {
-    return {
-      type: 'video',
-      width: 1080 * 4,
-      height: 1620 * 4,
-      title: `${photo.caption}`,
-      description: photo.dimensions,
-      director: photo.director || null,
-      year: photo.year,
-      sources: [{
+  const slides = Images.map(photo => {
+    const src = photo.src ?? '';
+    if (src.toLowerCase().includes('.webm')) {
+      return {
+        type: 'video',
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: `${photo.caption}`,
+        description: photo.dimensions,
+        director: photo.director || null,
+        year: photo.year,
+        sources: [
+          {
+            src,
+            type: 'video/webm'
+          }
+        ],
+        poster: '/assets/transparent.png',
+        autoPlay: true,
+        muted: true,
+        loop: true,
+        controls: false
+      };
+    } else {
+      return {
+        type: 'image',
         src,
-        type: 'video/webm'
-      }],
-      poster: '/assets/transparent.png',
-      autoPlay: true,
-      muted: true,
-      loop: true,
-      controls: false
-    };
-  } else {
-    return {
-      type: 'image',
-      src,
-      width: 1080 * 4,
-      height: 1620 * 4,
-      title: `${photo.caption}`,
-      description: photo.dimensions,
-      director: photo.director || null,
-      year: photo.year
-    };
-  }
-});
+        width: 1080 * 4,
+        height: 1620 * 4,
+        title: `${photo.caption}`,
+        description: photo.dimensions,
+        director: photo.director || null,
+        year: photo.year
+      };
+    }
+  });
 
-
-  const getImages = async load => {
+  const getImages = async (load?: string) => {
     if (load !== 'load more') {
       __loader(true);
     }
@@ -90,9 +152,9 @@ const slides = Images.map(photo => {
         const images = data.images;
 
         const uniqueImages = images.filter(
-          img => !seenImageIds.current.has(img.id)
+          (img: any) => !seenImageIds.current.has(img.id)
         );
-        uniqueImages.forEach(img => seenImageIds.current.add(img.id));
+        uniqueImages.forEach((img: any) => seenImageIds.current.add(img.id));
 
         setImages(prev => [...prev, ...uniqueImages]);
       } else {
@@ -123,7 +185,7 @@ const slides = Images.map(photo => {
         const data = await response.json();
         const images = data.images;
 
-        images.forEach(img => seenImageIds.current.add(img.id));
+        images.forEach((img: any) => seenImageIds.current.add(img.id));
         setImages(images);
       } else {
         console.error('Failed to get files');
@@ -145,25 +207,41 @@ const slides = Images.map(photo => {
     getImages();
   }, []);
 
- useEffect(() => {
-  const isFirefox = typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent);
-  const scrollSpeed = isFirefox ? 1 : 0.5;
+  /**
+   * ✅ Time-based autoscroll (consistent speed even if FPS drops due to videos decoding).
+   */
+  useEffect(() => {
+    const isFirefox =
+      typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent);
 
-  const scrollStep = () => {
-    window.scrollBy(0, scrollSpeed);
-    if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
-      window.scrollTo(0, 0);
-    }
-    scrollRef.current = requestAnimationFrame(scrollStep);
-  };
+    // Pixels per second. Tune as needed.
+    const speed = isFirefox ? 120 : 60;
 
-  scrollRef.current = requestAnimationFrame(scrollStep);
+    let last = performance.now();
 
-  return () => cancelAnimationFrame(scrollRef.current);
-}, []);
+    const step = (now: number) => {
+      const dt = now - last;
+      last = now;
 
+      window.scrollBy(0, (speed * dt) / 1000);
 
+      if (
+        window.scrollY + window.innerHeight >=
+        document.body.scrollHeight - 2
+      ) {
+        window.scrollTo(0, 0);
+        last = performance.now();
+      }
 
+      scrollRafRef.current = requestAnimationFrame(step);
+    };
+
+    scrollRafRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    };
+  }, []);
 
   const handleUserActivity = () => {
     clearTimeout(activityTimerRef.current);
@@ -227,7 +305,7 @@ const slides = Images.map(photo => {
     }
   }, [hideCursor, autosMode]);
 
-  const handleImageClick = imageId => {
+  const handleImageClick = (imageId: string) => {
     const idx = Images.findIndex(img => img.id === imageId);
     if (idx !== -1) setIndex(idx);
   };
@@ -249,26 +327,29 @@ const slides = Images.map(photo => {
         try {
           await document.exitFullscreen();
         } catch (err) {
-          console.warn('Exiting fullscreen failed:', err);
+          console.warn('Exiting autosMode failed:', err);
         }
       }
       console.log('🔴 Exiting autosMode');
     }
     setAutosMode(!autosMode);
   };
-// 🩹 MutationObserver to remove title="Close"
-useEffect(() => {
+
+  // 🩹 MutationObserver to remove title="Close"
+  useEffect(() => {
     const observer = new MutationObserver(() => {
-        document.querySelectorAll('.yarl__button[title="Close"]').forEach(btn => {
-            btn.removeAttribute('title');
+      document
+        .querySelectorAll('.yarl__button[title="Close"]')
+        .forEach(btn => {
+          btn.removeAttribute('title');
         });
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => observer.disconnect();
-}, []);
-  
+  }, []);
+
   return (
     <RootLayout>
       {/* 🌙 Moon */}
@@ -288,29 +369,35 @@ useEffect(() => {
 
       {/* ❌ X */}
       {autosMode && (
-<motion.button
-  onClick={toggleAutosMode}
-  initial={{ opacity: 0, scale: 0.95 }}
-  animate={{ opacity: showControls ? 1 : 0, scale: showControls ? 1 : 0.95 }}
-  whileHover={{ opacity: 1 }}
-  transition={{ duration: 2, ease: 'easeInOut' }}
-  className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
-  aria-label="Exit AutosMode"
->
-  <RxCross1 />
-</motion.button>
+        <motion.button
+          onClick={toggleAutosMode}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{
+            opacity: showControls ? 1 : 0,
+            scale: showControls ? 1 : 0.95
+          }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 2, ease: 'easeInOut' }}
+          className="fixed top-4 right-4 text-2xl z-50 cursor-pointer text-white"
+          aria-label="Exit AutosMode"
+        >
+          <RxCross1 />
+        </motion.button>
       )}
 
       {!autosMode && (
         <div className="w-full flex justify-center items-center py-9">
           <div className="w-full grid place-items-center space-y-6">
-<Link href="/">
-  <div id="logo" className="w-40 h-auto cursor-pointer">
-    <AnimatedLogo />
-  </div>
-</Link>
+            <Link href="/">
+              <div id="logo" className="w-40 h-auto cursor-pointer">
+                <AnimatedLogo />
+              </div>
+            </Link>
 
-            <div className="flex gap-8 items-center pt-[2.5px]" style={{ marginBottom: '4px' }}>
+            <div
+              className="flex gap-8 items-center pt-[2.5px]"
+              style={{ marginBottom: '4px' }}
+            >
               <Link href={'/fade'}>
                 <img
                   src="/assets/crossfade.svg"
@@ -340,52 +427,47 @@ useEffect(() => {
             loader={<MoreImageLoader />}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
-             {Images.map(photo => (
-  <div
-    key={photo.id}
-    className="w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in"
-    onClick={() => handleImageClick(photo.id)}
-  >
-    {photo.src?.toLowerCase().includes('.webm') ? (
-      <video
-        src={photo.src}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster="/assets/transparent.png"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-    ) : (
-      <img
-        alt={photo.name}
-        src={photo.src}
-        decoding="async"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-    )}
-  </div>
-))}
-
+              {Images.map(photo => (
+                <div
+                  key={photo.id}
+                  className="w-full aspect-[16/9] relative overflow-hidden cursor-zoom-in"
+                  onClick={() => handleImageClick(photo.id)}
+                >
+                  {photo.src?.toLowerCase().includes('.webm') ? (
+                    <ViewportVideo
+                      src={photo.src}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      alt={photo.name}
+                      src={photo.src}
+                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           </InfiniteScroll>
         )}
       </div>
 
       {slides && (
-<Lightbox
-  index={index}
-  slides={slides}
-  open={index >= 0}
-  close={handleCloseLightbox}
-  plugins={[Video]}
+        <Lightbox
+          index={index}
+          slides={slides}
+          open={index >= 0}
+          close={handleCloseLightbox}
+          plugins={[Video]}
           render={{
             slideFooter: ({ slide }) => (
-<div className={cn(
-  "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
-  slide.type === 'video' && 'relative top-auto bottom-unset'
-)}>
+              <div
+                className={cn(
+                  'lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content',
+                  slide.type === 'video' && 'relative top-auto bottom-unset'
+                )}
+              >
                 {slide.title && (
                   <div className="yarl__slide_title">{slide.title}</div>
                 )}
@@ -407,7 +489,9 @@ useEffect(() => {
         />
       )}
 
-{autosMode && <AudioPlayer blackMode={autosMode} showControls={showControls} />}
+      {autosMode && (
+        <AudioPlayer blackMode={autosMode} showControls={showControls} />
+      )}
       {!loader && !autosMode && <Footer />}
     </RootLayout>
   );
