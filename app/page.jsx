@@ -126,24 +126,24 @@ const newSlides = newImages.map((photo) => {
 
   return (
     <RootLayout>
-<div className="w-full flex justify-center items-center py-7">
-  <div className="w-full grid place-items-center space-y-4">
-    <Link href="/" className="block w-36">
-      <AnimatedLogo />
-    </Link>
-
-    <div className="flex gap-7 items-center">
-<Link href={"/indx"}>
-  <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-[1.35rem]" />
+      <div className="w-full flex justify-center items-center py-9">
+        <div className="w-full grid place-items-center space-y-6">
+<Link href="/" className="block w-40">
+  <AnimatedLogo />
 </Link>
 
-<Link href={"/ordr"}>
-  <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-[1.6rem]" />
-</Link>
+          <div className="flex gap-8 items-center">
+            <Link href={"/indx"}>
+              <IoMdList className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+            </Link>
 
-<Link href={"/rndm"}>
-  <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-[1.35rem]" />
-</Link>
+            <Link href={"/ordr"}>
+              <RxCaretSort className="cursor-pointer transition-all duration-200 hover:scale-105 text-3xl" />
+            </Link>
+
+            <Link href={"/rndm"}>
+              <IoMdShuffle className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl" />
+            </Link>
           </div>
         </div>
       </div>
@@ -151,8 +151,8 @@ const newSlides = newImages.map((photo) => {
       {loader ? (
         <Loader />
       ) : (
-<div className="px-4 lg:px-10 xl:px-12 pb-10">
-  <InfiniteScroll
+        <div className="px-4 lg:px-16 pb-10">
+          <InfiniteScroll
             dataLength={images.length}
             next={() => fetchImages(nextPageToken)}
             hasMore={hasMore}
