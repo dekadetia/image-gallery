@@ -69,7 +69,7 @@ body {
 }
 
 .yarl__slide_description {
-  font-size: .8rem;
+  font-size: .875rem !important;
   color: #99AABB !important;
 }
 
