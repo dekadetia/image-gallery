@@ -48,10 +48,10 @@ export default function Order() {
   const [loader, __loader] = useState(true)
   const [sort_loader, __sort_loader] = useState(true)
 
-  const [order_key, __order_key] = useState(null)
-  const [order_value, __order_value] = useState(null)
-  const [order_key_2, __order_key_2] = useState(null)
-  const [order_value_2, __order_value_2] = useState(null)
+const [order_key, __order_key] = useState('year')
+const [order_value, __order_value] = useState('desc')
+const [order_key_2, __order_key_2] = useState('alphaname')
+const [order_value_2, __order_value_2] = useState('asc')
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -298,13 +298,20 @@ export default function Order() {
             INITIAL PAGE LOAD
      --------------------------------------------------- */
 useEffect(() => {
-  if (wasCalled.current) return
   wasCalled.current = true
-  __loader(true)
-  getAllImagesNoLimit()
 
-  setSorted(true)
-  sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
+  clearValues().then(() => {
+    __loader(true)
+    getAllImagesNoLimit()
+
+    setSorted(true)
+    __order_key('year')
+    __order_value('desc')
+    __order_key_2('alphaname')
+    __order_value_2('asc')
+
+    sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
+  })
 }, [])
 
   /* ---------------------------------------------------
