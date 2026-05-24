@@ -36,6 +36,7 @@ export function cn(...inputs) {
 export default function Order() {
   const PAGE_SIZE = 99
 
+  const searchHasMountedRef = useRef(false)
   const searchInputRef = useRef(null)
   const [isSorted, setSorted] = useState(false)
   const [index, setIndex] = useState(-1)
@@ -346,15 +347,24 @@ useEffect(() => {
   /* ---------------------------------------------------
                       SEARCH LOGIC
      --------------------------------------------------- */
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+useEffect(() => {
+  if (!searchHasMountedRef.current) {
+    searchHasMountedRef.current = true
+    return
+  }
 
-    debounceRef.current = setTimeout(async () => {
-      const rawQuery = searchQuery.trim().toLowerCase()
-      if (!rawQuery) {
-        clearValues().then(() => getImages(null))
-        return
-      }
+  if (debounceRef.current) clearTimeout(debounceRef.current)
+
+  debounceRef.current = setTimeout(async () => {
+    const rawQuery = searchQuery.trim().toLowerCase()
+
+    if (!rawQuery) {
+      clearValues().then(() => {
+        setSorted(true)
+        sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
+      })
+      return
+    }
 
       if (
         /^\d{4}$/.test(rawQuery) ||
