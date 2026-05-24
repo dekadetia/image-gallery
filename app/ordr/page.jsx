@@ -297,14 +297,15 @@ export default function Order() {
   /* ---------------------------------------------------
             INITIAL PAGE LOAD
      --------------------------------------------------- */
-  useEffect(() => {
-    if (wasCalled.current) return
-    wasCalled.current = true
-    __loader(true)
-    getAllImagesNoLimit()
-    getImages(null)
-    setSorted(true)
-  }, [])
+useEffect(() => {
+  if (wasCalled.current) return
+  wasCalled.current = true
+  __loader(true)
+  getAllImagesNoLimit()
+
+  setSorted(true)
+  sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
+}, [])
 
   /* ---------------------------------------------------
       REMOVE Lightbox "title=Close" (your existing patch)
