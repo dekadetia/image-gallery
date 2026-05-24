@@ -43,15 +43,16 @@ export default function Order() {
   const [Images, setImages] = useState([])
   const [FullImages, setFullImages] = useState([])
   const wasCalled = useRef(false)
+  const requestIdRef = useRef(0)
   const [nextPageToken, setNextPageToken] = useState(null)
   const [hasMore, setHasMore] = useState(true)
   const [loader, __loader] = useState(true)
   const [sort_loader, __sort_loader] = useState(true)
 
-const [order_key, __order_key] = useState('year')
-const [order_value, __order_value] = useState('desc')
-const [order_key_2, __order_key_2] = useState('alphaname')
-const [order_value_2, __order_value_2] = useState('asc')
+const [order_key, __order_key] = useState(null)
+const [order_value, __order_value] = useState(null)
+const [order_key_2, __order_key_2] = useState(null)
+const [order_value_2, __order_value_2] = useState(null)
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -119,6 +120,7 @@ const [order_value_2, __order_value_2] = useState('asc')
                 FETCH PAGINATED ORDERED IMAGES (default)
      --------------------------------------------------- */
   const getImages = async token => {
+      const requestId = ++requestIdRef.current
     try {
       const payload = buildOrderPayload({
         order_by_key: 'alphaname',
@@ -142,8 +144,11 @@ const [order_value_2, __order_value_2] = useState('asc')
         return
       }
 
-      const data = await response.json()
-      const images = data.images || []
+const data = await response.json()
+
+if (requestId !== requestIdRef.current) return
+
+const images = data.images || []
 
       if (images.length === 0) {
         setHasMore(false)
@@ -207,6 +212,7 @@ const [order_value_2, __order_value_2] = useState('asc')
     size,
     token
   ) => {
+      const requestId = ++requestIdRef.current
     try {
       __order_key(order_key)
       __order_value(order_value)
@@ -240,8 +246,11 @@ const [order_value_2, __order_value_2] = useState('asc')
         return
       }
 
-      const data = await response.json()
-      const images = data.images || []
+const data = await response.json()
+
+if (requestId !== requestIdRef.current) return
+
+const images = data.images || []
 
       if (images.length === 0) {
         setHasMore(false)
