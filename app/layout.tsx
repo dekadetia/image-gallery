@@ -28,7 +28,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/assets/favicon-96x96.png" />
-        <title>𝐓 | 𝐍 | 𝐃 | 𝐑 | 𝐁 | 𝐓 | 𝐍 | 𝐒</title>
+        <title>TNDR/BTNS/BLND/GLSS</title>
 
         {/* Preload fonts */}
         <link
