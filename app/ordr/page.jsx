@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { RxCross1 } from 'react-icons/rx'
 import { BsSortAlphaDown } from 'react-icons/bs'
 import { TbClockDown, TbClockUp } from 'react-icons/tb'
@@ -43,6 +43,20 @@ export default function Order() {
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
   const [FullImages, setFullImages] = useState([])
+
+const fuse = useMemo(() => {
+  return new Fuse(FullImages, {
+    keys: [
+      { name: 'caption', weight: 0.7 },
+      { name: 'alphaname', weight: 0.2 },
+      { name: 'director', weight: 0.1 },
+    ],
+    threshold: 0.3,
+    distance: 100,
+    includeScore: true,
+  })
+}, [FullImages])
+
   const wasCalled = useRef(false)
   const requestIdRef = useRef(0)
   const [nextPageToken, setNextPageToken] = useState(null)
