@@ -42,6 +42,7 @@ export default function Order() {
   const [index, setIndex] = useState(-1)
   const [slides, setSlides] = useState([])
   const [Images, setImages] = useState([])
+  const [SearchResults, setSearchResults] = useState([])
   const [FullImages, setFullImages] = useState([])
 
 const fuse = useMemo(() => {
@@ -301,14 +302,42 @@ const images = data.images || []
   const clearValues = () =>
     new Promise(resolve => {
       setImages([])
+      setSearchResults([])
       setSlides([])
       setNextPageToken(null)
       setHasMore(true)
       resolve()
     })
 
+  const applySearchResults = results => {
+    const deduped = dedupeById(results)
+    const firstPage = deduped.slice(0, PAGE_SIZE)
+
+    setIndex(-1)
+    setSearchResults(deduped)
+    setImages(firstPage)
+    setSlides(buildSlidesFromPhotos(firstPage))
+    setNextPageToken(null)
+    setHasMore(deduped.length > PAGE_SIZE)
+  }
+
+  const loadMoreSearchResults = () => {
+    setImages(prev => {
+      const nextItems = SearchResults.slice(prev.length, prev.length + PAGE_SIZE)
+      const updated = [...prev, ...nextItems]
+
+      setSlides(buildSlidesFromPhotos(updated))
+      setHasMore(updated.length < SearchResults.length)
+
+      return updated
+    })
+  }
+
   const loadMoreByCondition = () => {
-    if (searchQuery.trim()) return
+    if (searchQuery.trim()) {
+      loadMoreSearchResults()
+      return
+    }
 
     if (order_key === 'alphaname') {
       sortImages(order_key, order_value, null, null, PAGE_SIZE, nextPageToken)
@@ -397,12 +426,7 @@ useEffect(() => {
         return
       }
 
-      const deduped = dedupeById(results)
-      setIndex(-1)
-      setHasMore(false)
-      setNextPageToken(null)
-      setImages(deduped)
-      setSlides(buildSlidesFromPhotos(deduped))
+      applySearchResults(results)
     }, 300)
 
   return () => {
@@ -437,13 +461,7 @@ useEffect(() => {
 
       if (searchRequestId !== searchRequestIdRef.current) return
 
-      const deduped = dedupeById(data.results || [])
-
-      setIndex(-1)
-      setHasMore(false)
-      setNextPageToken(null)
-      setImages(deduped)
-      setSlides(buildSlidesFromPhotos(deduped))
+      applySearchResults(data.results || [])
     } catch (err) {
       if (searchRequestId === searchRequestIdRef.current) {
         console.error('Backend search failed:', err)
@@ -545,7 +563,7 @@ useEffect(() => {
             dataLength={Images.length}
             next={loadMoreByCondition}
             hasMore={hasMore}
-            loader={!searchQuery.trim() && hasMore ? <MoreImageLoader /> : null}
+            loader={hasMore ? <MoreImageLoader /> : null}
           >
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[10px] place-items-center">
               {Images.map((photo, i) => (
