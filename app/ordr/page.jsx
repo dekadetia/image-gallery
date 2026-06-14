@@ -72,6 +72,7 @@ const [order_value_2, __order_value_2] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const debounceRef = useRef(null)
+  const searchRequestIdRef = useRef(0)
 
   /* ---------------------------------------------------
       UNIVERSAL FIXED SLIDE BUILDER (for images + videos)
@@ -389,18 +390,6 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-
-      const fuse = new Fuse(FullImages, {
-        keys: [
-          { name: 'caption', weight: 0.7 },
-          { name: 'alphaname', weight: 0.2 },
-          { name: 'director', weight: 0.1 },
-        ],
-        threshold: 0.3,
-        distance: 100,
-        includeScore: true,
-      })
-
       const results = fuse.search(rawQuery).map(r => r.item)
 
       if (results.length < 5) {
@@ -409,14 +398,24 @@ useEffect(() => {
       }
 
       const deduped = dedupeById(results)
+      setIndex(-1)
+      setHasMore(false)
+      setNextPageToken(null)
       setImages(deduped)
       setSlides(buildSlidesFromPhotos(deduped))
     }, 300)
+
+  return () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+  }
   }, [searchQuery])
 
   async function fetchBackendSearch(queryText) {
+    const searchRequestId = ++searchRequestIdRef.current
+
     try {
       __loader(true)
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
         {
@@ -426,6 +425,8 @@ useEffect(() => {
         }
       )
 
+      if (searchRequestId !== searchRequestIdRef.current) return
+
       if (!res.ok) {
         const txt = await res.text().catch(() => '')
         console.error('Backend search non-OK:', res.status, txt)
@@ -433,13 +434,24 @@ useEffect(() => {
       }
 
       const data = await res.json()
+
+      if (searchRequestId !== searchRequestIdRef.current) return
+
       const deduped = dedupeById(data.results || [])
+
+      setIndex(-1)
+      setHasMore(false)
+      setNextPageToken(null)
       setImages(deduped)
       setSlides(buildSlidesFromPhotos(deduped))
     } catch (err) {
-      console.error('Backend search failed:', err)
+      if (searchRequestId === searchRequestIdRef.current) {
+        console.error('Backend search failed:', err)
+      }
     } finally {
-      __loader(false)
+      if (searchRequestId === searchRequestIdRef.current) {
+        __loader(false)
+      }
     }
   }
 
