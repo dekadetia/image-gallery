@@ -21,6 +21,7 @@ export function cn(...inputs) {
 }
 
 const GAP = 10
+const MOBILE_BREAKPOINT = 768
 
 
 /* ---------------------------------------------------------
@@ -77,17 +78,23 @@ function parseImageMeta(dimensions) {
 
 
 /* ---------------------------------------------------------
-   PACKING PATTERNS
+   PREPARE IMAGES
+--------------------------------------------------------- */
 
-   Desktop rhythm:
+function prepareImages(images) {
+  return images.map(image => ({
+    ...image,
 
-   - mostly 3 columns
-   - occasional 4-column dense bands
-   - occasional 2-column large bands
-   - very rare full-width hero
+    _meta:
+      parseImageMeta(
+        image.dimensions
+      )
+  }))
+}
 
-   Each number is the number of vertically stacked images
-   in that structural column.
+
+/* ---------------------------------------------------------
+   DESKTOP / TABLET PATTERNS
 --------------------------------------------------------- */
 
 const DESKTOP_SEQUENCE = [
@@ -129,17 +136,7 @@ const TABLET_PATTERNS = [
 ]
 
 
-const MOBILE_PATTERNS = [
-  [1, 2],
-  [2, 1]
-]
-
-
 function getPatterns(containerWidth) {
-  if (containerWidth < 640) {
-    return MOBILE_PATTERNS
-  }
-
   if (containerWidth < 1024) {
     return TABLET_PATTERNS
   }
@@ -149,24 +146,7 @@ function getPatterns(containerWidth) {
 
 
 /* ---------------------------------------------------------
-   BUILD ONE BAND
-
-   Every column in a band ends at exactly the same height.
-
-   For any image:
-
-   height = width / ratio
-
-   For a stack:
-
-   total height =
-     width / ratio1
-     + width / ratio2
-     + ...
-     + vertical gaps
-
-   We solve the shared band height while accounting for all
-   10px gutters.
+   BUILD ONE DESKTOP / TABLET BAND
 --------------------------------------------------------- */
 
 function buildBand(
@@ -297,38 +277,19 @@ function buildBand(
 
 
 /* ---------------------------------------------------------
-   BUILD WALL
-
-   Completed bands remain stable as more images load.
-
-   Rare [1] patterns become full-width hero frames only when
-   the next image is at least 1.85:1.
-
-   If the candidate is narrower than 1.85, that hero slot
-   becomes a normal [1, 2, 1] band instead.
+   BUILD DESKTOP / TABLET WALL
 --------------------------------------------------------- */
 
 function buildWall(
-  images,
+  preparedImages,
   containerWidth
 ) {
   if (
     !containerWidth ||
-    !images.length
+    !preparedImages.length
   ) {
     return []
   }
-
-
-  const preparedImages =
-    images.map(image => ({
-      ...image,
-
-      _meta:
-        parseImageMeta(
-          image.dimensions
-        )
-    }))
 
 
   const patterns =
@@ -351,7 +312,6 @@ function buildWall(
     imageCursor <
     preparedImages.length
   ) {
-
     let pattern =
       patterns[
         bandIndex %
@@ -360,7 +320,10 @@ function buildWall(
 
 
     /*
-      HERO RULE
+      DESKTOP HERO RULE
+
+      [1] becomes full width only if
+      the candidate is at least 1.85.
     */
 
     if (
@@ -403,13 +366,6 @@ function buildWall(
       imageCursor
 
 
-    /*
-      Don't render an incomplete final band.
-
-      The leftover images wait for the next InfiniteScroll
-      batch, which keeps everything already above them stable.
-    */
-
     if (
       remaining <
       requiredImages
@@ -451,58 +407,531 @@ function buildWall(
 
 
 /* ---------------------------------------------------------
-   TETRIS WALL
+   DETERMINISTIC MOBILE "ROLL"
+
+   Same image ID = same result every render.
 --------------------------------------------------------- */
 
-function TetrisWall({
-  images,
-  onImageClick
-}) {
-  const wallRef =
-    useRef(null)
+function mobileRoll(id) {
+  const value =
+    String(id ?? '')
 
-  const [
-    containerWidth,
-    setContainerWidth
-  ] = useState(0)
+  let hash = 0
 
+  for (
+    let i = 0;
+    i < value.length;
+    i++
+  ) {
+    hash =
+      (
+        (hash << 5) -
+        hash
+      ) +
+      value.charCodeAt(i)
 
-  useEffect(() => {
-    if (!wallRef.current) {
-      return
-    }
+    hash |= 0
+  }
 
-
-    const measure = () => {
-      const width =
-        wallRef.current
-          .getBoundingClientRect()
-          .width
-
-      setContainerWidth(width)
-    }
-
-
-    measure()
+  return (
+    Math.abs(hash) %
+    100
+  )
+}
 
 
-    const resizeObserver =
-      new ResizeObserver(
-        measure
+/* ---------------------------------------------------------
+   MOBILE SIZE CLASS
+
+   > 1.85
+     100% full row
+
+   > 1.70 through 1.85
+     50% full
+     50% half
+
+   <= 1.70
+     25% full
+     50% half
+     25% small
+--------------------------------------------------------- */
+
+function getMobileSizeClass(
+  photo
+) {
+  const ratio =
+    photo._meta.ratio
+
+  const roll =
+    mobileRoll(photo.id)
+
+
+  if (ratio > 1.85) {
+    return 'full'
+  }
+
+
+  if (ratio > 1.70) {
+    return (
+      roll < 50
+        ? 'full'
+        : 'half'
+    )
+  }
+
+
+  if (roll < 25) {
+    return 'full'
+  }
+
+
+  if (roll < 75) {
+    return 'half'
+  }
+
+
+  return 'small'
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE ROW BUILDER
+
+   "full"
+     -> one image
+
+   "half"
+     -> tries to pair with next non-full image
+
+   "small"
+     -> tries to make a 3-image row
+
+   Important:
+   Wide images (>1.85) can NEVER be pulled into a multi-image
+   row because they are always classified "full".
+--------------------------------------------------------- */
+
+function buildMobileRows(
+  preparedImages
+) {
+  const rows = []
+
+  let cursor = 0
+
+
+  while (
+    cursor <
+    preparedImages.length
+  ) {
+    const current =
+      preparedImages[cursor]
+
+    const currentClass =
+      getMobileSizeClass(
+        current
       )
 
 
-    resizeObserver.observe(
-      wallRef.current
+    /*
+      FULL ROW
+    */
+
+    if (
+      currentClass === 'full'
+    ) {
+      rows.push({
+        type: 'full',
+        images: [current]
+      })
+
+      cursor += 1
+
+      continue
+    }
+
+
+    /*
+      SMALL
+
+      Try for a three-image row.
+
+      We only do it if the next TWO images
+      are also eligible for multi-image use.
+    */
+
+    if (
+      currentClass === 'small'
+    ) {
+      const second =
+        preparedImages[
+          cursor + 1
+        ]
+
+      const third =
+        preparedImages[
+          cursor + 2
+        ]
+
+
+      if (
+        second &&
+        third
+      ) {
+        const secondClass =
+          getMobileSizeClass(
+            second
+          )
+
+        const thirdClass =
+          getMobileSizeClass(
+            third
+          )
+
+
+        if (
+          secondClass !== 'full' &&
+          thirdClass !== 'full'
+        ) {
+          rows.push({
+            type: 'multi',
+            images: [
+              current,
+              second,
+              third
+            ]
+          })
+
+          cursor += 3
+
+          continue
+        }
+      }
+    }
+
+
+    /*
+      HALF
+
+      Or SMALL that couldn't make a 3-image row.
+
+      Try to pair with the next image.
+    */
+
+    const next =
+      preparedImages[
+        cursor + 1
+      ]
+
+
+    if (next) {
+      const nextClass =
+        getMobileSizeClass(
+          next
+        )
+
+
+      if (
+        nextClass !== 'full'
+      ) {
+        rows.push({
+          type: 'multi',
+          images: [
+            current,
+            next
+          ]
+        })
+
+        cursor += 2
+
+        continue
+      }
+    }
+
+
+    /*
+      If no suitable neighbor exists,
+      don't force anything.
+
+      Just give this image its own row.
+    */
+
+    rows.push({
+      type: 'full',
+      images: [current]
+    })
+
+    cursor += 1
+  }
+
+
+  return rows
+}
+
+
+/* ---------------------------------------------------------
+   SOLVE A MOBILE MULTI-IMAGE ROW
+
+   All images share the same height.
+
+   Since:
+     width = height * ratio
+
+   total width =
+     H*r1 + H*r2 + ...
+     + gutters
+
+   So:
+     H =
+       available image width /
+       sum of ratios
+--------------------------------------------------------- */
+
+function solveMobileRow(
+  images,
+  containerWidth
+) {
+  const count =
+    images.length
+
+  const availableWidth =
+    containerWidth -
+    GAP * (count - 1)
+
+
+  const ratioTotal =
+    images.reduce(
+      (sum, image) =>
+        sum +
+        image._meta.ratio,
+      0
     )
 
 
-    return () => {
-      resizeObserver.disconnect()
-    }
-  }, [])
+  const height =
+    availableWidth /
+    ratioTotal
 
 
+  const solvedImages =
+    images.map(image => ({
+      ...image,
+
+      _mobileWidth:
+        height *
+        image._meta.ratio
+    }))
+
+
+  return {
+    height,
+    images: solvedImages
+  }
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE WALL
+--------------------------------------------------------- */
+
+function MobileWall({
+  images,
+  containerWidth,
+  onImageClick
+}) {
+  const rows =
+    useMemo(
+      () =>
+        buildMobileRows(
+          images
+        ),
+      [images]
+    )
+
+
+  return (
+    <div className="w-full">
+      {rows.map(
+        (
+          row,
+          rowIndex
+        ) => {
+
+          /*
+            SINGLE IMAGE
+          */
+
+          if (
+            row.type === 'full'
+          ) {
+            const photo =
+              row.images[0]
+
+            return (
+              <div
+                key={
+                  `mobile-row-${rowIndex}`
+                }
+                className="w-full"
+                style={{
+                  marginBottom:
+                    rowIndex <
+                    rows.length - 1
+                      ? `${GAP}px`
+                      : 0
+                }}
+              >
+                <div
+                  className="relative w-full shrink-0 overflow-hidden cursor-zoom-in"
+                  style={{
+                    aspectRatio:
+                      `${photo._meta.ratio}`
+                  }}
+                  onClick={() =>
+                    onImageClick(
+                      photo.id
+                    )
+                  }
+                >
+                  {photo.src
+                    ?.toLowerCase()
+                    .includes(
+                      '.webm'
+                    ) ? (
+                    <video
+                      src={
+                        photo.src
+                      }
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      poster="/assets/transparent.png"
+                      className="block w-full h-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      alt={
+                        photo.name
+                      }
+                      src={
+                        photo.src
+                      }
+                      decoding="async"
+                      className="block w-full h-full object-contain"
+                    />
+                  )}
+                </div>
+              </div>
+            )
+          }
+
+
+          /*
+            MULTI-IMAGE ROW
+
+            All images have identical height,
+            but different widths according
+            to their native AR.
+          */
+
+          const solved =
+            solveMobileRow(
+              row.images,
+              containerWidth
+            )
+
+
+          return (
+            <div
+              key={
+                `mobile-row-${rowIndex}`
+              }
+              className="w-full flex"
+              style={{
+                gap:
+                  `${GAP}px`,
+
+                height:
+                  `${solved.height}px`,
+
+                marginBottom:
+                  rowIndex <
+                  rows.length - 1
+                    ? `${GAP}px`
+                    : 0
+              }}
+            >
+              {solved.images.map(
+                photo => (
+                  <div
+                    key={
+                      photo.id
+                    }
+                    className="relative shrink-0 overflow-hidden cursor-zoom-in"
+                    style={{
+                      width:
+                        `${photo._mobileWidth}px`,
+
+                      height:
+                        `${solved.height}px`
+                    }}
+                    onClick={() =>
+                      onImageClick(
+                        photo.id
+                      )
+                    }
+                  >
+                    {photo.src
+                      ?.toLowerCase()
+                      .includes(
+                        '.webm'
+                      ) ? (
+                      <video
+                        src={
+                          photo.src
+                        }
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                        poster="/assets/transparent.png"
+                        className="block w-full h-full object-contain"
+                      />
+                    ) : (
+                      <img
+                        alt={
+                          photo.name
+                        }
+                        src={
+                          photo.src
+                        }
+                        decoding="async"
+                        className="block w-full h-full object-contain"
+                      />
+                    )}
+                  </div>
+                )
+              )}
+            </div>
+          )
+        }
+      )}
+    </div>
+  )
+}
+
+
+/* ---------------------------------------------------------
+   DESKTOP / TABLET WALL
+--------------------------------------------------------- */
+
+function PackedWall({
+  images,
+  containerWidth,
+  onImageClick
+}) {
   const bands =
     useMemo(
       () =>
@@ -518,10 +947,7 @@ function TetrisWall({
 
 
   return (
-    <div
-      ref={wallRef}
-      className="w-full overflow-hidden"
-    >
+    <div className="w-full">
       {bands.map(
         (
           band,
@@ -628,6 +1054,122 @@ function TetrisWall({
 
 
 /* ---------------------------------------------------------
+   RESPONSIVE WALL
+
+   Measures the ACTUAL available wall width.
+
+   < 768:
+     AR-aware mobile system
+
+   >= 768:
+     Tetris system
+--------------------------------------------------------- */
+
+function TetrisWall({
+  images,
+  onImageClick
+}) {
+  const wallRef =
+    useRef(null)
+
+  const [
+    containerWidth,
+    setContainerWidth
+  ] = useState(0)
+
+
+  useEffect(() => {
+    if (!wallRef.current) {
+      return
+    }
+
+
+    const measure = () => {
+      const width =
+        wallRef.current
+          .getBoundingClientRect()
+          .width
+
+      setContainerWidth(
+        width
+      )
+    }
+
+
+    measure()
+
+
+    const resizeObserver =
+      new ResizeObserver(
+        measure
+      )
+
+
+    resizeObserver.observe(
+      wallRef.current
+    )
+
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [])
+
+
+  const preparedImages =
+    useMemo(
+      () =>
+        prepareImages(
+          images
+        ),
+      [images]
+    )
+
+
+  const isMobile =
+    containerWidth > 0 &&
+    containerWidth <
+      MOBILE_BREAKPOINT
+
+
+  return (
+    <div
+      ref={wallRef}
+      className="w-full"
+    >
+      {containerWidth > 0 && (
+        isMobile ? (
+          <MobileWall
+            images={
+              preparedImages
+            }
+            containerWidth={
+              containerWidth
+            }
+            onImageClick={
+              onImageClick
+            }
+          />
+        ) : (
+          <PackedWall
+            images={
+              preparedImages
+            }
+            containerWidth={
+              containerWidth
+            }
+            onImageClick={
+              onImageClick
+            }
+          />
+        )
+      )}
+    </div>
+  )
+}
+
+
+/* ---------------------------------------------------------
    PAGE
 --------------------------------------------------------- */
 
@@ -660,92 +1202,96 @@ export default function Tetris() {
   ------------------------------------------------------- */
 
   const slides =
-    Images.map(photo => {
-      const src =
-        photo.src ?? ''
+    useMemo(
+      () =>
+        Images.map(photo => {
+          const src =
+            photo.src ?? ''
 
-      const meta =
-        parseImageMeta(
-          photo.dimensions
-        )
+          const meta =
+            parseImageMeta(
+              photo.dimensions
+            )
 
-      const width =
-        meta.width ||
-        1920
+          const width =
+            meta.width ||
+            1920
 
-      const height =
-        meta.height ||
-        Math.round(
-          width /
-          meta.ratio
-        )
+          const height =
+            meta.height ||
+            Math.round(
+              width /
+              meta.ratio
+            )
 
 
-      if (
-        src
-          .toLowerCase()
-          .includes('.webm')
-      ) {
-        return {
-          type: 'video',
+          if (
+            src
+              .toLowerCase()
+              .includes('.webm')
+          ) {
+            return {
+              type: 'video',
 
-          width,
-          height,
+              width,
+              height,
 
-          title:
-            `${photo.caption}`,
+              title:
+                `${photo.caption}`,
 
-          description:
-            photo.dimensions,
+              description:
+                photo.dimensions,
 
-          director:
-            photo.director ||
-            null,
+              director:
+                photo.director ||
+                null,
 
-          year:
-            photo.year,
+              year:
+                photo.year,
 
-          sources: [
-            {
-              src,
-              type:
-                'video/webm'
+              sources: [
+                {
+                  src,
+                  type:
+                    'video/webm'
+                }
+              ],
+
+              poster:
+                '/assets/transparent.png',
+
+              autoPlay: true,
+              muted: true,
+              loop: true,
+              controls: false
             }
-          ],
-
-          poster:
-            '/assets/transparent.png',
-
-          autoPlay: true,
-          muted: true,
-          loop: true,
-          controls: false
-        }
-      }
+          }
 
 
-      return {
-        type: 'image',
+          return {
+            type: 'image',
 
-        src,
+            src,
 
-        width,
-        height,
+            width,
+            height,
 
-        title:
-          `${photo.caption}`,
+            title:
+              `${photo.caption}`,
 
-        description:
-          photo.dimensions,
+            description:
+              photo.dimensions,
 
-        director:
-          photo.director ||
-          null,
+            director:
+              photo.director ||
+              null,
 
-        year:
-          photo.year
-      }
-    })
+            year:
+              photo.year
+          }
+        }),
+      [Images]
+    )
 
 
   /* -------------------------------------------------------
@@ -926,8 +1472,10 @@ export default function Tetris() {
       return
     }
 
+
     wasCalled.current =
       true
+
 
     getImages()
   }, [])
@@ -988,15 +1536,18 @@ export default function Tetris() {
         {/* Navigation */}
 
         <div className="w-full flex justify-center items-center py-9">
+
           <div className="w-full grid place-items-center space-y-6">
 
             <Link href="/">
+
               <div
                 id="logo"
                 className="w-40 h-auto cursor-pointer"
               >
                 <AnimatedLogo />
               </div>
+
             </Link>
 
 
@@ -1009,18 +1560,22 @@ export default function Tetris() {
             >
 
               <Link href="/fade">
+
                 <img
                   src="/assets/crossfade.svg"
                   className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3.75px]"
                   alt=""
                 />
+
               </Link>
 
 
               <Link href="/scrl">
+
                 <RxDoubleArrowUp
                   className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle"
                 />
+
               </Link>
 
 
@@ -1032,15 +1587,20 @@ export default function Tetris() {
               />
 
             </div>
+
           </div>
+
         </div>
 
 
-        {/* Tetris wall */}
+        {/* Responsive wall */}
 
         {loader ? (
+
           <Loader />
+
         ) : (
+
           <InfiniteScroll
             dataLength={
               Images.length
@@ -1055,6 +1615,7 @@ export default function Tetris() {
               <MoreImageLoader />
             }
           >
+
             <TetrisWall
               images={
                 Images
@@ -1063,13 +1624,16 @@ export default function Tetris() {
                 handleImageClick
               }
             />
+
           </InfiniteScroll>
+
         )}
 
 
         {/* Lightbox */}
 
         {slides && (
+
           <Lightbox
             index={
               index
@@ -1091,6 +1655,7 @@ export default function Tetris() {
                 ({
                   slide
                 }) => (
+
                   <div
                     className={cn(
                       "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
@@ -1102,11 +1667,13 @@ export default function Tetris() {
                   >
 
                     {slide.title && (
+
                       <div className="yarl__slide_title">
                         {
                           slide.title
                         }
                       </div>
+
                     )}
 
 
@@ -1120,30 +1687,38 @@ export default function Tetris() {
                     >
 
                       {slide.director && (
+
                         <div className="yarl__slide_description !text-[#99AABB]">
+
                           <span className="font-medium">
                             {
                               slide.director
                             }
                           </span>
+
                         </div>
+
                       )}
 
 
                       {slide.description && (
+
                         <div className="yarl__slide_description">
                           {
                             slide.description
                           }
                         </div>
+
                       )}
 
                     </div>
 
                   </div>
+
                 )
             }}
           />
+
         )}
 
       </div>
