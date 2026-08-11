@@ -322,8 +322,8 @@ function buildWall(
     /*
       DESKTOP HERO RULE
 
-      [1] becomes full width only if
-      the candidate is at least 1.85.
+      [1] becomes full width only if the
+      candidate is at least 1.85.
     */
 
     if (
@@ -407,9 +407,10 @@ function buildWall(
 
 
 /* ---------------------------------------------------------
-   DETERMINISTIC MOBILE "ROLL"
+   DETERMINISTIC MOBILE ROLL
 
-   Same image ID = same result every render.
+   The same image gets the same mobile classification
+   on every render.
 --------------------------------------------------------- */
 
 function mobileRoll(id) {
@@ -443,17 +444,25 @@ function mobileRoll(id) {
 /* ---------------------------------------------------------
    MOBILE SIZE CLASS
 
+   There are now ONLY TWO possibilities:
+
+   FULL
+     image gets its own row
+
+   PAIR
+     image is eligible to share a row with one other image
+
+
    > 1.85
-     100% full row
+     100% full
 
    > 1.70 through 1.85
-     50% full
-     50% half
+     35% full
+     65% pair
 
    <= 1.70
-     25% full
-     50% half
-     25% small
+     15% full
+     85% pair
 --------------------------------------------------------- */
 
 function getMobileSizeClass(
@@ -466,49 +475,58 @@ function getMobileSizeClass(
     mobileRoll(photo.id)
 
 
+  /*
+    Wide formats always get the entire row.
+  */
+
   if (ratio > 1.85) {
     return 'full'
   }
 
 
+  /*
+    1.71 through 1.85
+
+    35% full
+    65% pair
+  */
+
   if (ratio > 1.70) {
     return (
-      roll < 50
+      roll < 35
         ? 'full'
-        : 'half'
+        : 'pair'
     )
   }
 
 
-  if (roll < 25) {
-    return 'full'
-  }
+  /*
+    1.70 and below
 
+    15% full
+    85% pair
+  */
 
-  if (roll < 75) {
-    return 'half'
-  }
-
-
-  return 'small'
+  return (
+    roll < 15
+      ? 'full'
+      : 'pair'
+  )
 }
 
 
 /* ---------------------------------------------------------
    MOBILE ROW BUILDER
 
-   "full"
-     -> one image
+   Maximum = TWO images per row.
 
-   "half"
-     -> tries to pair with next non-full image
+   We preserve image order.
 
-   "small"
-     -> tries to make a 3-image row
+   A pair is made only when BOTH consecutive images
+   are pair-eligible.
 
-   Important:
-   Wide images (>1.85) can NEVER be pulled into a multi-image
-   row because they are always classified "full".
+   Wide images can therefore never accidentally become
+   small thumbnails.
 --------------------------------------------------------- */
 
 function buildMobileRows(
@@ -533,7 +551,8 @@ function buildMobileRows(
 
 
     /*
-      FULL ROW
+      CURRENT IMAGE REQUIRES
+      ITS OWN ROW
     */
 
     if (
@@ -551,70 +570,9 @@ function buildMobileRows(
 
 
     /*
-      SMALL
+      CURRENT IMAGE IS PAIR-ELIGIBLE.
 
-      Try for a three-image row.
-
-      We only do it if the next TWO images
-      are also eligible for multi-image use.
-    */
-
-    if (
-      currentClass === 'small'
-    ) {
-      const second =
-        preparedImages[
-          cursor + 1
-        ]
-
-      const third =
-        preparedImages[
-          cursor + 2
-        ]
-
-
-      if (
-        second &&
-        third
-      ) {
-        const secondClass =
-          getMobileSizeClass(
-            second
-          )
-
-        const thirdClass =
-          getMobileSizeClass(
-            third
-          )
-
-
-        if (
-          secondClass !== 'full' &&
-          thirdClass !== 'full'
-        ) {
-          rows.push({
-            type: 'multi',
-            images: [
-              current,
-              second,
-              third
-            ]
-          })
-
-          cursor += 3
-
-          continue
-        }
-      }
-    }
-
-
-    /*
-      HALF
-
-      Or SMALL that couldn't make a 3-image row.
-
-      Try to pair with the next image.
+      Look immediately at the next image.
     */
 
     const next =
@@ -623,36 +581,60 @@ function buildMobileRows(
       ]
 
 
-    if (next) {
-      const nextClass =
-        getMobileSizeClass(
+    /*
+      No next image yet.
+
+      Render the final orphan full-width.
+    */
+
+    if (!next) {
+      rows.push({
+        type: 'full',
+        images: [current]
+      })
+
+      cursor += 1
+
+      continue
+    }
+
+
+    const nextClass =
+      getMobileSizeClass(
+        next
+      )
+
+
+    /*
+      BOTH ARE PAIR-ELIGIBLE.
+
+      Put exactly two images on this row.
+    */
+
+    if (
+      nextClass === 'pair'
+    ) {
+      rows.push({
+        type: 'pair',
+        images: [
+          current,
           next
-        )
+        ]
+      })
 
+      cursor += 2
 
-      if (
-        nextClass !== 'full'
-      ) {
-        rows.push({
-          type: 'multi',
-          images: [
-            current,
-            next
-          ]
-        })
-
-        cursor += 2
-
-        continue
-      }
+      continue
     }
 
 
     /*
-      If no suitable neighbor exists,
-      don't force anything.
+      The next image requires full width.
 
-      Just give this image its own row.
+      Don't reorder anything and don't force
+      an inappropriate pairing.
+
+      Current image gets its own row.
     */
 
     rows.push({
@@ -669,33 +651,35 @@ function buildMobileRows(
 
 
 /* ---------------------------------------------------------
-   SOLVE A MOBILE MULTI-IMAGE ROW
+   SOLVE A MOBILE PAIR
 
-   All images share the same height.
+   Both images have the same displayed height.
 
-   Since:
-     width = height * ratio
+   Their native aspect ratios determine their widths.
 
-   total width =
-     H*r1 + H*r2 + ...
-     + gutters
+   width = height × ratio
 
-   So:
-     H =
-       available image width /
-       sum of ratios
+   Therefore:
+
+   H =
+     (container width - 10px gap)
+     /
+     (ratio1 + ratio2)
+
+   This guarantees:
+
+   - native AR for both
+   - exactly 10px between them
+   - row lands exactly on both outer edges
 --------------------------------------------------------- */
 
-function solveMobileRow(
+function solveMobilePair(
   images,
   containerWidth
 ) {
-  const count =
-    images.length
-
   const availableWidth =
     containerWidth -
-    GAP * (count - 1)
+    GAP
 
 
   const ratioTotal =
@@ -750,6 +734,7 @@ function MobileWall({
 
   return (
     <div className="w-full">
+
       {rows.map(
         (
           row,
@@ -757,7 +742,7 @@ function MobileWall({
         ) => {
 
           /*
-            SINGLE IMAGE
+            FULL-WIDTH IMAGE
           */
 
           if (
@@ -765,6 +750,7 @@ function MobileWall({
           ) {
             const photo =
               row.images[0]
+
 
             return (
               <div
@@ -780,6 +766,7 @@ function MobileWall({
                       : 0
                 }}
               >
+
                 <div
                   className="relative w-full shrink-0 overflow-hidden cursor-zoom-in"
                   style={{
@@ -792,11 +779,13 @@ function MobileWall({
                     )
                   }
                 >
+
                   {photo.src
                     ?.toLowerCase()
                     .includes(
                       '.webm'
                     ) ? (
+
                     <video
                       src={
                         photo.src
@@ -809,7 +798,9 @@ function MobileWall({
                       poster="/assets/transparent.png"
                       className="block w-full h-full object-contain"
                     />
+
                   ) : (
+
                     <img
                       alt={
                         photo.name
@@ -820,23 +811,22 @@ function MobileWall({
                       decoding="async"
                       className="block w-full h-full object-contain"
                     />
+
                   )}
+
                 </div>
+
               </div>
             )
           }
 
 
           /*
-            MULTI-IMAGE ROW
-
-            All images have identical height,
-            but different widths according
-            to their native AR.
+            TWO-IMAGE ROW
           */
 
           const solved =
-            solveMobileRow(
+            solveMobilePair(
               row.images,
               containerWidth
             )
@@ -862,8 +852,10 @@ function MobileWall({
                     : 0
               }}
             >
+
               {solved.images.map(
                 photo => (
+
                   <div
                     key={
                       photo.id
@@ -882,11 +874,13 @@ function MobileWall({
                       )
                     }
                   >
+
                     {photo.src
                       ?.toLowerCase()
                       .includes(
                         '.webm'
                       ) ? (
+
                       <video
                         src={
                           photo.src
@@ -899,7 +893,9 @@ function MobileWall({
                         poster="/assets/transparent.png"
                         className="block w-full h-full object-contain"
                       />
+
                     ) : (
+
                       <img
                         alt={
                           photo.name
@@ -910,14 +906,19 @@ function MobileWall({
                         decoding="async"
                         className="block w-full h-full object-contain"
                       />
+
                     )}
+
                   </div>
+
                 )
               )}
+
             </div>
           )
         }
       )}
+
     </div>
   )
 }
@@ -948,11 +949,13 @@ function PackedWall({
 
   return (
     <div className="w-full">
+
       {bands.map(
         (
           band,
           bandIndex
         ) => (
+
           <div
             key={
               `band-${bandIndex}`
@@ -972,11 +975,13 @@ function PackedWall({
                   : 0
             }}
           >
+
             {band.columns.map(
               (
                 column,
                 columnIndex
               ) => (
+
                 <div
                   key={
                     `column-${bandIndex}-${columnIndex}`
@@ -993,8 +998,10 @@ function PackedWall({
                       `${GAP}px`
                   }}
                 >
+
                   {column.items.map(
                     photo => (
+
                       <div
                         key={
                           photo.id
@@ -1010,11 +1017,13 @@ function PackedWall({
                           )
                         }
                       >
+
                         {photo.src
                           ?.toLowerCase()
                           .includes(
                             '.webm'
                           ) ? (
+
                           <video
                             src={
                               photo.src
@@ -1027,7 +1036,9 @@ function PackedWall({
                             poster="/assets/transparent.png"
                             className="block w-full h-full object-contain"
                           />
+
                         ) : (
+
                           <img
                             alt={
                               photo.name
@@ -1038,16 +1049,24 @@ function PackedWall({
                             decoding="async"
                             className="block w-full h-full object-contain"
                           />
+
                         )}
+
                       </div>
+
                     )
                   )}
+
                 </div>
+
               )
             )}
+
           </div>
+
         )
       )}
+
     </div>
   )
 }
@@ -1056,13 +1075,12 @@ function PackedWall({
 /* ---------------------------------------------------------
    RESPONSIVE WALL
 
-   Measures the ACTUAL available wall width.
+   < 768px:
+     AR-aware mobile layout
+     maximum 2 images per row
 
-   < 768:
-     AR-aware mobile system
-
-   >= 768:
-     Tetris system
+   >= 768px:
+     existing Tetris layout
 --------------------------------------------------------- */
 
 function TetrisWall({
@@ -1137,8 +1155,11 @@ function TetrisWall({
       ref={wallRef}
       className="w-full"
     >
+
       {containerWidth > 0 && (
+
         isMobile ? (
+
           <MobileWall
             images={
               preparedImages
@@ -1150,7 +1171,9 @@ function TetrisWall({
               onImageClick
             }
           />
+
         ) : (
+
           <PackedWall
             images={
               preparedImages
@@ -1162,8 +1185,11 @@ function TetrisWall({
               onImageClick
             }
           />
+
         )
+
       )}
+
     </div>
   )
 }
