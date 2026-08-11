@@ -26,9 +26,6 @@ const MOBILE_BREAKPOINT = 768
 
 /* ---------------------------------------------------------
    METADATA
-
-   Example:
-   1.33:1 | 1436×1080 | 334 KB | WEBP
 --------------------------------------------------------- */
 
 function parseImageMeta(dimensions) {
@@ -84,11 +81,9 @@ function parseImageMeta(dimensions) {
 function prepareImages(images) {
   return images.map(image => ({
     ...image,
-
-    _meta:
-      parseImageMeta(
-        image.dimensions
-      )
+    _meta: parseImageMeta(
+      image.dimensions
+    )
   }))
 }
 
@@ -319,13 +314,6 @@ function buildWall(
       ]
 
 
-    /*
-      DESKTOP HERO RULE
-
-      [1] becomes full width only if the
-      candidate is at least 1.85.
-    */
-
     if (
       isDesktop &&
       pattern.length === 1 &&
@@ -408,9 +396,6 @@ function buildWall(
 
 /* ---------------------------------------------------------
    DETERMINISTIC MOBILE ROLL
-
-   The same image gets the same mobile classification
-   on every render.
 --------------------------------------------------------- */
 
 function mobileRoll(id) {
@@ -444,25 +429,16 @@ function mobileRoll(id) {
 /* ---------------------------------------------------------
    MOBILE SIZE CLASS
 
-   There are now ONLY TWO possibilities:
-
-   FULL
-     image gets its own row
-
-   PAIR
-     image is eligible to share a row with one other image
-
-
    > 1.85
      100% full
 
    > 1.70 through 1.85
-     35% full
-     65% pair
+     20% full
+     80% pair
 
    <= 1.70
-     15% full
-     85% pair
+     5% full
+     95% pair
 --------------------------------------------------------- */
 
 function getMobileSizeClass(
@@ -475,40 +451,22 @@ function getMobileSizeClass(
     mobileRoll(photo.id)
 
 
-  /*
-    Wide formats always get the entire row.
-  */
-
   if (ratio > 1.85) {
     return 'full'
   }
 
 
-  /*
-    1.71 through 1.85
-
-    35% full
-    65% pair
-  */
-
   if (ratio > 1.70) {
     return (
-      roll < 35
+      roll < 20
         ? 'full'
         : 'pair'
     )
   }
 
 
-  /*
-    1.70 and below
-
-    15% full
-    85% pair
-  */
-
   return (
-    roll < 15
+    roll < 5
       ? 'full'
       : 'pair'
   )
@@ -518,15 +476,7 @@ function getMobileSizeClass(
 /* ---------------------------------------------------------
    MOBILE ROW BUILDER
 
-   Maximum = TWO images per row.
-
-   We preserve image order.
-
-   A pair is made only when BOTH consecutive images
-   are pair-eligible.
-
-   Wide images can therefore never accidentally become
-   small thumbnails.
+   Maximum two images per row.
 --------------------------------------------------------- */
 
 function buildMobileRows(
@@ -550,11 +500,6 @@ function buildMobileRows(
       )
 
 
-    /*
-      CURRENT IMAGE REQUIRES
-      ITS OWN ROW
-    */
-
     if (
       currentClass === 'full'
     ) {
@@ -569,23 +514,11 @@ function buildMobileRows(
     }
 
 
-    /*
-      CURRENT IMAGE IS PAIR-ELIGIBLE.
-
-      Look immediately at the next image.
-    */
-
     const next =
       preparedImages[
         cursor + 1
       ]
 
-
-    /*
-      No next image yet.
-
-      Render the final orphan full-width.
-    */
 
     if (!next) {
       rows.push({
@@ -605,12 +538,6 @@ function buildMobileRows(
       )
 
 
-    /*
-      BOTH ARE PAIR-ELIGIBLE.
-
-      Put exactly two images on this row.
-    */
-
     if (
       nextClass === 'pair'
     ) {
@@ -628,15 +555,6 @@ function buildMobileRows(
     }
 
 
-    /*
-      The next image requires full width.
-
-      Don't reorder anything and don't force
-      an inappropriate pairing.
-
-      Current image gets its own row.
-    */
-
     rows.push({
       type: 'full',
       images: [current]
@@ -652,25 +570,6 @@ function buildMobileRows(
 
 /* ---------------------------------------------------------
    SOLVE A MOBILE PAIR
-
-   Both images have the same displayed height.
-
-   Their native aspect ratios determine their widths.
-
-   width = height × ratio
-
-   Therefore:
-
-   H =
-     (container width - 10px gap)
-     /
-     (ratio1 + ratio2)
-
-   This guarantees:
-
-   - native AR for both
-   - exactly 10px between them
-   - row lands exactly on both outer edges
 --------------------------------------------------------- */
 
 function solveMobilePair(
@@ -740,10 +639,6 @@ function MobileWall({
           row,
           rowIndex
         ) => {
-
-          /*
-            FULL-WIDTH IMAGE
-          */
 
           if (
             row.type === 'full'
@@ -820,10 +715,6 @@ function MobileWall({
             )
           }
 
-
-          /*
-            TWO-IMAGE ROW
-          */
 
           const solved =
             solveMobilePair(
@@ -1074,13 +965,6 @@ function PackedWall({
 
 /* ---------------------------------------------------------
    RESPONSIVE WALL
-
-   < 768px:
-     AR-aware mobile layout
-     maximum 2 images per row
-
-   >= 768px:
-     existing Tetris layout
 --------------------------------------------------------- */
 
 function TetrisWall({
