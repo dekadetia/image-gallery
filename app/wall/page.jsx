@@ -31,21 +31,28 @@ const GAP = 10
 --------------------------------------------------------- */
 
 function parseImageMeta(dimensions) {
-  const parts = dimensions?.split('|').map(part => part.trim()) ?? []
+  const parts =
+    dimensions
+      ?.split('|')
+      .map(part => part.trim()) ?? []
 
-  const declaredRatio = parseFloat(parts[0])
+  const declaredRatio =
+    parseFloat(parts[0])
 
-  const dimensionMatch = parts[1]?.match(
-    /(\d+)\s*[×x]\s*(\d+)/i
-  )
+  const dimensionMatch =
+    parts[1]?.match(
+      /(\d+)\s*[×x]\s*(\d+)/i
+    )
 
-  const width = dimensionMatch
-    ? Number(dimensionMatch[1])
-    : null
+  const width =
+    dimensionMatch
+      ? Number(dimensionMatch[1])
+      : null
 
-  const height = dimensionMatch
-    ? Number(dimensionMatch[2])
-    : null
+  const height =
+    dimensionMatch
+      ? Number(dimensionMatch[2])
+      : null
 
   const intrinsicRatio =
     width && height
@@ -72,27 +79,44 @@ function parseImageMeta(dimensions) {
 /* ---------------------------------------------------------
    PACKING PATTERNS
 
-   Desktop now favors THREE structural columns.
+   Desktop rhythm:
 
-   This makes the average image substantially larger while
-   preserving the irregular Tetris structure.
+   - mostly 3 columns
+   - occasional 4-column dense bands
+   - occasional 2-column large bands
+   - very rare full-width hero
 
-   A few four-column patterns remain to prevent the wall from
-   becoming too regular.
+   Each number is the number of vertically stacked images
+   in that structural column.
 --------------------------------------------------------- */
 
-const DESKTOP_PATTERNS = [
+const DESKTOP_SEQUENCE = [
   [1, 2, 2],
   [2, 1, 2],
+  [1, 2],
   [2, 2, 1],
 
   [1, 2, 1],
-  [2, 1, 1],
-  [1, 1, 2],
-
   [1, 2, 2, 2],
-  [2, 2, 1, 2]
+  [2, 1, 1],
+  [2, 1, 2],
+
+  [2, 1],
+  [1, 1, 2],
+  [2, 2, 1],
+  [2, 2, 1, 2],
+
+  [1, 2, 2],
+  [1, 2, 1],
+  [1],
+  [2, 1, 2],
+
+  [2, 2, 1],
+  [1, 2],
+  [1, 1, 2],
+  [2, 1, 1]
 ]
+
 
 const TABLET_PATTERNS = [
   [1, 2, 2],
@@ -103,6 +127,7 @@ const TABLET_PATTERNS = [
   [3, 1, 1],
   [1, 1, 3]
 ]
+
 
 const MOBILE_PATTERNS = [
   [1, 2],
@@ -119,92 +144,88 @@ function getPatterns(containerWidth) {
     return TABLET_PATTERNS
   }
 
-  return DESKTOP_PATTERNS
+  return DESKTOP_SEQUENCE
 }
 
 
 /* ---------------------------------------------------------
    BUILD ONE BAND
+
+   Every column in a band ends at exactly the same height.
+
+   For any image:
+
+   height = width / ratio
+
+   For a stack:
+
+   total height =
+     width / ratio1
+     + width / ratio2
+     + ...
+     + vertical gaps
+
+   We solve the shared band height while accounting for all
+   10px gutters.
 --------------------------------------------------------- */
 
-function buildBand(images, pattern, containerWidth) {
+function buildBand(
+  images,
+  pattern,
+  containerWidth
+) {
   let cursor = 0
 
-  const columnCount = pattern.length
-
-  /*
-    Subtract the horizontal gutters before solving
-    the image widths.
-  */
+  const columnCount =
+    pattern.length
 
   const availableImageWidth =
-    containerWidth - GAP * (columnCount - 1)
+    containerWidth -
+    GAP * (columnCount - 1)
 
   if (availableImageWidth <= 0) {
     return null
   }
 
 
-  const columns = pattern.map(count => {
-    const items = images.slice(
-      cursor,
-      cursor + count
-    )
+  const columns =
+    pattern.map(count => {
+      const items =
+        images.slice(
+          cursor,
+          cursor + count
+        )
 
-    cursor += count
-
-
-    /*
-      If column width is W:
-
-      image height = W / aspectRatio
-
-      So the total image height of this stack is:
-
-      W * (1/r1 + 1/r2 + ...)
-    */
-
-    const stackWeight = items.reduce(
-      (sum, image) => {
-        return sum + 1 / image._meta.ratio
-      },
-      0
-    )
+      cursor += count
 
 
-    /*
-      Two stacked images have one 10px gutter.
-      Three stacked images have two.
-    */
-
-    const verticalGapHeight =
-      GAP * Math.max(
-        0,
-        items.length - 1
-      )
-
-
-    return {
-      items,
-      stackWeight,
-      verticalGapHeight
-    }
-  })
+      const stackWeight =
+        items.reduce(
+          (sum, image) => {
+            return (
+              sum +
+              1 / image._meta.ratio
+            )
+          },
+          0
+        )
 
 
-  /*
-    Every column must finish at the same vertical position.
+      const verticalGapHeight =
+        GAP *
+        Math.max(
+          0,
+          items.length - 1
+        )
 
-    H = width * stackWeight + verticalGapHeight
 
-    therefore:
+      return {
+        items,
+        stackWeight,
+        verticalGapHeight
+      }
+    })
 
-    width =
-      (H - verticalGapHeight) / stackWeight
-
-    Solve H so that all column widths plus the horizontal
-    gutters equal the container width.
-  */
 
   const denominator =
     columns.reduce(
@@ -258,7 +279,9 @@ function buildBand(images, pattern, containerWidth) {
   if (
     solvedColumns.some(
       column =>
-        !Number.isFinite(column.width) ||
+        !Number.isFinite(
+          column.width
+        ) ||
         column.width <= 0
     )
   ) {
@@ -276,13 +299,19 @@ function buildBand(images, pattern, containerWidth) {
 /* ---------------------------------------------------------
    BUILD WALL
 
-   We only render COMPLETE bands.
+   Completed bands remain stable as more images load.
 
-   This keeps infinite-scroll additions from disturbing
-   already-completed geometry.
+   Rare [1] patterns become full-width hero frames only when
+   the next image is at least 1.85:1.
+
+   If the candidate is narrower than 1.85, that hero slot
+   becomes a normal [1, 2, 1] band instead.
 --------------------------------------------------------- */
 
-function buildWall(images, containerWidth) {
+function buildWall(
+  images,
+  containerWidth
+) {
   if (
     !containerWidth ||
     !images.length
@@ -294,6 +323,7 @@ function buildWall(images, containerWidth) {
   const preparedImages =
     images.map(image => ({
       ...image,
+
       _meta:
         parseImageMeta(
           image.dimensions
@@ -302,7 +332,13 @@ function buildWall(images, containerWidth) {
 
 
   const patterns =
-    getPatterns(containerWidth)
+    getPatterns(
+      containerWidth
+    )
+
+
+  const isDesktop =
+    containerWidth >= 1024
 
 
   const bands = []
@@ -316,11 +352,42 @@ function buildWall(images, containerWidth) {
     preparedImages.length
   ) {
 
-    const pattern =
+    let pattern =
       patterns[
         bandIndex %
         patterns.length
       ]
+
+
+    /*
+      HERO RULE
+    */
+
+    if (
+      isDesktop &&
+      pattern.length === 1 &&
+      pattern[0] === 1
+    ) {
+      const candidate =
+        preparedImages[
+          imageCursor
+        ]
+
+      const candidateRatio =
+        candidate?._meta?.ratio ||
+        0
+
+
+      if (
+        candidateRatio < 1.85
+      ) {
+        pattern = [
+          1,
+          2,
+          1
+        ]
+      }
+    }
 
 
     const requiredImages =
@@ -337,8 +404,10 @@ function buildWall(images, containerWidth) {
 
 
     /*
-      Hold incomplete final pieces until another
-      InfiniteScroll batch arrives.
+      Don't render an incomplete final band.
+
+      The leftover images wait for the next InfiniteScroll
+      batch, which keeps everything already above them stable.
     */
 
     if (
@@ -389,7 +458,6 @@ function TetrisWall({
   images,
   onImageClick
 }) {
-
   const wallRef =
     useRef(null)
 
@@ -454,20 +522,19 @@ function TetrisWall({
       ref={wallRef}
       className="w-full overflow-hidden"
     >
-
       {bands.map(
         (
           band,
           bandIndex
         ) => (
-
           <div
             key={
               `band-${bandIndex}`
             }
             className="w-full flex"
             style={{
-              gap: `${GAP}px`,
+              gap:
+                `${GAP}px`,
 
               height:
                 `${band.height}px`,
@@ -479,13 +546,11 @@ function TetrisWall({
                   : 0
             }}
           >
-
             {band.columns.map(
               (
                 column,
                 columnIndex
               ) => (
-
                 <div
                   key={
                     `column-${bandIndex}-${columnIndex}`
@@ -502,15 +567,13 @@ function TetrisWall({
                       `${GAP}px`
                   }}
                 >
-
                   {column.items.map(
                     photo => (
-
                       <div
                         key={
                           photo.id
                         }
-                        className="relative w-full overflow-hidden cursor-zoom-in"
+                        className="relative w-full shrink-0 overflow-hidden cursor-zoom-in"
                         style={{
                           aspectRatio:
                             `${photo._meta.ratio}`
@@ -521,13 +584,11 @@ function TetrisWall({
                           )
                         }
                       >
-
                         {photo.src
                           ?.toLowerCase()
                           .includes(
                             '.webm'
                           ) ? (
-
                           <video
                             src={
                               photo.src
@@ -540,9 +601,7 @@ function TetrisWall({
                             poster="/assets/transparent.png"
                             className="block w-full h-full object-contain"
                           />
-
                         ) : (
-
                           <img
                             alt={
                               photo.name
@@ -553,24 +612,16 @@ function TetrisWall({
                             decoding="async"
                             className="block w-full h-full object-contain"
                           />
-
                         )}
-
                       </div>
-
                     )
                   )}
-
                 </div>
-
               )
             )}
-
           </div>
-
         )
       )}
-
     </div>
   )
 }
@@ -581,7 +632,6 @@ function TetrisWall({
 --------------------------------------------------------- */
 
 export default function Tetris() {
-
   const [
     index,
     setIndex
@@ -611,7 +661,6 @@ export default function Tetris() {
 
   const slides =
     Images.map(photo => {
-
       const src =
         photo.src ?? ''
 
@@ -619,7 +668,6 @@ export default function Tetris() {
         parseImageMeta(
           photo.dimensions
         )
-
 
       const width =
         meta.width ||
@@ -638,7 +686,6 @@ export default function Tetris() {
           .toLowerCase()
           .includes('.webm')
       ) {
-
         return {
           type: 'video',
 
@@ -717,7 +764,6 @@ export default function Tetris() {
 
 
       try {
-
         const response =
           await fetch(
             `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
@@ -733,7 +779,6 @@ export default function Tetris() {
 
 
         if (response.ok) {
-
           const data =
             await response.json()
 
@@ -766,21 +811,16 @@ export default function Tetris() {
           )
 
         } else {
-
           console.error(
             'Failed to get files'
           )
-
         }
 
       } catch (error) {
-
         console.log(error)
 
       } finally {
-
         __loader(false)
-
       }
     }
 
@@ -801,7 +841,6 @@ export default function Tetris() {
 
 
       try {
-
         const response =
           await fetch(
             `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
@@ -817,7 +856,6 @@ export default function Tetris() {
 
 
         if (response.ok) {
-
           const data =
             await response.json()
 
@@ -836,21 +874,16 @@ export default function Tetris() {
           setImages(images)
 
         } else {
-
           console.error(
             'Failed to get files'
           )
-
         }
 
       } catch (error) {
-
         console.log(error)
 
       } finally {
-
         __loader(false)
-
       }
     }
 
@@ -887,20 +920,16 @@ export default function Tetris() {
   ------------------------------------------------------- */
 
   useEffect(() => {
-
     if (
       wasCalled.current
     ) {
       return
     }
 
-
     wasCalled.current =
       true
 
-
     getImages()
-
   }, [])
 
 
@@ -909,7 +938,6 @@ export default function Tetris() {
   ------------------------------------------------------- */
 
   useEffect(() => {
-
     if (!slides.length) {
       return
     }
@@ -918,7 +946,6 @@ export default function Tetris() {
     const observer =
       new MutationObserver(
         () => {
-
           document
             .querySelectorAll(
               '.yarl__button[title="Close"]'
@@ -930,7 +957,6 @@ export default function Tetris() {
                 )
               }
             )
-
         }
       )
 
@@ -947,7 +973,6 @@ export default function Tetris() {
     return () => {
       observer.disconnect()
     }
-
   }, [slides])
 
 
@@ -956,28 +981,22 @@ export default function Tetris() {
   ------------------------------------------------------- */
 
   return (
-
     <RootLayout>
 
       <div className="px-4 lg:px-16 pb-10">
 
-
         {/* Navigation */}
 
         <div className="w-full flex justify-center items-center py-9">
-
           <div className="w-full grid place-items-center space-y-6">
 
-
             <Link href="/">
-
               <div
                 id="logo"
                 className="w-40 h-auto cursor-pointer"
               >
                 <AnimatedLogo />
               </div>
-
             </Link>
 
 
@@ -989,24 +1008,19 @@ export default function Tetris() {
               }}
             >
 
-
               <Link href="/fade">
-
                 <img
                   src="/assets/crossfade.svg"
                   className="w-[1.4rem] object-contain transition-all duration-200 hover:scale-105 align-middle mr-[3.75px]"
                   alt=""
                 />
-
               </Link>
 
 
               <Link href="/scrl">
-
                 <RxDoubleArrowUp
                   className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle"
                 />
-
               </Link>
 
 
@@ -1017,22 +1031,16 @@ export default function Tetris() {
                 className="cursor-pointer transition-all duration-200 hover:scale-105 text-2xl align-middle ml-[3.75px]"
               />
 
-
             </div>
-
           </div>
-
         </div>
 
 
         {/* Tetris wall */}
 
         {loader ? (
-
           <Loader />
-
         ) : (
-
           <InfiniteScroll
             dataLength={
               Images.length
@@ -1047,7 +1055,6 @@ export default function Tetris() {
               <MoreImageLoader />
             }
           >
-
             <TetrisWall
               images={
                 Images
@@ -1056,16 +1063,13 @@ export default function Tetris() {
                 handleImageClick
               }
             />
-
           </InfiniteScroll>
-
         )}
 
 
         {/* Lightbox */}
 
         {slides && (
-
           <Lightbox
             index={
               index
@@ -1087,7 +1091,6 @@ export default function Tetris() {
                 ({
                   slide
                 }) => (
-
                   <div
                     className={cn(
                       "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
@@ -1099,13 +1102,11 @@ export default function Tetris() {
                   >
 
                     {slide.title && (
-
                       <div className="yarl__slide_title">
                         {
                           slide.title
                         }
                       </div>
-
                     )}
 
 
@@ -1119,38 +1120,30 @@ export default function Tetris() {
                     >
 
                       {slide.director && (
-
                         <div className="yarl__slide_description !text-[#99AABB]">
-
                           <span className="font-medium">
                             {
                               slide.director
                             }
                           </span>
-
                         </div>
-
                       )}
 
 
                       {slide.description && (
-
                         <div className="yarl__slide_description">
                           {
                             slide.description
                           }
                         </div>
-
                       )}
 
                     </div>
 
                   </div>
-
                 )
             }}
           />
-
         )}
 
       </div>
@@ -1160,8 +1153,6 @@ export default function Tetris() {
         <Footer />
       )}
 
-
     </RootLayout>
-
   )
 }
