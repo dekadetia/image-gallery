@@ -66,9 +66,10 @@ function parseImageMeta(dimensions) {
     width,
     height,
 
+    // Wall geometry follows TNDR's declared ratio first.
     ratio:
-      intrinsicRatio ||
       declaredRatio ||
+      intrinsicRatio ||
       16 / 9
   }
 }
@@ -119,7 +120,6 @@ const DESKTOP_SEQUENCE = [
   [2, 1, 1]
 ]
 
-
 const TABLET_PATTERNS = [
   [1, 2, 2],
   [2, 1, 2],
@@ -129,7 +129,6 @@ const TABLET_PATTERNS = [
   [3, 1, 1],
   [1, 1, 3]
 ]
-
 
 function getPatterns(containerWidth) {
   if (containerWidth < 1024) {
@@ -162,7 +161,6 @@ function buildBand(
     return null
   }
 
-
   const columns =
     pattern.map(count => {
       const items =
@@ -172,7 +170,6 @@ function buildBand(
         )
 
       cursor += count
-
 
       const stackWeight =
         items.reduce(
@@ -185,7 +182,6 @@ function buildBand(
           0
         )
 
-
       const verticalGapHeight =
         GAP *
         Math.max(
@@ -193,14 +189,12 @@ function buildBand(
           items.length - 1
         )
 
-
       return {
         items,
         stackWeight,
         verticalGapHeight
       }
     })
-
 
   const denominator =
     columns.reduce(
@@ -212,7 +206,6 @@ function buildBand(
       },
       0
     )
-
 
   const gapAdjustment =
     columns.reduce(
@@ -226,14 +219,12 @@ function buildBand(
       0
     )
 
-
   const bandHeight =
     (
       availableImageWidth +
       gapAdjustment
     ) /
     denominator
-
 
   const solvedColumns =
     columns.map(column => {
@@ -250,7 +241,6 @@ function buildBand(
       }
     })
 
-
   if (
     solvedColumns.some(
       column =>
@@ -262,7 +252,6 @@ function buildBand(
   ) {
     return null
   }
-
 
   return {
     height: bandHeight,
@@ -286,22 +275,18 @@ function buildWall(
     return []
   }
 
-
   const patterns =
     getPatterns(
       containerWidth
     )
 
-
   const isDesktop =
     containerWidth >= 1024
-
 
   const bands = []
 
   let imageCursor = 0
   let bandIndex = 0
-
 
   while (
     imageCursor <
@@ -312,7 +297,6 @@ function buildWall(
         bandIndex %
         patterns.length
       ]
-
 
     if (
       isDesktop &&
@@ -328,7 +312,6 @@ function buildWall(
         candidate?._meta?.ratio ||
         0
 
-
       if (
         candidateRatio < 1.85
       ) {
@@ -340,7 +323,6 @@ function buildWall(
       }
     }
 
-
     const requiredImages =
       pattern.reduce(
         (sum, count) =>
@@ -348,11 +330,9 @@ function buildWall(
         0
       )
 
-
     const remaining =
       preparedImages.length -
       imageCursor
-
 
     if (
       remaining <
@@ -361,14 +341,12 @@ function buildWall(
       break
     }
 
-
     const bandImages =
       preparedImages.slice(
         imageCursor,
         imageCursor +
           requiredImages
       )
-
 
     const band =
       buildBand(
@@ -377,18 +355,15 @@ function buildWall(
         containerWidth
       )
 
-
     if (band) {
       bands.push(band)
     }
-
 
     imageCursor +=
       requiredImages
 
     bandIndex += 1
   }
-
 
   return bands
 }
@@ -450,11 +425,9 @@ function getMobileSizeClass(
   const roll =
     mobileRoll(photo.id)
 
-
   if (ratio > 1.85) {
     return 'full'
   }
-
 
   if (ratio > 1.70) {
     return (
@@ -463,7 +436,6 @@ function getMobileSizeClass(
         : 'pair'
     )
   }
-
 
   return (
     roll < 5
@@ -475,8 +447,6 @@ function getMobileSizeClass(
 
 /* ---------------------------------------------------------
    MOBILE ROW BUILDER
-
-   Maximum two images per row.
 --------------------------------------------------------- */
 
 function buildMobileRows(
@@ -485,7 +455,6 @@ function buildMobileRows(
   const rows = []
 
   let cursor = 0
-
 
   while (
     cursor <
@@ -499,7 +468,6 @@ function buildMobileRows(
         current
       )
 
-
     if (
       currentClass === 'full'
     ) {
@@ -509,16 +477,13 @@ function buildMobileRows(
       })
 
       cursor += 1
-
       continue
     }
-
 
     const next =
       preparedImages[
         cursor + 1
       ]
-
 
     if (!next) {
       rows.push({
@@ -527,16 +492,13 @@ function buildMobileRows(
       })
 
       cursor += 1
-
       continue
     }
-
 
     const nextClass =
       getMobileSizeClass(
         next
       )
-
 
     if (
       nextClass === 'pair'
@@ -550,10 +512,8 @@ function buildMobileRows(
       })
 
       cursor += 2
-
       continue
     }
-
 
     rows.push({
       type: 'full',
@@ -562,7 +522,6 @@ function buildMobileRows(
 
     cursor += 1
   }
-
 
   return rows
 }
@@ -580,7 +539,6 @@ function solveMobilePair(
     containerWidth -
     GAP
 
-
   const ratioTotal =
     images.reduce(
       (sum, image) =>
@@ -589,11 +547,9 @@ function solveMobilePair(
       0
     )
 
-
   const height =
     availableWidth /
     ratioTotal
-
 
   const solvedImages =
     images.map(image => ({
@@ -603,7 +559,6 @@ function solveMobilePair(
         height *
         image._meta.ratio
     }))
-
 
   return {
     height,
@@ -630,7 +585,6 @@ function MobileWall({
       [images]
     )
 
-
   return (
     <div className="w-full">
 
@@ -645,7 +599,6 @@ function MobileWall({
           ) {
             const photo =
               row.images[0]
-
 
             return (
               <div
@@ -691,7 +644,7 @@ function MobileWall({
                       playsInline
                       preload="metadata"
                       poster="/assets/transparent.png"
-                      className="block w-full h-full object-contain"
+                      className="block w-full h-full object-cover"
                     />
 
                   ) : (
@@ -704,7 +657,7 @@ function MobileWall({
                         photo.src
                       }
                       decoding="async"
-                      className="block w-full h-full object-contain"
+                      className="block w-full h-full object-cover"
                     />
 
                   )}
@@ -715,13 +668,11 @@ function MobileWall({
             )
           }
 
-
           const solved =
             solveMobilePair(
               row.images,
               containerWidth
             )
-
 
           return (
             <div
@@ -782,7 +733,7 @@ function MobileWall({
                         playsInline
                         preload="metadata"
                         poster="/assets/transparent.png"
-                        className="block w-full h-full object-contain"
+                        className="block w-full h-full object-cover"
                       />
 
                     ) : (
@@ -795,7 +746,7 @@ function MobileWall({
                           photo.src
                         }
                         decoding="async"
-                        className="block w-full h-full object-contain"
+                        className="block w-full h-full object-cover"
                       />
 
                     )}
@@ -836,7 +787,6 @@ function PackedWall({
         containerWidth
       ]
     )
-
 
   return (
     <div className="w-full">
@@ -925,7 +875,7 @@ function PackedWall({
                             playsInline
                             preload="metadata"
                             poster="/assets/transparent.png"
-                            className="block w-full h-full object-contain"
+                            className="block w-full h-full object-cover"
                           />
 
                         ) : (
@@ -938,7 +888,7 @@ function PackedWall({
                               photo.src
                             }
                             decoding="async"
-                            className="block w-full h-full object-contain"
+                            className="block w-full h-full object-cover"
                           />
 
                         )}
@@ -979,12 +929,10 @@ function TetrisWall({
     setContainerWidth
   ] = useState(0)
 
-
   useEffect(() => {
     if (!wallRef.current) {
       return
     }
-
 
     const measure = () => {
       const width =
@@ -997,26 +945,21 @@ function TetrisWall({
       )
     }
 
-
     measure()
-
 
     const resizeObserver =
       new ResizeObserver(
         measure
       )
 
-
     resizeObserver.observe(
       wallRef.current
     )
-
 
     return () => {
       resizeObserver.disconnect()
     }
   }, [])
-
 
   const preparedImages =
     useMemo(
@@ -1027,12 +970,10 @@ function TetrisWall({
       [images]
     )
 
-
   const isMobile =
     containerWidth > 0 &&
     containerWidth <
       MOBILE_BREAKPOINT
-
 
   return (
     <div
@@ -1099,7 +1040,6 @@ export default function Tetris() {
     __loader
   ] = useState(true)
 
-
   const wasCalled =
     useRef(false)
 
@@ -1133,7 +1073,6 @@ export default function Tetris() {
               width /
               meta.ratio
             )
-
 
           if (
             src
@@ -1177,7 +1116,6 @@ export default function Tetris() {
             }
           }
 
-
           return {
             type: 'image',
 
@@ -1218,7 +1156,6 @@ export default function Tetris() {
         __loader(true)
       }
 
-
       try {
         const response =
           await fetch(
@@ -1233,14 +1170,12 @@ export default function Tetris() {
             }
           )
 
-
         if (response.ok) {
           const data =
             await response.json()
 
           const images =
             data.images
-
 
           const uniqueImages =
             images.filter(
@@ -1250,14 +1185,12 @@ export default function Tetris() {
                   .has(img.id)
             )
 
-
           uniqueImages.forEach(
             img =>
               seenImageIds
                 .current
                 .add(img.id)
           )
-
 
           setImages(
             prev => [
@@ -1295,7 +1228,6 @@ export default function Tetris() {
       seenImageIds.current =
         new Set()
 
-
       try {
         const response =
           await fetch(
@@ -1310,7 +1242,6 @@ export default function Tetris() {
             }
           )
 
-
         if (response.ok) {
           const data =
             await response.json()
@@ -1318,14 +1249,12 @@ export default function Tetris() {
           const images =
             data.images
 
-
           images.forEach(
             img =>
               seenImageIds
                 .current
                 .add(img.id)
           )
-
 
           setImages(images)
 
@@ -1353,7 +1282,6 @@ export default function Tetris() {
       setIndex(-1)
     }
 
-
   const handleImageClick =
     imageId => {
 
@@ -1363,7 +1291,6 @@ export default function Tetris() {
             img.id ===
             imageId
         )
-
 
       if (idx !== -1) {
         setIndex(idx)
@@ -1382,10 +1309,8 @@ export default function Tetris() {
       return
     }
 
-
     wasCalled.current =
       true
-
 
     getImages()
   }, [])
@@ -1399,7 +1324,6 @@ export default function Tetris() {
     if (!slides.length) {
       return
     }
-
 
     const observer =
       new MutationObserver(
@@ -1418,7 +1342,6 @@ export default function Tetris() {
         }
       )
 
-
     observer.observe(
       document.body,
       {
@@ -1426,7 +1349,6 @@ export default function Tetris() {
         subtree: true
       }
     )
-
 
     return () => {
       observer.disconnect()
@@ -1460,7 +1382,6 @@ export default function Tetris() {
 
             </Link>
 
-
             <div
               className="flex gap-8 items-center pt-[2.5px]"
               style={{
@@ -1479,7 +1400,6 @@ export default function Tetris() {
 
               </Link>
 
-
               <Link href="/scrl">
 
                 <RxDoubleArrowUp
@@ -1487,7 +1407,6 @@ export default function Tetris() {
                 />
 
               </Link>
-
 
               <IoMdShuffle
                 onClick={
@@ -1586,7 +1505,6 @@ export default function Tetris() {
 
                     )}
 
-
                     <div
                       className={cn(
                         "!space-y-0",
@@ -1609,7 +1527,6 @@ export default function Tetris() {
                         </div>
 
                       )}
-
 
                       {slide.description && (
 
