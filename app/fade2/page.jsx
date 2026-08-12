@@ -39,6 +39,9 @@ const WALL_FADE_DURATION = 5
 const GAP = 10
 const MOBILE_BREAKPOINT = 768
 
+const DESKTOP_WALL_COUNT = 9
+const MOBILE_WALL_COUNT = 6
+
 const WEBM_INTERVAL = 20
 
 const MIN_IMAGES_BETWEEN_WEBMS =
@@ -95,9 +98,9 @@ function afterTwoFrames(callback) {
 /* ---------------------------------------------------------
    SAFE PRELOAD
 
-   Initial grid does NOT wait for this.
+   Initial wall does NOT wait for this.
 
-   Slot transitions and subsequent whole-grid transitions
+   Slot transitions and subsequent whole-wall transitions
    still use it.
 --------------------------------------------------------- */
 
@@ -113,8 +116,7 @@ function preloadMedia(photo) {
     }
 
 
-    let finished =
-      false
+    let finished = false
 
 
     const finish =
@@ -125,8 +127,7 @@ function preloadMedia(photo) {
         }
 
 
-        finished =
-          true
+        finished = true
 
 
         clearTimeout(
@@ -403,6 +404,8 @@ function makeSlide(photo) {
 
 /* =========================================================
    DESKTOP TETRIS CONFIGURATIONS
+
+   Desktop remains 9 images.
 ========================================================= */
 
 const WALL_CONFIGURATIONS = [
@@ -784,7 +787,8 @@ function buildDesktopLayout(
 ) {
   if (
     !images ||
-    images.length !== 9 ||
+    images.length !==
+      DESKTOP_WALL_COUNT ||
     !stageWidth ||
     !stageHeight
   ) {
@@ -845,8 +849,7 @@ function buildDesktopLayout(
             )
 
 
-        cursor +=
-          count
+        cursor += count
 
 
         const preferred =
@@ -903,7 +906,9 @@ function buildDesktopLayout(
 
 
   const finalRects =
-    Array(9).fill(
+    Array(
+      DESKTOP_WALL_COUNT
+    ).fill(
       null
     )
 
@@ -1146,6 +1151,19 @@ function getMobileSizeClass(photo) {
     )
 
 
+  /*
+    /wall-style mobile grammar.
+
+    Very wide:
+      always full.
+
+    Moderately wide:
+      mostly paired.
+
+    Everything else:
+      overwhelmingly paired.
+  */
+
   if (
     ratio > 1.85
   ) {
@@ -1174,7 +1192,18 @@ function getMobileSizeClass(photo) {
 
 
 /* ---------------------------------------------------------
-   Freeze mobile row grammar when a wall is born.
+   Build frozen mobile rows.
+
+   MOBILE NOW HAS 6 IMAGES.
+
+   Example:
+
+   [0,1]
+   [2]
+   [3,4]
+   [5]
+
+   Maximum: two across.
 --------------------------------------------------------- */
 
 function buildMobileRowsPattern(images) {
@@ -1255,6 +1284,13 @@ function buildMobileRowsPattern(images) {
     }
 
 
+    /*
+      Next wants its own row.
+
+      Current therefore gets its own row rather than
+      forcing the next image into a pair.
+    */
+
     rows.push([
       cursor
     ])
@@ -1270,17 +1306,40 @@ function buildMobileRowsPattern(images) {
 /* =========================================================
    MOBILE FIXED-STAGE SOLVER
 
-   Stage is always 9:19.5 on mobile.
+   6 images inside permanent 9:19.5 stage.
 
-   Rows retain /wall-style one/two-image grammar.
+   IMPORTANT CHANGE:
 
-   Every mobile grid has:
-     - identical outer height
-     - identical outer width
-     - 10px gutters
-     - no overlap
-     - no empty bands
-     - never more than 2 images across
+   We first calculate the NATURAL row height.
+
+   Rather than multiplying every row by one aggressive
+   global scale, we calculate the total residual height:
+
+       fixed stage height
+       minus natural row heights
+       minus 10px gutters
+
+   Then distribute that difference evenly across rows.
+
+   Thus:
+
+       natural 180px
+       natural 185px
+       natural 170px
+       natural 190px
+
+   might become:
+
+       200px
+       205px
+       190px
+       210px
+
+   instead of radically rescaling each row.
+
+   With only six images, the discrepancy should usually
+   be modest.
+
 ========================================================= */
 
 function buildMobileLayout(
@@ -1291,7 +1350,8 @@ function buildMobileLayout(
 ) {
   if (
     !images ||
-    images.length !== 9 ||
+    images.length !==
+      MOBILE_WALL_COUNT ||
     !rowsPattern?.length ||
     !stageWidth ||
     !stageHeight
@@ -1332,18 +1392,35 @@ function buildMobileLayout(
           )
 
 
-        let preferredHeight
+        let naturalHeight
 
 
         if (
           rowImages.length === 1
         ) {
 
-          preferredHeight =
+          /*
+            Full-width image:
+            native-AR height.
+          */
+
+          naturalHeight =
             stageWidth /
             rowImages[0].ratio
 
         } else {
+
+          /*
+            Two images sharing one horizontal row.
+
+            If both preserve native AR and share a common
+            height H:
+
+              width1 = ratio1 * H
+              width2 = ratio2 * H
+
+            width1 + width2 + gap = stage width
+          */
 
           const availableWidth =
             stageWidth -
@@ -1362,9 +1439,12 @@ function buildMobileLayout(
             )
 
 
-          preferredHeight =
-            availableWidth /
-            ratioTotal
+          naturalHeight =
+            ratioTotal > 0
+              ? availableWidth /
+                ratioTotal
+              : availableWidth /
+                2
         }
 
 
@@ -1373,13 +1453,13 @@ function buildMobileLayout(
           items:
             rowImages,
 
-          preferredHeight
+          naturalHeight
         }
       }
     )
 
 
-  const totalRowGaps =
+  const rowGapTotal =
     GAP *
     Math.max(
       0,
@@ -1390,23 +1470,97 @@ function buildMobileLayout(
 
   const availableHeight =
     stageHeight -
-    totalRowGaps
+    rowGapTotal
 
 
-  const preferredHeightTotal =
+  const naturalHeightTotal =
     preparedRows.reduce(
       (
         total,
         row
       ) =>
         total +
-        row.preferredHeight,
+        row.naturalHeight,
       0
     )
 
 
+  /*
+    Equal correction per row.
+
+    This is intentionally different from the previous
+    proportional normalization.
+  */
+
+  const residual =
+    availableHeight -
+    naturalHeightTotal
+
+
+  const correctionPerRow =
+    preparedRows.length
+      ? residual /
+        preparedRows.length
+      : 0
+
+
+  /*
+    Protect against pathological image combinations.
+
+    We don't let a row collapse below 70px.
+  */
+
+  const provisionalHeights =
+    preparedRows.map(
+      row =>
+        Math.max(
+          70,
+          row.naturalHeight +
+            correctionPerRow
+        )
+    )
+
+
+  /*
+    If the 70px floor caused us to overshoot the stage,
+    make one small proportional correction to the already
+    near-natural heights.
+
+    Under normal six-image combinations this should barely
+    do anything.
+  */
+
+  const provisionalTotal =
+    provisionalHeights.reduce(
+      (
+        total,
+        height
+      ) =>
+        total +
+        height,
+      0
+    )
+
+
+  const finalScale =
+    provisionalTotal > 0
+      ? availableHeight /
+        provisionalTotal
+      : 1
+
+
+  const rowHeights =
+    provisionalHeights.map(
+      height =>
+        height *
+        finalScale
+    )
+
+
   const rects =
-    Array(9).fill(
+    Array(
+      MOBILE_WALL_COUNT
+    ).fill(
       null
     )
 
@@ -1421,14 +1575,9 @@ function buildMobileLayout(
     ) => {
 
       const rowHeight =
-        preferredHeightTotal > 0
-          ? availableHeight *
-            (
-              row.preferredHeight /
-              preferredHeightTotal
-            )
-          : availableHeight /
-            preparedRows.length
+        rowHeights[
+          rowIndex
+        ]
 
 
       if (
@@ -1463,16 +1612,44 @@ function buildMobileLayout(
           GAP
 
 
-        const ratioTotal =
-          row.items.reduce(
+        /*
+          At this fixed row height, calculate the widths
+          each image would naturally prefer.
+        */
+
+        const preferredWidths =
+          row.items.map(
+            item =>
+              item.ratio *
+              rowHeight
+          )
+
+
+        const preferredWidthTotal =
+          preferredWidths.reduce(
             (
               total,
-              item
+              width
             ) =>
               total +
-              item.ratio,
+              width,
             0
           )
+
+
+        /*
+          Normalize only horizontally so the pair fills
+          the row exactly.
+
+          Again, with six images this mismatch should
+          generally be modest.
+        */
+
+        const widthScale =
+          preferredWidthTotal > 0
+            ? availableWidth /
+              preferredWidthTotal
+            : 1
 
 
         let currentX = 0
@@ -1485,14 +1662,10 @@ function buildMobileLayout(
           ) => {
 
             const width =
-              ratioTotal > 0
-                ? availableWidth *
-                  (
-                    item.ratio /
-                    ratioTotal
-                  )
-                : availableWidth /
-                  row.items.length
+              preferredWidths[
+                itemIndex
+              ] *
+              widthScale
 
 
             rects[
@@ -1572,9 +1745,12 @@ function makeWall(
     configurationIndex,
 
     mobileRows:
-      buildMobileRowsPattern(
-        images
-      ),
+      images.length ===
+      MOBILE_WALL_COUNT
+        ? buildMobileRowsPattern(
+            images
+          )
+        : null,
 
     slots:
       images.map(
@@ -1594,6 +1770,12 @@ function makeWall(
 
 /* =========================================================
    MEDIA LAYER
+
+   IMPORTANT MOBILE TOUCH FIX:
+
+   Media itself gets pointer-events-none.
+
+   The enclosing slot div receives all click/tap events.
 ========================================================= */
 
 function MediaLayer({
@@ -1636,7 +1818,7 @@ function MediaLayer({
           ease:
             'easeInOut'
         }}
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
       />
     )
   }
@@ -1657,8 +1839,9 @@ function MediaLayer({
         ease:
           'easeInOut'
       }}
-      className="absolute inset-0 w-full h-full object-cover"
+      className="absolute inset-0 w-full h-full object-cover pointer-events-none"
       alt=""
+      draggable={false}
     />
   )
 }
@@ -1904,7 +2087,7 @@ function PersistentFadeSlot({
 
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
+    <div className="relative w-full h-full overflow-hidden pointer-events-none">
 
       <MediaLayer
         photo={
@@ -1986,6 +2169,21 @@ function WallBuffer({
           isMobile
         ) {
 
+          /*
+            Mobile walls contain six images.
+          */
+
+          if (
+            images.length !==
+            MOBILE_WALL_COUNT
+          ) {
+
+            return {
+              rects: []
+            }
+          }
+
+
           return buildMobileLayout(
 
             images,
@@ -1996,6 +2194,21 @@ function WallBuffer({
 
             stageHeight
           )
+        }
+
+
+        /*
+          Desktop walls contain nine images.
+        */
+
+        if (
+          images.length !==
+          DESKTOP_WALL_COUNT
+        ) {
+
+          return {
+            rects: []
+          }
         }
 
 
@@ -2064,7 +2277,7 @@ function WallBuffer({
                 key={
                   `${wall.id}-${index}`
                 }
-                className="absolute overflow-hidden cursor-zoom-in"
+                className="absolute overflow-hidden cursor-zoom-in touch-manipulation"
                 style={{
 
                   left:
@@ -2214,9 +2427,17 @@ export default function FadeGallery() {
     useRef(-1)
 
 
+  /*
+    Needs to support desktop's 9 slots.
+
+    Mobile simply uses indices 0–5.
+  */
+
   const lastUpdatedRef =
     useRef(
-      Array(9).fill(0)
+      Array(
+        DESKTOP_WALL_COUNT
+      ).fill(0)
     )
 
 
@@ -2239,18 +2460,19 @@ export default function FadeGallery() {
   /* =======================================================
      STAGE
 
-     Mobile:
-       fixed portrait 9:19.5
-       full available width
+     MOBILE:
+       9:19.5
+       full width
+       6-image wall
 
-     Black Mode:
-       width remains king.
-       No mobile max-height constraint.
-       Any excess vertical height is cropped by the
-       fullscreen overflow-hidden container.
+     MOBILE BLACK MODE:
+       still full width
+       no max-height constraint
+       excess vertical canvas gets cropped by fullscreen
 
-     Desktop:
-       fixed 16:9
+     DESKTOP:
+       16:9
+       9-image wall
   ======================================================= */
 
   const stageRef =
@@ -2268,6 +2490,18 @@ export default function FadeGallery() {
     height:
       0
   })
+
+
+  const isMobile =
+    stageSize.width > 0 &&
+    stageSize.width <
+      MOBILE_BREAKPOINT
+
+
+  const wallImageCount =
+    isMobile
+      ? MOBILE_WALL_COUNT
+      : DESKTOP_WALL_COUNT
 
 
   useEffect(() => {
@@ -2438,10 +2672,17 @@ export default function FadeGallery() {
 
   /* =======================================================
      INITIAL FAST PATH
+
+     Count is now device-dependent:
+       mobile  = 6
+       desktop = 9
   ======================================================= */
 
   const takeInitialWallImages =
-    images => {
+    (
+      images,
+      count
+    ) => {
 
       const selected = []
       const leftovers = []
@@ -2456,7 +2697,8 @@ export default function FadeGallery() {
       ) {
 
         if (
-          selected.length >= 9
+          selected.length >=
+          count
         ) {
 
           leftovers.push(
@@ -2776,58 +3018,41 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     CREATE SUBSEQUENT WALL
+     BUILD WALL FOR CURRENT VIEWPORT
   ======================================================= */
 
-  const createNewWall =
-    async ({
-      preload = true
-    } = {}) => {
+  const buildWallFromImages =
+    images => {
 
-      if (
-        !stageSize.width ||
-        !stageSize.height
-      ) {
-
-        return null
-      }
-
-
-      const images =
-        await getImagesForWall(
-          9
-        )
+      const mobileWall =
+        images.length ===
+        MOBILE_WALL_COUNT
 
 
       if (
-        images.length <
-        9
+        mobileWall
       ) {
 
-        console.warn(
-          `Fade2 needed 9 images but only obtained ${images.length}`
+        /*
+          Mobile doesn't need the desktop Tetris
+          configuration at all.
+
+          Store a harmless desktop default so the object
+          remains structurally consistent.
+        */
+
+        return makeWall(
+
+          images,
+
+          WALL_CONFIGURATIONS[0],
+
+          0,
+
+          Date.now() +
+          Math.random()
         )
-
-
-        return null
       }
-
-
-      if (
-        preload
-      ) {
-
-        await Promise.all(
-          images.map(
-            preloadMedia
-          )
-        )
-      }
-
-
-      const isMobile =
-        stageSize.width <
-        MOBILE_BREAKPOINT
 
 
       const best =
@@ -2835,21 +3060,9 @@ export default function FadeGallery() {
 
           images,
 
-          isMobile
-            ? Math.max(
-                stageSize.width,
-                768
-              )
-            : stageSize.width,
+          stageSize.width,
 
-          isMobile
-            ? Math.max(
-                stageSize.width,
-                768
-              ) *
-              9 /
-              16
-            : stageSize.height,
+          stageSize.height,
 
           lastConfigurationRef
             .current
@@ -2871,6 +3084,72 @@ export default function FadeGallery() {
 
         Date.now() +
         Math.random()
+      )
+    }
+
+
+  /* =======================================================
+     CREATE SUBSEQUENT WALL
+
+     Mobile pulls 6.
+     Desktop pulls 9.
+  ======================================================= */
+
+  const createNewWall =
+    async ({
+      preload = true
+    } = {}) => {
+
+      if (
+        !stageSize.width ||
+        !stageSize.height
+      ) {
+
+        return null
+      }
+
+
+      const count =
+        stageSize.width <
+        MOBILE_BREAKPOINT
+          ? MOBILE_WALL_COUNT
+          : DESKTOP_WALL_COUNT
+
+
+      const images =
+        await getImagesForWall(
+          count
+        )
+
+
+      if (
+        images.length <
+        count
+      ) {
+
+        console.warn(
+          `Fade2 needed ${count} images but only obtained ${images.length}`
+        )
+
+
+        return null
+      }
+
+
+      if (
+        preload
+      ) {
+
+        await Promise.all(
+          images.map(
+            preloadMedia
+          )
+        )
+      }
+
+
+      return buildWallFromImages(
+        images
       )
     }
 
@@ -2924,9 +3203,16 @@ export default function FadeGallery() {
           }
 
 
+          const count =
+            stageSize.width <
+            MOBILE_BREAKPOINT
+              ? MOBILE_WALL_COUNT
+              : DESKTOP_WALL_COUNT
+
+
           if (
             firstBatch.length <
-            9
+            count
           ) {
 
             initInProgressRef.current =
@@ -2949,13 +3235,14 @@ export default function FadeGallery() {
             leftovers
           } =
             takeInitialWallImages(
-              firstBatch
+              firstBatch,
+              count
             )
 
 
           if (
             selected.length <
-            9
+            count
           ) {
 
             poolRef.current.push(
@@ -2978,53 +3265,9 @@ export default function FadeGallery() {
           }
 
 
-          const isMobile =
-            stageSize.width <
-            MOBILE_BREAKPOINT
-
-
-          const best =
-            chooseBestConfiguration(
-
-              selected,
-
-              isMobile
-                ? Math.max(
-                    stageSize.width,
-                    768
-                  )
-                : stageSize.width,
-
-              isMobile
-                ? Math.max(
-                    stageSize.width,
-                    768
-                  ) *
-                  9 /
-                  16
-                : stageSize.height,
-
-              lastConfigurationRef
-                .current
-            )
-
-
-          lastConfigurationRef
-            .current =
-            best.index
-
-
           const wall =
-            makeWall(
-
-              selected,
-
-              best.configuration,
-
-              best.index,
-
-              Date.now() +
-              Math.random()
+            buildWallFromImages(
+              selected
             )
 
 
@@ -3055,6 +3298,11 @@ export default function FadeGallery() {
             ...leftovers
           )
 
+
+          /*
+            Lightbox bookkeeping happens after the visible
+            wall has been sent to React.
+          */
 
           requestAnimationFrame(
             () => {
@@ -3133,17 +3381,27 @@ export default function FadeGallery() {
 
   /* =======================================================
      SLOT PICK
-  ======================================================= */
+
+     Uses current wall's actual slot count.
+========================================================= */
 
   const pickSlot =
-    () => {
+    count => {
 
       fadeCount.current++
 
 
-      const sorted =
+      const relevantUpdates =
         lastUpdatedRef
           .current
+          .slice(
+            0,
+            count
+          )
+
+
+      const sorted =
+        relevantUpdates
           .map(
             (
               lastUpdate,
@@ -3199,6 +3457,8 @@ export default function FadeGallery() {
 
   /* =======================================================
      SLOT CHANGES
+
+     Same timing/rules desktop and mobile.
   ======================================================= */
 
   useEffect(() => {
@@ -3243,7 +3503,9 @@ export default function FadeGallery() {
 
 
           const slotIndex =
-            pickSlot()
+            pickSlot(
+              wall.slots.length
+            )
 
 
           const slot =
@@ -3370,6 +3632,14 @@ export default function FadeGallery() {
 
   /* =======================================================
      WHOLE WALL CHANGES
+
+     Mobile:
+       6 -> 6
+
+     Desktop:
+       9 -> 9
+
+     Timing remains 60 sec / 5 sec crossfade.
   ======================================================= */
 
   useEffect(() => {
@@ -4057,17 +4327,17 @@ export default function FadeGallery() {
           {/*
 
             MOBILE:
+              6 images
               fixed 9:19.5 portrait stage
               full available width
 
-              In Black Mode:
-                width remains maxed
-                no max-height constraint
-                stage stays vertically centered
-                excess top/bottom is cropped by the
-                fullscreen overflow-hidden wrapper
+              Black Mode:
+                width stays maxed
+                stage remains vertically centered
+                viewport may crop excess top/bottom
 
             DESKTOP:
+              9 images
               fixed 16:9 stage
 
           */}
