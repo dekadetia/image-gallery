@@ -95,15 +95,6 @@ function afterTwoFrames(callback) {
 }
 
 
-/* ---------------------------------------------------------
-   SAFE PRELOAD
-
-   Initial wall does NOT wait for this.
-
-   Slot transitions and subsequent whole-wall transitions
-   still use it.
---------------------------------------------------------- */
-
 function preloadMedia(photo) {
   return new Promise(resolve => {
 
@@ -294,7 +285,7 @@ function getRatioKey(photo) {
 
 
 /* =========================================================
-   LIGHTBOX SLIDE
+   LIGHTBOX
 ========================================================= */
 
 function makeSlide(photo) {
@@ -403,9 +394,7 @@ function makeSlide(photo) {
 
 
 /* =========================================================
-   DESKTOP TETRIS CONFIGURATIONS
-
-   Desktop remains 9 images.
+   DESKTOP TETRIS
 ========================================================= */
 
 const WALL_CONFIGURATIONS = [
@@ -451,10 +440,6 @@ const WALL_CONFIGURATIONS = [
   ]
 ]
 
-
-/* =========================================================
-   DESKTOP PREFERRED BAND
-========================================================= */
 
 function getPreferredBand(
   items,
@@ -575,10 +560,6 @@ function getPreferredBand(
   }
 }
 
-
-/* =========================================================
-   DESKTOP FIXED BAND
-========================================================= */
 
 function solveFixedBand(
   items,
@@ -775,10 +756,6 @@ function solveFixedBand(
 }
 
 
-/* =========================================================
-   DESKTOP FIXED-STAGE SOLVER
-========================================================= */
-
 function buildDesktopLayout(
   images,
   configuration,
@@ -794,9 +771,7 @@ function buildDesktopLayout(
   ) {
 
     return {
-
       rects: [],
-
       score:
         Infinity
     }
@@ -1032,10 +1007,6 @@ function buildDesktopLayout(
 }
 
 
-/* =========================================================
-   DESKTOP BEST CONFIGURATION
-========================================================= */
-
 function chooseBestConfiguration(
   images,
   stageWidth,
@@ -1104,7 +1075,13 @@ function chooseBestConfiguration(
 
 
 /* =========================================================
-   MOBILE WALL GRAMMAR
+   MOBILE GRAMMAR
+
+   This can now operate on ANY wall length.
+
+   Native mobile = 6.
+   A live 9-image desktop wall resized downward will simply
+   get a temporary 9-image mobile composition.
 ========================================================= */
 
 function mobileRoll(id) {
@@ -1151,19 +1128,6 @@ function getMobileSizeClass(photo) {
     )
 
 
-  /*
-    /wall-style mobile grammar.
-
-    Very wide:
-      always full.
-
-    Moderately wide:
-      mostly paired.
-
-    Everything else:
-      overwhelmingly paired.
-  */
-
   if (
     ratio > 1.85
   ) {
@@ -1190,21 +1154,6 @@ function getMobileSizeClass(photo) {
   )
 }
 
-
-/* ---------------------------------------------------------
-   Build frozen mobile rows.
-
-   MOBILE NOW HAS 6 IMAGES.
-
-   Example:
-
-   [0,1]
-   [2]
-   [3,4]
-   [5]
-
-   Maximum: two across.
---------------------------------------------------------- */
 
 function buildMobileRowsPattern(images) {
   const rows = []
@@ -1284,13 +1233,6 @@ function buildMobileRowsPattern(images) {
     }
 
 
-    /*
-      Next wants its own row.
-
-      Current therefore gets its own row rather than
-      forcing the next image into a pair.
-    */
-
     rows.push([
       cursor
     ])
@@ -1304,42 +1246,13 @@ function buildMobileRowsPattern(images) {
 
 
 /* =========================================================
-   MOBILE FIXED-STAGE SOLVER
+   MOBILE LAYOUT
 
-   6 images inside permanent 9:19.5 stage.
+   Works for 6 native mobile images OR 9 temporary images
+   inherited from a desktop wall.
 
-   IMPORTANT CHANGE:
-
-   We first calculate the NATURAL row height.
-
-   Rather than multiplying every row by one aggressive
-   global scale, we calculate the total residual height:
-
-       fixed stage height
-       minus natural row heights
-       minus 10px gutters
-
-   Then distribute that difference evenly across rows.
-
-   Thus:
-
-       natural 180px
-       natural 185px
-       natural 170px
-       natural 190px
-
-   might become:
-
-       200px
-       205px
-       190px
-       210px
-
-   instead of radically rescaling each row.
-
-   With only six images, the discrepancy should usually
-   be modest.
-
+   It never returns blank just because the wall was born
+   at the other breakpoint.
 ========================================================= */
 
 function buildMobileLayout(
@@ -1349,9 +1262,7 @@ function buildMobileLayout(
   stageHeight
 ) {
   if (
-    !images ||
-    images.length !==
-      MOBILE_WALL_COUNT ||
+    !images?.length ||
     !rowsPattern?.length ||
     !stageWidth ||
     !stageHeight
@@ -1368,28 +1279,43 @@ function buildMobileLayout(
       slotIndexes => {
 
         const rowImages =
-          slotIndexes.map(
-            slotIndex => {
+          slotIndexes
+            .map(
+              slotIndex => {
 
-              const image =
-                images[
-                  slotIndex
-                ]
+                const image =
+                  images[
+                    slotIndex
+                  ]
 
 
-              return {
+                if (!image) {
+                  return null
+                }
 
-                image,
 
-                slotIndex,
+                return {
 
-                ratio:
-                  parseImageMeta(
-                    image.dimensions
-                  ).ratio
+                  image,
+
+                  slotIndex,
+
+                  ratio:
+                    parseImageMeta(
+                      image.dimensions
+                    ).ratio
+                }
               }
-            }
-          )
+            )
+            .filter(Boolean)
+
+
+        if (
+          !rowImages.length
+        ) {
+
+          return null
+        }
 
 
         let naturalHeight
@@ -1399,28 +1325,11 @@ function buildMobileLayout(
           rowImages.length === 1
         ) {
 
-          /*
-            Full-width image:
-            native-AR height.
-          */
-
           naturalHeight =
             stageWidth /
             rowImages[0].ratio
 
         } else {
-
-          /*
-            Two images sharing one horizontal row.
-
-            If both preserve native AR and share a common
-            height H:
-
-              width1 = ratio1 * H
-              width2 = ratio2 * H
-
-            width1 + width2 + gap = stage width
-          */
 
           const availableWidth =
             stageWidth -
@@ -1457,6 +1366,7 @@ function buildMobileLayout(
         }
       }
     )
+    .filter(Boolean)
 
 
   const rowGapTotal =
@@ -1486,86 +1396,59 @@ function buildMobileLayout(
 
 
   /*
-    Equal correction per row.
+    If the natural composition is shorter than our permanent
+    mobile stage, do NOT stretch it brutally.
 
-    This is intentionally different from the previous
-    proportional normalization.
+    Give rows only a modest amount of the surplus.
+
+    If it's taller, scale the complete composition down
+    uniformly instead.
   */
 
-  const residual =
-    availableHeight -
-    naturalHeightTotal
+  let scale = 1
 
 
-  const correctionPerRow =
-    preparedRows.length
-      ? residual /
-        preparedRows.length
-      : 0
+  if (
+    naturalHeightTotal >
+    availableHeight
+  ) {
+
+    scale =
+      availableHeight /
+      naturalHeightTotal
+  }
+
+
+  const scaledNaturalTotal =
+    naturalHeightTotal *
+    scale
 
 
   /*
-    Protect against pathological image combinations.
+    Any remaining space is simply vertical breathing room.
 
-    We don't let a row collapse below 70px.
+    The composition floats centered inside the fixed stage.
   */
 
-  const provisionalHeights =
-    preparedRows.map(
-      row =>
-        Math.max(
-          70,
-          row.naturalHeight +
-            correctionPerRow
-        )
+  const unusedHeight =
+    Math.max(
+      0,
+      availableHeight -
+        scaledNaturalTotal
     )
 
 
-  /*
-    If the 70px floor caused us to overshoot the stage,
-    make one small proportional correction to the already
-    near-natural heights.
-
-    Under normal six-image combinations this should barely
-    do anything.
-  */
-
-  const provisionalTotal =
-    provisionalHeights.reduce(
-      (
-        total,
-        height
-      ) =>
-        total +
-        height,
-      0
-    )
-
-
-  const finalScale =
-    provisionalTotal > 0
-      ? availableHeight /
-        provisionalTotal
-      : 1
-
-
-  const rowHeights =
-    provisionalHeights.map(
-      height =>
-        height *
-        finalScale
-    )
+  let currentY =
+    unusedHeight /
+    2
 
 
   const rects =
     Array(
-      MOBILE_WALL_COUNT
+      images.length
     ).fill(
       null
     )
-
-
-  let currentY = 0
 
 
   preparedRows.forEach(
@@ -1575,9 +1458,8 @@ function buildMobileLayout(
     ) => {
 
       const rowHeight =
-        rowHeights[
-          rowIndex
-        ]
+        row.naturalHeight *
+        scale
 
 
       if (
@@ -1588,18 +1470,41 @@ function buildMobileLayout(
           row.items[0]
 
 
+        /*
+          Preserve the natural AR.
+
+          If the complete mobile stack had to scale down,
+          this full-width row also scales horizontally and
+          is centered rather than becoming distorted.
+        */
+
+        const naturalWidth =
+          rowHeight *
+          item.ratio
+
+
+        const width =
+          Math.min(
+            stageWidth,
+            naturalWidth
+          )
+
+
         rects[
           item.slotIndex
         ] = {
 
           x:
-            0,
+            (
+              stageWidth -
+              width
+            ) /
+            2,
 
           y:
             currentY,
 
-          width:
-            stageWidth,
+          width,
 
           height:
             rowHeight
@@ -1612,12 +1517,7 @@ function buildMobileLayout(
           GAP
 
 
-        /*
-          At this fixed row height, calculate the widths
-          each image would naturally prefer.
-        */
-
-        const preferredWidths =
+        const naturalWidths =
           row.items.map(
             item =>
               item.ratio *
@@ -1625,8 +1525,8 @@ function buildMobileLayout(
           )
 
 
-        const preferredWidthTotal =
-          preferredWidths.reduce(
+        const naturalWidthTotal =
+          naturalWidths.reduce(
             (
               total,
               width
@@ -1638,21 +1538,52 @@ function buildMobileLayout(
 
 
         /*
-          Normalize only horizontally so the pair fills
-          the row exactly.
+          If this row fits naturally, center it.
 
-          Again, with six images this mismatch should
-          generally be modest.
+          If it exceeds stage width, scale this PAIR
+          uniformly rather than changing either cell AR.
         */
 
-        const widthScale =
-          preferredWidthTotal > 0
+        const pairScale =
+          naturalWidthTotal >
+          availableWidth
             ? availableWidth /
-              preferredWidthTotal
+              naturalWidthTotal
             : 1
 
 
-        let currentX = 0
+        const widths =
+          naturalWidths.map(
+            width =>
+              width *
+              pairScale
+          )
+
+
+        const finalRowHeight =
+          rowHeight *
+          pairScale
+
+
+        const usedWidth =
+          widths.reduce(
+            (
+              total,
+              width
+            ) =>
+              total +
+              width,
+            0
+          ) +
+          GAP
+
+
+        let currentX =
+          (
+            stageWidth -
+            usedWidth
+          ) /
+          2
 
 
         row.items.forEach(
@@ -1662,10 +1593,9 @@ function buildMobileLayout(
           ) => {
 
             const width =
-              preferredWidths[
+              widths[
                 itemIndex
-              ] *
-              widthScale
+              ]
 
 
             rects[
@@ -1681,7 +1611,7 @@ function buildMobileLayout(
               width,
 
               height:
-                rowHeight
+                finalRowHeight
             }
 
 
@@ -1727,7 +1657,178 @@ function buildMobileLayout(
 
 
 /* =========================================================
+   DESKTOP FALLBACK FOR A LIVE 6-IMAGE MOBILE WALL
+
+   We do not suddenly replace its content when widening.
+
+   Instead arrange all six in a simple 3 x 2 temporary
+   composition until the normal wall lifecycle produces
+   the next native 9-image desktop wall.
+========================================================= */
+
+function buildDesktopFallbackLayout(
+  images,
+  stageWidth,
+  stageHeight
+) {
+  if (
+    !images?.length ||
+    !stageWidth ||
+    !stageHeight
+  ) {
+
+    return {
+      rects: []
+    }
+  }
+
+
+  /*
+    Native six-image mobile wall widened to desktop:
+    3 columns x 2 rows.
+
+    Geometry is intentionally conservative and temporary.
+  */
+
+  if (
+    images.length ===
+    MOBILE_WALL_COUNT
+  ) {
+
+    const columns = 3
+    const rows = 2
+
+
+    const cellWidth =
+      (
+        stageWidth -
+        GAP *
+        (
+          columns -
+          1
+        )
+      ) /
+      columns
+
+
+    const cellHeight =
+      (
+        stageHeight -
+        GAP *
+        (
+          rows -
+          1
+        )
+      ) /
+      rows
+
+
+    return {
+
+      rects:
+        images.map(
+          (
+            _,
+            index
+          ) => {
+
+            const column =
+              index %
+              columns
+
+
+            const row =
+              Math.floor(
+                index /
+                columns
+              )
+
+
+            return {
+
+              x:
+                column *
+                (
+                  cellWidth +
+                  GAP
+                ),
+
+              y:
+                row *
+                (
+                  cellHeight +
+                  GAP
+                ),
+
+              width:
+                cellWidth,
+
+              height:
+                cellHeight
+            }
+          }
+        )
+    }
+  }
+
+
+  /*
+    Generic safety fallback:
+    one image per row.
+
+    This should almost never be reached, but it ensures
+    malformed/intermediate wall counts remain visible.
+  */
+
+  const rowHeight =
+    (
+      stageHeight -
+      GAP *
+      (
+        images.length -
+        1
+      )
+    ) /
+    images.length
+
+
+  return {
+
+    rects:
+      images.map(
+        (
+          _,
+          index
+        ) => ({
+
+          x:
+            0,
+
+          y:
+            index *
+            (
+              rowHeight +
+              GAP
+            ),
+
+          width:
+            stageWidth,
+
+          height:
+            rowHeight
+        })
+      )
+  }
+}
+
+
+/* =========================================================
    WALL OBJECT
+
+   Every wall now stores mobileRows regardless of count.
+
+   This is what makes 9 -> mobile responsive instead of
+   disappearing.
 ========================================================= */
 
 function makeWall(
@@ -1745,12 +1846,9 @@ function makeWall(
     configurationIndex,
 
     mobileRows:
-      images.length ===
-      MOBILE_WALL_COUNT
-        ? buildMobileRowsPattern(
-            images
-          )
-        : null,
+      buildMobileRowsPattern(
+        images
+      ),
 
     slots:
       images.map(
@@ -1769,13 +1867,7 @@ function makeWall(
 
 
 /* =========================================================
-   MEDIA LAYER
-
-   IMPORTANT MOBILE TOUCH FIX:
-
-   Media itself gets pointer-events-none.
-
-   The enclosing slot div receives all click/tap events.
+   MEDIA
 ========================================================= */
 
 function MediaLayer({
@@ -2125,6 +2217,19 @@ function PersistentFadeSlot({
 
 /* =========================================================
    WALL BUFFER
+
+   KEY RESPONSIVE RULE:
+
+   Mobile width:
+     render ANY wall count through mobile composition.
+
+   Desktop width:
+     9 images -> native Tetris
+     anything else -> visible fallback
+
+   Crossing a breakpoint can therefore never return an
+   empty rect array merely because the wall was born on
+   the other side.
 ========================================================= */
 
 function WallBuffer({
@@ -2169,26 +2274,37 @@ function WallBuffer({
           isMobile
         ) {
 
-          /*
-            Mobile walls contain six images.
-          */
-
-          if (
-            images.length !==
-            MOBILE_WALL_COUNT
-          ) {
-
-            return {
-              rects: []
-            }
-          }
+          const mobileRows =
+            wall.mobileRows?.length
+              ? wall.mobileRows
+              : buildMobileRowsPattern(
+                  images
+                )
 
 
           return buildMobileLayout(
 
             images,
 
-            wall.mobileRows,
+            mobileRows,
+
+            stageWidth,
+
+            stageHeight
+          )
+        }
+
+
+        if (
+          images.length ===
+          DESKTOP_WALL_COUNT
+        ) {
+
+          return buildDesktopLayout(
+
+            images,
+
+            wall.configuration,
 
             stageWidth,
 
@@ -2198,25 +2314,14 @@ function WallBuffer({
 
 
         /*
-          Desktop walls contain nine images.
+          Live mobile wall widened to desktop.
+
+          KEEP IT VISIBLE.
         */
 
-        if (
-          images.length !==
-          DESKTOP_WALL_COUNT
-        ) {
-
-          return {
-            rects: []
-          }
-        }
-
-
-        return buildDesktopLayout(
+        return buildDesktopFallbackLayout(
 
           images,
-
-          wall.configuration,
 
           stageWidth,
 
@@ -2427,12 +2532,6 @@ export default function FadeGallery() {
     useRef(-1)
 
 
-  /*
-    Needs to support desktop's 9 slots.
-
-    Mobile simply uses indices 0–5.
-  */
-
   const lastUpdatedRef =
     useRef(
       Array(
@@ -2460,19 +2559,16 @@ export default function FadeGallery() {
   /* =======================================================
      STAGE
 
-     MOBILE:
+     Mobile:
        9:19.5
-       full width
-       6-image wall
 
-     MOBILE BLACK MODE:
-       still full width
-       no max-height constraint
-       excess vertical canvas gets cropped by fullscreen
-
-     DESKTOP:
+     Desktop:
        16:9
-       9-image wall
+
+     ResizeObserver updates geometry continuously.
+
+     Existing content remains the same while the layout
+     recomposes around it.
   ======================================================= */
 
   const stageRef =
@@ -2490,18 +2586,6 @@ export default function FadeGallery() {
     height:
       0
   })
-
-
-  const isMobile =
-    stageSize.width > 0 &&
-    stageSize.width <
-      MOBILE_BREAKPOINT
-
-
-  const wallImageCount =
-    isMobile
-      ? MOBILE_WALL_COUNT
-      : DESKTOP_WALL_COUNT
 
 
   useEffect(() => {
@@ -2573,7 +2657,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     RAW FETCH
+     FETCH
   ======================================================= */
 
   const fetchImageBatch =
@@ -2635,10 +2719,6 @@ export default function FadeGallery() {
     }
 
 
-  /* =======================================================
-     NORMAL FETCH
-  ======================================================= */
-
   const fetchImages =
     async () => {
 
@@ -2671,11 +2751,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     INITIAL FAST PATH
-
-     Count is now device-dependent:
-       mobile  = 6
-       desktop = 9
+     INITIAL SELECTION
   ======================================================= */
 
   const takeInitialWallImages =
@@ -2869,7 +2945,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     EXACT-AR SLOT REPLACEMENT
+     AR-MATCHED SLOT REPLACEMENT
   ======================================================= */
 
   const pullMatchingImage =
@@ -2967,7 +3043,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     GET N IMAGES
+     GET WALL IMAGES
   ======================================================= */
 
   const getImagesForWall =
@@ -3018,28 +3094,16 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     BUILD WALL FOR CURRENT VIEWPORT
+     WALL BUILD
   ======================================================= */
 
   const buildWallFromImages =
     images => {
 
-      const mobileWall =
+      if (
         images.length ===
         MOBILE_WALL_COUNT
-
-
-      if (
-        mobileWall
       ) {
-
-        /*
-          Mobile doesn't need the desktop Tetris
-          configuration at all.
-
-          Store a harmless desktop default so the object
-          remains structurally consistent.
-        */
 
         return makeWall(
 
@@ -3087,13 +3151,6 @@ export default function FadeGallery() {
       )
     }
 
-
-  /* =======================================================
-     CREATE SUBSEQUENT WALL
-
-     Mobile pulls 6.
-     Desktop pulls 9.
-  ======================================================= */
 
   const createNewWall =
     async ({
@@ -3155,7 +3212,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     FAST INITIALIZATION
+     INITIALIZATION
   ======================================================= */
 
   const initInProgressRef =
@@ -3299,11 +3356,6 @@ export default function FadeGallery() {
           )
 
 
-          /*
-            Lightbox bookkeeping happens after the visible
-            wall has been sent to React.
-          */
-
           requestAnimationFrame(
             () => {
 
@@ -3381,9 +3433,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      SLOT PICK
-
-     Uses current wall's actual slot count.
-========================================================= */
+  ======================================================= */
 
   const pickSlot =
     count => {
@@ -3457,8 +3507,6 @@ export default function FadeGallery() {
 
   /* =======================================================
      SLOT CHANGES
-
-     Same timing/rules desktop and mobile.
   ======================================================= */
 
   useEffect(() => {
@@ -3633,13 +3681,10 @@ export default function FadeGallery() {
   /* =======================================================
      WHOLE WALL CHANGES
 
-     Mobile:
-       6 -> 6
+     If you've resized across the breakpoint, THIS is when
+     the wall naturally converges to the native image count.
 
-     Desktop:
-       9 -> 9
-
-     Timing remains 60 sec / 5 sec crossfade.
+     No immediate destructive rebuild on resize.
   ======================================================= */
 
   useEffect(() => {
@@ -4323,24 +4368,6 @@ export default function FadeGallery() {
               : 'w-full'
           }
         >
-
-          {/*
-
-            MOBILE:
-              6 images
-              fixed 9:19.5 portrait stage
-              full available width
-
-              Black Mode:
-                width stays maxed
-                stage remains vertically centered
-                viewport may crop excess top/bottom
-
-            DESKTOP:
-              9 images
-              fixed 16:9 stage
-
-          */}
 
           <div
             ref={
