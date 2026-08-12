@@ -16,16 +16,6 @@ import AnimatedLogo from '../../components/AnimatedLogo'
 
 const GAP = 10
 
-/*
-  Nine slots total.
-
-  Band 1:
-  [1, 2, 1] = 4 images
-
-  Band 2:
-  [2, 1, 2] = 5 images
-*/
-
 const FADE_PATTERN = [
   [1, 2, 1],
   [2, 1, 2]
@@ -79,6 +69,47 @@ function parseImageMeta(dimensions) {
       intrinsicRatio ||
       16 / 9
   }
+}
+
+
+/* ---------------------------------------------------------
+   ORIGINAL FADE STAGE HEIGHT
+
+   Original desktop Fade is a 3x3 grid of 16:9 tiles
+   with 10px gaps.
+
+   Given stage width W:
+
+   tileWidth =
+     (W - 20) / 3
+
+   tileHeight =
+     tileWidth / (16/9)
+
+   stageHeight =
+     tileHeight * 3 + 20
+
+   Which simplifies to:
+
+   ((W - 20) * 9 / 16) + 20
+--------------------------------------------------------- */
+
+function getOriginalFadeStageHeight(
+  width
+) {
+  if (!width) {
+    return 0
+  }
+
+  return (
+    (
+      width -
+      GAP * 2
+    ) *
+    9 /
+    16
+  ) +
+  GAP * 2
 }
 
 
@@ -187,17 +218,17 @@ function solveBand(
 
 
   return {
-    height: bandHeight,
-    columns: solvedColumns
+    height:
+      bandHeight,
+
+    columns:
+      solvedColumns
   }
 }
 
 
 /* ---------------------------------------------------------
-   BUILD NATURAL LAYOUT
-
-   This is the layout the nine current ARs would naturally
-   create if allowed to choose their own total height.
+   BUILD NATURAL WALL-STYLE GEOMETRY
 --------------------------------------------------------- */
 
 function buildFadeLayout(
@@ -206,7 +237,9 @@ function buildFadeLayout(
 ) {
   if (
     !containerWidth ||
-    slots.some(slot => !slot)
+    slots.some(
+      slot => !slot
+    )
   ) {
     return {
       rects: [],
@@ -238,7 +271,10 @@ function buildFadeLayout(
 
 
   FADE_PATTERN.forEach(
-    (pattern, bandIndex) => {
+    (
+      pattern,
+      bandIndex
+    ) => {
 
       const requiredImages =
         pattern.reduce(
@@ -338,10 +374,8 @@ function buildFadeLayout(
 
   return {
     rects,
-
     width:
       containerWidth,
-
     height:
       currentY
   }
@@ -349,19 +383,12 @@ function buildFadeLayout(
 
 
 /* ---------------------------------------------------------
-   FIT NATURAL LAYOUT INTO STABLE STAGE
+   FIT CURRENT GEOMETRY INTO ORIGINAL FADE STAGE
 
-   Crucial difference from the previous version:
+   The outer stage never changes shape because of image ARs.
 
-   The stage DOES NOT change shape when the images change.
-
-   If the natural mosaic is taller than the stage,
-   it scales down uniformly.
-
-   If it is shorter, it remains full width and is
-   vertically centered.
-
-   No AR distortion.
+   Current mosaic is uniformly scaled to fit the original
+   Fade footprint and centered inside it.
 --------------------------------------------------------- */
 
 function fitLayoutToStage(
@@ -376,42 +403,25 @@ function fitLayoutToStage(
     !stageHeight
   ) {
     return {
-      rects: [],
-      width: stageWidth,
-      height: stageHeight
+      rects: []
     }
   }
 
 
-  const widthScale =
-    stageWidth /
-    layout.width
-
-  const heightScale =
-    stageHeight /
-    layout.height
-
-
-  /*
-    Natural layout is already solved to the full stage width.
-
-    Never scale above 1 here, because doing so would overflow
-    horizontally.
-
-    We only shrink when necessary to fit the fixed stage.
-  */
-
   const scale =
     Math.min(
-      1,
-      widthScale,
-      heightScale
+      stageWidth /
+        layout.width,
+
+      stageHeight /
+        layout.height
     )
 
 
   const fittedWidth =
     layout.width *
     scale
+
 
   const fittedHeight =
     layout.height *
@@ -425,6 +435,7 @@ function fitLayoutToStage(
     ) /
     2
 
+
   const offsetY =
     (
       stageHeight -
@@ -433,43 +444,37 @@ function fitLayoutToStage(
     2
 
 
-  const rects =
-    layout.rects.map(
-      rect => {
-
-        if (!rect) {
-          return null
-        }
-
-        return {
-          x:
-            offsetX +
-            rect.x *
-              scale,
-
-          y:
-            offsetY +
-            rect.y *
-              scale,
-
-          width:
-            rect.width *
-            scale,
-
-          height:
-            rect.height *
-            scale
-        }
-      }
-    )
-
-
   return {
-    rects,
-    width:
-      stageWidth,
-    height:
-      stageHeight
+    rects:
+      layout.rects.map(
+        rect => {
+
+          if (!rect) {
+            return null
+          }
+
+
+          return {
+            x:
+              offsetX +
+              rect.x *
+                scale,
+
+            y:
+              offsetY +
+              rect.y *
+                scale,
+
+            width:
+              rect.width *
+              scale,
+
+            height:
+              rect.height *
+              scale
+          }
+        }
+      )
   }
 }
 
@@ -550,39 +555,16 @@ export default function FadeGallery() {
 
 
   /* -------------------------------------------------------
-     RESPONSIVE STAGE
+     STAGE MEASUREMENT
   ------------------------------------------------------- */
 
   const galleryRef =
     useRef(null)
 
-
   const [
-    containerWidth,
-    setContainerWidth
+    stageWidth,
+    setStageWidth
   ] = useState(0)
-
-
-  /*
-    This is the important persistent value.
-
-    Example:
-
-    first layout =
-      1500 × 930
-
-    stageAspectRatio =
-      1500 / 930
-
-    On a 3000px-wide display the same stage becomes:
-
-      3000 × 1860
-  */
-
-  const [
-    stageAspectRatio,
-    setStageAspectRatio
-  ] = useState(null)
 
 
   useEffect(() => {
@@ -602,7 +584,7 @@ export default function FadeGallery() {
       if (
         rect.width > 0
       ) {
-        setContainerWidth(
+        setStageWidth(
           rect.width
         )
       }
@@ -629,9 +611,20 @@ export default function FadeGallery() {
 
   }, [
     blackMode,
-    loader,
-    stageAspectRatio
+    loader
   ])
+
+
+  const stageHeight =
+    useMemo(
+      () =>
+        getOriginalFadeStageHeight(
+          stageWidth
+        ),
+      [
+        stageWidth
+      ]
+    )
 
 
   /* -------------------------------------------------------
@@ -948,7 +941,7 @@ export default function FadeGallery() {
 
 
   /* -------------------------------------------------------
-     NATURAL CURRENT LAYOUT
+     NATURAL CURRENT MOSAIC
   ------------------------------------------------------- */
 
   const naturalLayout =
@@ -956,63 +949,17 @@ export default function FadeGallery() {
       () =>
         buildFadeLayout(
           slots,
-          containerWidth
+          stageWidth
         ),
       [
         slots,
-        containerWidth
+        stageWidth
       ]
     )
 
 
   /* -------------------------------------------------------
-     FREEZE STAGE SHAPE FROM FIRST VALID LAYOUT
-
-     This happens ONCE.
-
-     After this point incoming ARs cannot change
-     the outer stage aspect ratio.
-  ------------------------------------------------------- */
-
-  useEffect(() => {
-    if (
-      stageAspectRatio ||
-      !containerWidth ||
-      !naturalLayout.height ||
-      naturalLayout.height <= 0
-    ) {
-      return
-    }
-
-
-    setStageAspectRatio(
-      containerWidth /
-      naturalLayout.height
-    )
-
-  }, [
-    stageAspectRatio,
-    containerWidth,
-    naturalLayout.height
-  ])
-
-
-  /* -------------------------------------------------------
-     STAGE HEIGHT
-
-     Responsive, but fixed in proportion.
-  ------------------------------------------------------- */
-
-  const stageHeight =
-    stageAspectRatio &&
-    containerWidth
-      ? containerWidth /
-        stageAspectRatio
-      : naturalLayout.height
-
-
-  /* -------------------------------------------------------
-     FIT CURRENT GEOMETRY INTO FIXED STAGE
+     FIT MOSAIC INTO ORIGINAL FADE FOOTPRINT
   ------------------------------------------------------- */
 
   const layout =
@@ -1020,12 +967,12 @@ export default function FadeGallery() {
       () =>
         fitLayoutToStage(
           naturalLayout,
-          containerWidth,
+          stageWidth,
           stageHeight
         ),
       [
         naturalLayout,
-        containerWidth,
+        stageWidth,
         stageHeight
       ]
     )
@@ -1326,7 +1273,7 @@ export default function FadeGallery() {
       <div
         className={
           blackMode
-            ? 'fixed inset-0 bg-black z-50 overflow-hidden flex items-center justify-center'
+            ? 'fixed inset-0 bg-black z-50 overflow-hidden'
             : 'px-4 lg:px-16 pb-10'
         }
       >
@@ -1391,7 +1338,7 @@ export default function FadeGallery() {
           <div
             className={
               blackMode
-                ? 'w-full h-full flex items-center justify-center'
+                ? 'absolute inset-0 flex items-center justify-center'
                 : 'w-full'
             }
           >
@@ -1400,33 +1347,14 @@ export default function FadeGallery() {
               ref={
                 galleryRef
               }
-              className="relative"
+              className={
+                blackMode
+                  ? 'relative w-full'
+                  : 'relative w-full'
+              }
               style={{
-                /*
-                  NORMAL:
-                    full available width
-
-                  BLACK MODE:
-                    fit the fixed-ratio stage entirely
-                    inside the viewport.
-
-                  Example:
-                    if stage AR = 1.6,
-                    width can never exceed
-                    100vh × 1.6.
-                */
-
-                width:
-                  blackMode &&
-                  stageAspectRatio
-                    ? `min(100vw, calc(100vh * ${stageAspectRatio}))`
-                    : '100%',
-
                 height:
-                  stageAspectRatio &&
-                  containerWidth
-                    ? `${stageHeight}px`
-                    : `${naturalLayout.height}px`
+                  `${stageHeight}px`
               }}
             >
 
