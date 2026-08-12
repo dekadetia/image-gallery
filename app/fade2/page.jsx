@@ -75,28 +75,10 @@ function parseImageMeta(dimensions) {
 /* ---------------------------------------------------------
    ORIGINAL FADE STAGE HEIGHT
 
-   Original desktop Fade is a 3x3 grid of 16:9 tiles
-   with 10px gaps.
-
-   Given stage width W:
-
-   tileWidth =
-     (W - 20) / 3
-
-   tileHeight =
-     tileWidth / (16/9)
-
-   stageHeight =
-     tileHeight * 3 + 20
-
-   Which simplifies to:
-
-   ((W - 20) * 9 / 16) + 20
+   Same responsive footprint as the old 3x3 16:9 Fade.
 --------------------------------------------------------- */
 
-function getOriginalFadeStageHeight(
-  width
-) {
+function getOriginalFadeStageHeight(width) {
   if (!width) {
     return 0
   }
@@ -114,7 +96,7 @@ function getOriginalFadeStageHeight(
 
 
 /* ---------------------------------------------------------
-   SOLVE ONE BAND
+   SOLVE ONE NATURAL BAND
 --------------------------------------------------------- */
 
 function solveBand(
@@ -228,15 +210,20 @@ function solveBand(
 
 
 /* ---------------------------------------------------------
-   BUILD NATURAL WALL-STYLE GEOMETRY
+   BUILD NATURAL MOSAIC
+
+   X always solves to the full available width.
+
+   This produces the natural Y geometry before we compress
+   only the positions into the fixed stage.
 --------------------------------------------------------- */
 
-function buildFadeLayout(
+function buildNaturalFadeLayout(
   slots,
-  containerWidth
+  stageWidth
 ) {
   if (
-    !containerWidth ||
+    !stageWidth ||
     slots.some(
       slot => !slot
     )
@@ -296,7 +283,7 @@ function buildFadeLayout(
         solveBand(
           bandImages,
           pattern,
-          containerWidth
+          stageWidth
         )
 
 
@@ -374,8 +361,10 @@ function buildFadeLayout(
 
   return {
     rects,
+
     width:
-      containerWidth,
+      stageWidth,
+
     height:
       currentY
   }
@@ -383,24 +372,30 @@ function buildFadeLayout(
 
 
 /* ---------------------------------------------------------
-   FIT CURRENT GEOMETRY INTO ORIGINAL FADE STAGE
+   COMPRESS ONLY INTERNAL Y POSITIONS
 
-   The outer stage never changes shape because of image ARs.
+   IMPORTANT:
 
-   Current mosaic is uniformly scaled to fit the original
-   Fade footprint and centered inside it.
+   - widths do not change
+   - heights do not change
+   - x positions do not change
+   - stage does not scale
+   - image ARs do not change
+
+   Only Y positions are compressed if the natural layout
+   is taller than original Fade's fixed stage.
+
+   That means overlap is allowed.
 --------------------------------------------------------- */
 
-function fitLayoutToStage(
+function fitInternallyToStage(
   layout,
-  stageWidth,
   stageHeight
 ) {
   if (
-    !layout.width ||
     !layout.height ||
-    !stageWidth ||
-    !stageHeight
+    !stageHeight ||
+    !layout.rects.length
   ) {
     return {
       rects: []
@@ -408,40 +403,82 @@ function fitLayoutToStage(
   }
 
 
-  const scale =
-    Math.min(
-      stageWidth /
-        layout.width,
+  /*
+    If the natural mosaic already fits,
+    don't alter anything.
+  */
 
-      stageHeight /
+  if (
+    layout.height <=
+    stageHeight
+  ) {
+    const offsetY =
+      (
+        stageHeight -
         layout.height
+      ) /
+      2
+
+
+    return {
+      rects:
+        layout.rects.map(
+          rect => {
+
+            if (!rect) {
+              return null
+            }
+
+
+            return {
+              ...rect,
+
+              y:
+                rect.y +
+                offsetY
+            }
+          }
+        )
+    }
+  }
+
+
+  /*
+    Natural layout is too tall.
+
+    We compress only the vertical POSITIONS.
+
+    The last tile bottoms should land roughly
+    within the fixed stage, but individual
+    tile heights remain untouched.
+
+    This naturally creates overlap.
+  */
+
+  const maxNaturalY =
+    Math.max(
+      ...layout.rects
+        .filter(Boolean)
+        .map(
+          rect =>
+            rect.y
+        )
     )
 
 
-  const fittedWidth =
-    layout.width *
-    scale
-
-
-  const fittedHeight =
-    layout.height *
-    scale
-
-
-  const offsetX =
-    (
-      stageWidth -
-      fittedWidth
-    ) /
-    2
-
-
-  const offsetY =
-    (
+  const maxAllowedY =
+    Math.max(
+      0,
       stageHeight -
-      fittedHeight
-    ) /
-    2
+      GAP
+    )
+
+
+  const yScale =
+    maxNaturalY > 0
+      ? maxAllowedY /
+        maxNaturalY
+      : 1
 
 
   return {
@@ -456,22 +493,17 @@ function fitLayoutToStage(
 
           return {
             x:
-              offsetX +
-              rect.x *
-                scale,
+              rect.x,
 
             y:
-              offsetY +
               rect.y *
-                scale,
+              yScale,
 
             width:
-              rect.width *
-              scale,
+              rect.width,
 
             height:
-              rect.height *
-              scale
+              rect.height
           }
         }
       )
@@ -941,13 +973,13 @@ export default function FadeGallery() {
 
 
   /* -------------------------------------------------------
-     NATURAL CURRENT MOSAIC
+     CURRENT INTERNAL GEOMETRY
   ------------------------------------------------------- */
 
   const naturalLayout =
     useMemo(
       () =>
-        buildFadeLayout(
+        buildNaturalFadeLayout(
           slots,
           stageWidth
         ),
@@ -958,21 +990,15 @@ export default function FadeGallery() {
     )
 
 
-  /* -------------------------------------------------------
-     FIT MOSAIC INTO ORIGINAL FADE FOOTPRINT
-  ------------------------------------------------------- */
-
   const layout =
     useMemo(
       () =>
-        fitLayoutToStage(
+        fitInternallyToStage(
           naturalLayout,
-          stageWidth,
           stageHeight
         ),
       [
         naturalLayout,
-        stageWidth,
         stageHeight
       ]
     )
@@ -1195,8 +1221,6 @@ export default function FadeGallery() {
   return (
     <RootLayout>
 
-      {/* MOON */}
-
       {!blackMode && (
         <motion.button
           onClick={
@@ -1225,8 +1249,6 @@ export default function FadeGallery() {
         </motion.button>
       )}
 
-
-      {/* EXIT BLACK MODE */}
 
       {blackMode && (
         <motion.button
@@ -1347,11 +1369,7 @@ export default function FadeGallery() {
               ref={
                 galleryRef
               }
-              className={
-                blackMode
-                  ? 'relative w-full'
-                  : 'relative w-full'
-              }
+              className="relative w-full"
               style={{
                 height:
                   `${stageHeight}px`
@@ -1705,12 +1723,7 @@ function FadeSlot({
   return (
     <div className="relative w-full h-full overflow-hidden">
 
-      {/* OUTGOING */}
-
-      {(
-        previousImage?.src ??
-        ''
-      )
+      {(previousImage?.src ?? '')
         .toLowerCase()
         .includes(
           '.webm'
@@ -1782,12 +1795,7 @@ function FadeSlot({
       )}
 
 
-      {/* INCOMING */}
-
-      {(
-        currentImage?.src ??
-        ''
-      )
+      {(currentImage?.src ?? '')
         .toLowerCase()
         .includes(
           '.webm'
