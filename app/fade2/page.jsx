@@ -62,6 +62,7 @@ function afterTwoFrames(callback) {
   let frame1 = null
   let frame2 = null
 
+
   frame1 =
     requestAnimationFrame(() => {
 
@@ -80,6 +81,7 @@ function afterTwoFrames(callback) {
       )
     }
 
+
     if (frame2) {
       cancelAnimationFrame(
         frame2
@@ -92,10 +94,10 @@ function afterTwoFrames(callback) {
 /* ---------------------------------------------------------
    SAFE PRELOAD
 
-   Initial wall does NOT require this.
+   Initial grid does NOT wait for this.
 
-   Later slot/wall transitions use it, but no asset can
-   stall the page indefinitely.
+   Slot transitions and subsequent whole-grid transitions
+   still use it.
 --------------------------------------------------------- */
 
 function preloadMedia(photo) {
@@ -290,6 +292,115 @@ function getRatioKey(photo) {
 
 
 /* =========================================================
+   LIGHTBOX SLIDE CREATION
+========================================================= */
+
+function makeSlide(photo) {
+  const src =
+    photo.src ??
+    ''
+
+
+  const meta =
+    parseImageMeta(
+      photo.dimensions
+    )
+
+
+  const width =
+    meta.width ||
+    1920
+
+
+  const height =
+    meta.height ||
+    Math.round(
+      width /
+      meta.ratio
+    )
+
+
+  if (
+    isWebm(photo)
+  ) {
+
+    return {
+
+      type:
+        'video',
+
+      width,
+
+      height,
+
+      title:
+        photo.caption,
+
+      description:
+        photo.dimensions,
+
+      director:
+        photo.director ||
+        null,
+
+      year:
+        photo.year,
+
+      sources: [
+        {
+          src,
+
+          type:
+            'video/webm'
+        }
+      ],
+
+      poster:
+        '/assets/transparent.png',
+
+      autoPlay:
+        true,
+
+      muted:
+        true,
+
+      loop:
+        true,
+
+      controls:
+        false
+    }
+  }
+
+
+  return {
+
+    type:
+      'image',
+
+    src,
+
+    width,
+
+    height,
+
+    title:
+      photo.caption,
+
+    description:
+      photo.dimensions,
+
+    director:
+      photo.director ||
+      null,
+
+    year:
+      photo.year
+  }
+}
+
+
+/* =========================================================
    TETRIS CONFIGURATIONS
 ========================================================= */
 
@@ -463,12 +574,6 @@ function getPreferredBand(
 
 /* =========================================================
    FIXED BAND
-
-   Every band fills its assigned rectangle exactly.
-
-   No holes.
-   No overlaps.
-   Exact 10px gaps.
 ========================================================= */
 
 function solveFixedBand(
@@ -684,7 +789,9 @@ function buildFixedStageLayout(
   ) {
 
     return {
+
       rects: [],
+
       score:
         Infinity
     }
@@ -737,7 +844,8 @@ function buildFixedStageLayout(
             )
 
 
-        cursor += count
+        cursor +=
+          count
 
 
         const preferred =
@@ -792,8 +900,11 @@ function buildFixedStageLayout(
 
   let currentY = 0
 
+
   const finalRects =
-    Array(9).fill(null)
+    Array(9).fill(
+      null
+    )
 
 
   preparedBands.forEach(
@@ -1371,12 +1482,7 @@ function PersistentFadeSlot({
 /* =========================================================
    WALL BUFFER
 
-   IMPORTANT:
-   only the visible/current wall is interactive.
-
-   Hidden wall buffers remain mounted for seamless fades,
-   but pointer-events are disabled so they cannot intercept
-   clicks intended for the visible grid.
+   Hidden wall remains mounted but cannot intercept clicks.
 ========================================================= */
 
 function WallBuffer({
@@ -1643,10 +1749,6 @@ export default function FadeGallery() {
   ] = useState([])
 
 
-  /* ---------------------------------------------------------
-     STAGE
---------------------------------------------------------- */
-
   const stageRef =
     useRef(null)
 
@@ -1733,16 +1835,21 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     FETCH
+     RAW FETCH
+
+     This fetches the batch but does NOT automatically
+     push it into the pool or slides.
+
+     That lets initial startup use the response immediately.
   ======================================================= */
 
-  const fetchImages =
+  const fetchImageBatch =
     async () => {
 
       if (
         loadingRef.current
       ) {
-        return
+        return []
       }
 
 
@@ -1772,142 +1879,10 @@ export default function FadeGallery() {
           await response.json()
 
 
-        const images =
+        return (
           data.images ||
           []
-
-
-        if (
-          images.length
-        ) {
-
-          poolRef.current.push(
-            ...images
-          )
-
-
-          const newSlides =
-            images.map(
-              photo => {
-
-                const src =
-                  photo.src ??
-                  ''
-
-
-                const meta =
-                  parseImageMeta(
-                    photo.dimensions
-                  )
-
-
-                const width =
-                  meta.width ||
-                  1920
-
-
-                const height =
-                  meta.height ||
-                  Math.round(
-                    width /
-                    meta.ratio
-                  )
-
-
-                if (
-                  isWebm(
-                    photo
-                  )
-                ) {
-
-                  return {
-
-                    type:
-                      'video',
-
-                    width,
-
-                    height,
-
-                    title:
-                      photo.caption,
-
-                    description:
-                      photo.dimensions,
-
-                    director:
-                      photo.director ||
-                      null,
-
-                    year:
-                      photo.year,
-
-                    sources: [
-                      {
-
-                        src,
-
-                        type:
-                          'video/webm'
-                      }
-                    ],
-
-                    poster:
-                      '/assets/transparent.png',
-
-                    autoPlay:
-                      true,
-
-                    muted:
-                      true,
-
-                    loop:
-                      true,
-
-                    controls:
-                      false
-                  }
-                }
-
-
-                return {
-
-                  type:
-                    'image',
-
-                  src,
-
-                  width,
-
-                  height,
-
-                  title:
-                    photo.caption,
-
-                  description:
-                    photo.dimensions,
-
-                  director:
-                    photo.director ||
-                    null,
-
-                  year:
-                    photo.year
-                }
-              }
-            )
-
-
-          setSlides(
-            previous => [
-              ...previous,
-              ...newSlides
-            ]
-          )
-        }
-
-
-        return images
+        )
 
       } catch (error) {
 
@@ -1923,6 +1898,153 @@ export default function FadeGallery() {
 
         loadingRef.current =
           false
+      }
+    }
+
+
+  /* =======================================================
+     NORMAL FETCH
+
+     Used after startup.
+
+     Adds results directly to normal pool + slide inventory.
+  ======================================================= */
+
+  const fetchImages =
+    async () => {
+
+      const images =
+        await fetchImageBatch()
+
+
+      if (
+        images.length
+      ) {
+
+        poolRef.current.push(
+          ...images
+        )
+
+
+        setSlides(
+          previous => [
+            ...previous,
+            ...images.map(
+              makeSlide
+            )
+          ]
+        )
+      }
+
+
+      return images
+    }
+
+
+  /* =======================================================
+     INITIAL FAST-PATH SELECTION
+
+     Takes nine images directly from the FIRST response.
+
+     Enforces the same WebM spacing rule.
+
+     Anything not selected becomes the initial normal pool.
+  ======================================================= */
+
+  const takeInitialWallImages =
+    images => {
+
+      const selected = []
+      const leftovers = []
+
+
+      let imagesSinceWebm =
+        MIN_IMAGES_BETWEEN_WEBMS
+
+
+      for (
+        const image of images
+      ) {
+
+        if (
+          selected.length >= 9
+        ) {
+
+          leftovers.push(
+            image
+          )
+
+          continue
+        }
+
+
+        if (
+          isWebm(image)
+        ) {
+
+          if (
+            imagesSinceWebm >=
+            MIN_IMAGES_BETWEEN_WEBMS
+          ) {
+
+            selected.push(
+              image
+            )
+
+
+            imagesSinceWebm =
+              0
+
+          } else {
+
+            /*
+              Too early for this WebM.
+
+              Don't discard it. Put it into the
+              pending WebM queue for later use.
+            */
+
+            pendingWebmsRef
+              .current
+              .push(
+                image
+              )
+          }
+
+
+          continue
+        }
+
+
+        selected.push(
+          image
+        )
+
+
+        imagesSinceWebm =
+          Math.min(
+
+            MIN_IMAGES_BETWEEN_WEBMS,
+
+            imagesSinceWebm +
+              1
+          )
+      }
+
+
+      /*
+        Carry startup spacing state into normal Fade stream.
+      */
+
+      imagesSinceWebmRef.current =
+        imagesSinceWebm
+
+
+      return {
+
+        selected,
+
+        leftovers
       }
     }
 
@@ -2027,7 +2149,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     EXACT-AR REPLACEMENT
+     EXACT-AR SLOT REPLACEMENT
   ======================================================= */
 
   const pullMatchingImage =
@@ -2176,7 +2298,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     CREATE WALL
+     CREATE NORMAL SUBSEQUENT WALL
   ======================================================= */
 
   const createNewWall =
@@ -2259,7 +2381,22 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     INITIALIZATION
+     FAST INITIALIZATION
+
+     BEFORE:
+       fetch
+       push into pool
+       update slide state
+       pull nine back from pool
+       create wall
+
+     NOW:
+       fetch
+       take nine directly
+       solve
+       SHOW
+
+     Leftovers + lightbox inventory are populated afterward.
   ======================================================= */
 
   const initInProgressRef =
@@ -2296,26 +2433,20 @@ export default function FadeGallery() {
 
         try {
 
-          await fetchImages()
-
-
-          const wall =
-            await createNewWall({
-              preload:
-                false
-            })
+          const firstBatch =
+            await fetchImageBatch()
 
 
           if (
             cancelled
           ) {
-
             return
           }
 
 
           if (
-            !wall
+            firstBatch.length <
+            9
           ) {
 
             initInProgressRef.current =
@@ -2324,18 +2455,100 @@ export default function FadeGallery() {
 
             initRetryRef.current =
               setTimeout(
-                () => {
-
-                  initialize()
-
-                },
-                1500
+                initialize,
+                1200
               )
 
 
             return
           }
 
+
+          const {
+            selected,
+            leftovers
+          } =
+            takeInitialWallImages(
+              firstBatch
+            )
+
+
+          if (
+            selected.length <
+            9
+          ) {
+
+            /*
+              Extremely WebM-heavy batch or otherwise
+              insufficient eligible media.
+
+              Put still-usable leftovers into the pool
+              and retry through normal pipeline.
+            */
+
+            poolRef.current.push(
+              ...leftovers
+            )
+
+
+            initInProgressRef.current =
+              false
+
+
+            initRetryRef.current =
+              setTimeout(
+                initialize,
+                1200
+              )
+
+
+            return
+          }
+
+
+          /*
+            Solve immediately.
+            No media preload.
+            No pool round-trip.
+          */
+
+          const best =
+            chooseBestConfiguration(
+
+              selected,
+
+              stageSize.width,
+
+              stageSize.height,
+
+              lastConfigurationRef
+                .current
+            )
+
+
+          lastConfigurationRef
+            .current =
+            best.index
+
+
+          const wall =
+            makeWall(
+
+              selected,
+
+              best.configuration,
+
+              best.index,
+
+              Date.now() +
+              Math.random()
+            )
+
+
+          /*
+            FIRST PRIORITY:
+            put the wall onscreen and dismiss Loader.
+          */
 
           setWallA(
             wall
@@ -2359,6 +2572,45 @@ export default function FadeGallery() {
           initInProgressRef.current =
             false
 
+
+          /*
+            SECONDARY BOOKKEEPING:
+
+            Leftover first-batch images become the
+            normal future pool.
+          */
+
+          poolRef.current.push(
+            ...leftovers
+          )
+
+
+          /*
+            Build the lightbox inventory just after the
+            visible grid has been committed.
+
+            requestAnimationFrame lets the wall paint get
+            priority over this larger state update.
+          */
+
+          requestAnimationFrame(
+            () => {
+
+              if (
+                cancelled
+              ) {
+                return
+              }
+
+
+              setSlides(
+                firstBatch.map(
+                  makeSlide
+                )
+              )
+            }
+          )
+
         } catch (error) {
 
           console.error(
@@ -2378,7 +2630,7 @@ export default function FadeGallery() {
             initRetryRef.current =
               setTimeout(
                 initialize,
-                1500
+                1200
               )
           }
         }
@@ -3365,8 +3617,6 @@ export default function FadeGallery() {
 
               <>
 
-                {/* WALL BUFFER A */}
-
                 <WallBuffer
                   wall={
                     wallA
@@ -3395,8 +3645,6 @@ export default function FadeGallery() {
                   }
                 />
 
-
-                {/* WALL BUFFER B */}
 
                 <WallBuffer
                   wall={
