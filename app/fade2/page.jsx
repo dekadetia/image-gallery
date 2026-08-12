@@ -1370,6 +1370,13 @@ function PersistentFadeSlot({
 
 /* =========================================================
    WALL BUFFER
+
+   IMPORTANT:
+   only the visible/current wall is interactive.
+
+   Hidden wall buffers remain mounted for seamless fades,
+   but pointer-events are disabled so they cannot intercept
+   clicks intended for the visible grid.
 ========================================================= */
 
 function WallBuffer({
@@ -1378,6 +1385,7 @@ function WallBuffer({
   stageHeight,
   opacity,
   fadeDuration,
+  interactive,
   onImageClick
 }) {
   const layout =
@@ -1431,6 +1439,12 @@ function WallBuffer({
 
         ease:
           'easeInOut'
+      }}
+      style={{
+        pointerEvents:
+          interactive
+            ? 'auto'
+            : 'none'
       }}
     >
 
@@ -1631,13 +1645,6 @@ export default function FadeGallery() {
 
   /* ---------------------------------------------------------
      STAGE
-
-     The box has a real CSS aspect ratio immediately.
-
-     Therefore:
-     - it has height on first paint
-     - ResizeObserver can measure it immediately
-     - Footer does not begin directly under a 0px stage
 --------------------------------------------------------- */
 
   const stageRef =
@@ -2119,9 +2126,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      GET N IMAGES
-
-     Explicit finite attempts.
-========================================================= */
+  ======================================================= */
 
   const getImagesForWall =
     async count => {
@@ -2160,11 +2165,6 @@ export default function FadeGallery() {
           !fetched.length &&
           poolRef.current.length === 0
         ) {
-
-          /*
-            Nothing came back.
-            Don't loop endlessly.
-          */
 
           break
         }
@@ -2260,16 +2260,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      INITIALIZATION
-
-     IMPORTANT:
-
-     There is NO permanent "initialized" latch.
-
-     initInProgress prevents simultaneous duplicate attempts,
-     but resets if the attempt fails.
-
-     If a first attempt gets no wall, we retry shortly.
-========================================================= */
+  ======================================================= */
 
   const initInProgressRef =
     useRef(false)
@@ -2327,11 +2318,6 @@ export default function FadeGallery() {
             !wall
           ) {
 
-            /*
-              Release the lock and retry rather than
-              leaving Loader spinning forever.
-            */
-
             initInProgressRef.current =
               false
 
@@ -2339,11 +2325,6 @@ export default function FadeGallery() {
             initRetryRef.current =
               setTimeout(
                 () => {
-
-                  /*
-                    Tiny stage-size nudge is unnecessary;
-                    simply invoke another attempt directly.
-                  */
 
                   initialize()
 
@@ -3358,8 +3339,6 @@ export default function FadeGallery() {
           }
         >
 
-          {/* Fixed stage exists immediately */}
-
           <div
             ref={
               stageRef
@@ -3386,6 +3365,8 @@ export default function FadeGallery() {
 
               <>
 
+                {/* WALL BUFFER A */}
+
                 <WallBuffer
                   wall={
                     wallA
@@ -3404,11 +3385,18 @@ export default function FadeGallery() {
                       ? WALL_FADE_DURATION
                       : 0
                   }
+                  interactive={
+                    wallFadeTarget
+                      ? wallFadeTarget === 'A'
+                      : frontBuffer === 'A'
+                  }
                   onImageClick={
                     handleImageClick
                   }
                 />
 
+
+                {/* WALL BUFFER B */}
 
                 <WallBuffer
                   wall={
@@ -3427,6 +3415,11 @@ export default function FadeGallery() {
                     wallFadeTarget
                       ? WALL_FADE_DURATION
                       : 0
+                  }
+                  interactive={
+                    wallFadeTarget
+                      ? wallFadeTarget === 'B'
+                      : frontBuffer === 'B'
                   }
                   onImageClick={
                     handleImageClick
