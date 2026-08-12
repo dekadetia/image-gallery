@@ -16,17 +16,6 @@ import AnimatedLogo from '../../components/AnimatedLogo'
 
 const GAP = 10
 
-/*
-  Nine images, arranged in two irregular bands:
-
-  BAND 1: [1, 2, 1] = 4 images
-  BAND 2: [2, 1, 2] = 5 images
-
-  The topology remains understandable,
-  but the actual widths/heights constantly
-  change as the images' aspect ratios change.
-*/
-
 const FADE_PATTERN = [
   [1, 2, 1],
   [2, 1, 2]
@@ -35,11 +24,6 @@ const FADE_PATTERN = [
 
 /* ---------------------------------------------------------
    METADATA
-
-   Example:
-   1.33:1 | 1436×1080 | 334 KB | WEBP
-
-   Geometry follows TNDR's declared AR.
 --------------------------------------------------------- */
 
 function parseImageMeta(dimensions) {
@@ -89,14 +73,7 @@ function parseImageMeta(dimensions) {
 
 
 /* ---------------------------------------------------------
-   BUILD ONE BAND
-
-   Same basic geometry we used for Wall.
-
-   Every structural column finishes at the
-   same vertical position.
-
-   A column can contain 1 or 2 stacked images.
+   SOLVE ONE BAND
 --------------------------------------------------------- */
 
 function solveBand(
@@ -217,14 +194,6 @@ function solveBand(
 
 /* ---------------------------------------------------------
    BUILD ABSOLUTE RECTANGLES
-
-   Returns:
-   [
-     { x, y, width, height },
-     ...
-   ]
-
-   One rectangle for each of the nine slots.
 --------------------------------------------------------- */
 
 function buildFadeLayout(
@@ -444,10 +413,6 @@ export default function FadeGallery() {
     useRef(0)
 
 
-  /*
-    Container measurement
-  */
-
   const galleryRef =
     useRef(null)
 
@@ -456,6 +421,14 @@ export default function FadeGallery() {
     setContainerWidth
   ] = useState(0)
 
+
+  /* -------------------------------------------------------
+     MEASURE GALLERY
+
+     Important:
+     reruns when loader becomes false,
+     so normal mode measures immediately.
+  ------------------------------------------------------- */
 
   useEffect(() => {
     if (
@@ -493,7 +466,11 @@ export default function FadeGallery() {
     return () => {
       observer.disconnect()
     }
-  }, [blackMode])
+
+  }, [
+    blackMode,
+    loader
+  ])
 
 
   /* -------------------------------------------------------
@@ -789,11 +766,12 @@ export default function FadeGallery() {
       clearInterval(
         intervalRef.current
       )
+
   }, [])
 
 
   /* -------------------------------------------------------
-     CALCULATE CURRENT WALL GEOMETRY
+     CURRENT GEOMETRY
   ------------------------------------------------------- */
 
   const layout =
@@ -1019,8 +997,6 @@ export default function FadeGallery() {
   return (
     <RootLayout>
 
-      {/* MOON */}
-
       {!blackMode && (
         <motion.button
           onClick={
@@ -1045,8 +1021,6 @@ export default function FadeGallery() {
         </motion.button>
       )}
 
-
-      {/* EXIT BLACK MODE */}
 
       {blackMode && (
         <motion.button
@@ -1161,19 +1135,8 @@ export default function FadeGallery() {
               ref={
                 galleryRef
               }
-              className={
-                blackMode
-                  ? 'relative w-full'
-                  : 'relative w-full'
-              }
+              className="relative w-full"
               style={{
-                /*
-                  In regular mode, height follows
-                  the solved mosaic.
-
-                  In black mode we'll still center
-                  this entire moving object.
-                */
                 height:
                   `${layout.height}px`
               }}
@@ -1228,16 +1191,6 @@ export default function FadeGallery() {
                           [0.45, 0, 0.2, 1]
                       }}
                       style={{
-                        /*
-                          The tile that most recently
-                          changed can naturally pass
-                          above neighboring tiles while
-                          geometry is in motion.
-
-                          All slots still settle back into
-                          exact 10px gutters.
-                        */
-
                         zIndex:
                           lastSlotRef.current ===
                           idx
@@ -1361,14 +1314,6 @@ export default function FadeGallery() {
 
 /* ---------------------------------------------------------
    FADE SLOT
-
-   The slot itself changes geometry externally.
-
-   Internally, outgoing and incoming frames simply
-   crossfade over one another.
-
-   object-cover deliberately allows tiny cropping so the
-   visible frame always fills the moving tile.
 --------------------------------------------------------- */
 
 function FadeSlot({
@@ -1516,12 +1461,7 @@ function FadeSlot({
   return (
     <div className="relative w-full h-full overflow-hidden">
 
-      {/* OUTGOING */}
-
-      {(
-        previousImage?.src ??
-        ''
-      )
+      {(previousImage?.src ?? '')
         .toLowerCase()
         .includes('.webm') ? (
 
@@ -1583,12 +1523,7 @@ function FadeSlot({
       )}
 
 
-      {/* INCOMING */}
-
-      {(
-        currentImage?.src ??
-        ''
-      )
+      {(currentImage?.src ?? '')
         .toLowerCase()
         .includes('.webm') ? (
 
