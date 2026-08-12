@@ -16,6 +16,16 @@ import AnimatedLogo from '../../components/AnimatedLogo'
 
 const GAP = 10
 
+/*
+  Nine slots total.
+
+  Band 1:
+  [1, 2, 1] = 4 images
+
+  Band 2:
+  [2, 1, 2] = 5 images
+*/
+
 const FADE_PATTERN = [
   [1, 2, 1],
   [2, 1, 2]
@@ -110,12 +120,9 @@ function solveBand(
 
       const stackWeight =
         items.reduce(
-          (sum, image) => {
-            return (
-              sum +
-              1 / image.ratio
-            )
-          },
+          (sum, image) =>
+            sum +
+            1 / image.ratio,
           0
         )
 
@@ -138,25 +145,19 @@ function solveBand(
 
   const denominator =
     columns.reduce(
-      (sum, column) => {
-        return (
-          sum +
-          1 / column.stackWeight
-        )
-      },
+      (sum, column) =>
+        sum +
+        1 / column.stackWeight,
       0
     )
 
 
   const gapAdjustment =
     columns.reduce(
-      (sum, column) => {
-        return (
-          sum +
-          column.verticalGapHeight /
-            column.stackWeight
-        )
-      },
+      (sum, column) =>
+        sum +
+        column.verticalGapHeight /
+          column.stackWeight,
       0
     )
 
@@ -193,7 +194,10 @@ function solveBand(
 
 
 /* ---------------------------------------------------------
-   BUILD ABSOLUTE RECTANGLES
+   BUILD NATURAL LAYOUT
+
+   This is the layout the nine current ARs would naturally
+   create if allowed to choose their own total height.
 --------------------------------------------------------- */
 
 function buildFadeLayout(
@@ -206,6 +210,7 @@ function buildFadeLayout(
   ) {
     return {
       rects: [],
+      width: 0,
       height: 0
     }
   }
@@ -215,6 +220,7 @@ function buildFadeLayout(
     slots.map(
       (image, index) => ({
         index,
+
         ratio:
           parseImageMeta(
             image.dimensions
@@ -332,8 +338,138 @@ function buildFadeLayout(
 
   return {
     rects,
+
+    width:
+      containerWidth,
+
     height:
       currentY
+  }
+}
+
+
+/* ---------------------------------------------------------
+   FIT NATURAL LAYOUT INTO STABLE STAGE
+
+   Crucial difference from the previous version:
+
+   The stage DOES NOT change shape when the images change.
+
+   If the natural mosaic is taller than the stage,
+   it scales down uniformly.
+
+   If it is shorter, it remains full width and is
+   vertically centered.
+
+   No AR distortion.
+--------------------------------------------------------- */
+
+function fitLayoutToStage(
+  layout,
+  stageWidth,
+  stageHeight
+) {
+  if (
+    !layout.width ||
+    !layout.height ||
+    !stageWidth ||
+    !stageHeight
+  ) {
+    return {
+      rects: [],
+      width: stageWidth,
+      height: stageHeight
+    }
+  }
+
+
+  const widthScale =
+    stageWidth /
+    layout.width
+
+  const heightScale =
+    stageHeight /
+    layout.height
+
+
+  /*
+    Natural layout is already solved to the full stage width.
+
+    Never scale above 1 here, because doing so would overflow
+    horizontally.
+
+    We only shrink when necessary to fit the fixed stage.
+  */
+
+  const scale =
+    Math.min(
+      1,
+      widthScale,
+      heightScale
+    )
+
+
+  const fittedWidth =
+    layout.width *
+    scale
+
+  const fittedHeight =
+    layout.height *
+    scale
+
+
+  const offsetX =
+    (
+      stageWidth -
+      fittedWidth
+    ) /
+    2
+
+  const offsetY =
+    (
+      stageHeight -
+      fittedHeight
+    ) /
+    2
+
+
+  const rects =
+    layout.rects.map(
+      rect => {
+
+        if (!rect) {
+          return null
+        }
+
+        return {
+          x:
+            offsetX +
+            rect.x *
+              scale,
+
+          y:
+            offsetY +
+            rect.y *
+              scale,
+
+          width:
+            rect.width *
+            scale,
+
+          height:
+            rect.height *
+            scale
+        }
+      }
+    )
+
+
+  return {
+    rects,
+    width:
+      stageWidth,
+    height:
+      stageHeight
   }
 }
 
@@ -413,8 +549,13 @@ export default function FadeGallery() {
     useRef(0)
 
 
+  /* -------------------------------------------------------
+     RESPONSIVE STAGE
+  ------------------------------------------------------- */
+
   const galleryRef =
     useRef(null)
+
 
   const [
     containerWidth,
@@ -422,13 +563,27 @@ export default function FadeGallery() {
   ] = useState(0)
 
 
-  /* -------------------------------------------------------
-     MEASURE GALLERY
+  /*
+    This is the important persistent value.
 
-     Important:
-     reruns when loader becomes false,
-     so normal mode measures immediately.
-  ------------------------------------------------------- */
+    Example:
+
+    first layout =
+      1500 × 930
+
+    stageAspectRatio =
+      1500 / 930
+
+    On a 3000px-wide display the same stage becomes:
+
+      3000 × 1860
+  */
+
+  const [
+    stageAspectRatio,
+    setStageAspectRatio
+  ] = useState(null)
+
 
   useEffect(() => {
     if (
@@ -443,9 +598,14 @@ export default function FadeGallery() {
         galleryRef.current
           .getBoundingClientRect()
 
-      setContainerWidth(
-        rect.width
-      )
+
+      if (
+        rect.width > 0
+      ) {
+        setContainerWidth(
+          rect.width
+        )
+      }
     }
 
 
@@ -469,7 +629,8 @@ export default function FadeGallery() {
 
   }, [
     blackMode,
-    loader
+    loader,
+    stageAspectRatio
   ])
 
 
@@ -515,36 +676,90 @@ export default function FadeGallery() {
 
 
           const newSlides =
-            images.map(photo => {
-              const src =
-                photo.src ?? ''
+            images.map(
+              photo => {
 
-              const meta =
-                parseImageMeta(
-                  photo.dimensions
-                )
+                const src =
+                  photo.src ?? ''
 
 
-              const width =
-                meta.width ||
-                1920
-
-              const height =
-                meta.height ||
-                Math.round(
-                  width /
-                  meta.ratio
-                )
+                const meta =
+                  parseImageMeta(
+                    photo.dimensions
+                  )
 
 
-              if (
-                src
-                  .toLowerCase()
-                  .includes('.webm')
-              ) {
+                const width =
+                  meta.width ||
+                  1920
+
+
+                const height =
+                  meta.height ||
+                  Math.round(
+                    width /
+                    meta.ratio
+                  )
+
+
+                if (
+                  src
+                    .toLowerCase()
+                    .includes(
+                      '.webm'
+                    )
+                ) {
+                  return {
+                    type:
+                      'video',
+
+                    width,
+                    height,
+
+                    title:
+                      photo.caption,
+
+                    description:
+                      photo.dimensions,
+
+                    director:
+                      photo.director ||
+                      null,
+
+                    year:
+                      photo.year,
+
+                    sources: [
+                      {
+                        src,
+                        type:
+                          'video/webm'
+                      }
+                    ],
+
+                    poster:
+                      '/assets/transparent.png',
+
+                    autoPlay:
+                      true,
+
+                    muted:
+                      true,
+
+                    loop:
+                      true,
+
+                    controls:
+                      false
+                  }
+                }
+
+
                 return {
                   type:
-                    'video',
+                    'image',
+
+                  src,
 
                   width,
                   height,
@@ -560,50 +775,10 @@ export default function FadeGallery() {
                     null,
 
                   year:
-                    photo.year,
-
-                  sources: [
-                    {
-                      src,
-                      type:
-                        'video/webm'
-                    }
-                  ],
-
-                  poster:
-                    '/assets/transparent.png',
-
-                  autoPlay: true,
-                  muted: true,
-                  loop: true,
-                  controls: false
+                    photo.year
                 }
               }
-
-
-              return {
-                type:
-                  'image',
-
-                src,
-
-                width,
-                height,
-
-                title:
-                  photo.caption,
-
-                description:
-                  photo.dimensions,
-
-                director:
-                  photo.director ||
-                  null,
-
-                year:
-                  photo.year
-              }
-            })
+            )
 
 
           setSlides(
@@ -629,9 +804,11 @@ export default function FadeGallery() {
                 9
               )
 
+
             setSlots(
               newSlots
             )
+
 
             isInitialLoad.current =
               false
@@ -654,7 +831,7 @@ export default function FadeGallery() {
 
 
   /* -------------------------------------------------------
-     CHOOSE NEXT SLOT
+     SLOT SELECTION
   ------------------------------------------------------- */
 
   const pickSlot = () => {
@@ -711,7 +888,7 @@ export default function FadeGallery() {
 
 
   /* -------------------------------------------------------
-     CHANGE IMAGE EVERY 5 SECONDS
+     CHANGE ONE IMAGE EVERY 5 SECONDS
   ------------------------------------------------------- */
 
   useEffect(() => {
@@ -771,10 +948,10 @@ export default function FadeGallery() {
 
 
   /* -------------------------------------------------------
-     CURRENT GEOMETRY
+     NATURAL CURRENT LAYOUT
   ------------------------------------------------------- */
 
-  const layout =
+  const naturalLayout =
     useMemo(
       () =>
         buildFadeLayout(
@@ -784,6 +961,72 @@ export default function FadeGallery() {
       [
         slots,
         containerWidth
+      ]
+    )
+
+
+  /* -------------------------------------------------------
+     FREEZE STAGE SHAPE FROM FIRST VALID LAYOUT
+
+     This happens ONCE.
+
+     After this point incoming ARs cannot change
+     the outer stage aspect ratio.
+  ------------------------------------------------------- */
+
+  useEffect(() => {
+    if (
+      stageAspectRatio ||
+      !containerWidth ||
+      !naturalLayout.height ||
+      naturalLayout.height <= 0
+    ) {
+      return
+    }
+
+
+    setStageAspectRatio(
+      containerWidth /
+      naturalLayout.height
+    )
+
+  }, [
+    stageAspectRatio,
+    containerWidth,
+    naturalLayout.height
+  ])
+
+
+  /* -------------------------------------------------------
+     STAGE HEIGHT
+
+     Responsive, but fixed in proportion.
+  ------------------------------------------------------- */
+
+  const stageHeight =
+    stageAspectRatio &&
+    containerWidth
+      ? containerWidth /
+        stageAspectRatio
+      : naturalLayout.height
+
+
+  /* -------------------------------------------------------
+     FIT CURRENT GEOMETRY INTO FIXED STAGE
+  ------------------------------------------------------- */
+
+  const layout =
+    useMemo(
+      () =>
+        fitLayoutToStage(
+          naturalLayout,
+          containerWidth,
+          stageHeight
+        ),
+      [
+        naturalLayout,
+        containerWidth,
+        stageHeight
       ]
     )
 
@@ -897,6 +1140,7 @@ export default function FadeGallery() {
 
   useEffect(() => {
     if (blackMode) {
+
       const handleMouseMove =
         () => {
 
@@ -911,11 +1155,14 @@ export default function FadeGallery() {
 
 
           cursorTimerRef.current =
-            setTimeout(() => {
-              setHideCursor(
-                true
-              )
-            }, 3000)
+            setTimeout(
+              () => {
+                setHideCursor(
+                  true
+                )
+              },
+              3000
+            )
         }
 
 
@@ -936,7 +1183,9 @@ export default function FadeGallery() {
         )
       }
     }
-  }, [blackMode])
+  }, [
+    blackMode
+  ])
 
 
   useEffect(() => {
@@ -979,7 +1228,9 @@ export default function FadeGallery() {
       if (
         idx !== -1
       ) {
-        setIndex(idx)
+        setIndex(
+          idx
+        )
 
       } else {
         console.warn(
@@ -997,22 +1248,28 @@ export default function FadeGallery() {
   return (
     <RootLayout>
 
+      {/* MOON */}
+
       {!blackMode && (
         <motion.button
           onClick={
             toggleBlackMode
           }
           initial={{
-            opacity: 0.2
+            opacity:
+              0.2
           }}
           animate={{
-            opacity: 0.2
+            opacity:
+              0.2
           }}
           whileHover={{
-            opacity: 1
+            opacity:
+              1
           }}
           transition={{
-            duration: 2
+            duration:
+              2
           }}
           className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
           aria-label="Enter Blackmode"
@@ -1022,14 +1279,19 @@ export default function FadeGallery() {
       )}
 
 
+      {/* EXIT BLACK MODE */}
+
       {blackMode && (
         <motion.button
           onClick={
             toggleBlackMode
           }
           initial={{
-            opacity: 0,
-            scale: 0.95
+            opacity:
+              0,
+
+            scale:
+              0.95
           }}
           animate={{
             opacity:
@@ -1043,10 +1305,13 @@ export default function FadeGallery() {
                 : 0.95
           }}
           whileHover={{
-            opacity: 1
+            opacity:
+              1
           }}
           transition={{
-            duration: 2,
+            duration:
+              2,
+
             ease:
               'easeInOut'
           }}
@@ -1061,7 +1326,7 @@ export default function FadeGallery() {
       <div
         className={
           blackMode
-            ? 'fixed inset-0 bg-black z-50 overflow-hidden'
+            ? 'fixed inset-0 bg-black z-50 overflow-hidden flex items-center justify-center'
             : 'px-4 lg:px-16 pb-10'
         }
       >
@@ -1126,7 +1391,7 @@ export default function FadeGallery() {
           <div
             className={
               blackMode
-                ? 'absolute inset-0 flex items-center justify-center'
+                ? 'w-full h-full flex items-center justify-center'
                 : 'w-full'
             }
           >
@@ -1135,10 +1400,33 @@ export default function FadeGallery() {
               ref={
                 galleryRef
               }
-              className="relative w-full"
+              className="relative"
               style={{
+                /*
+                  NORMAL:
+                    full available width
+
+                  BLACK MODE:
+                    fit the fixed-ratio stage entirely
+                    inside the viewport.
+
+                  Example:
+                    if stage AR = 1.6,
+                    width can never exceed
+                    100vh × 1.6.
+                */
+
+                width:
+                  blackMode &&
+                  stageAspectRatio
+                    ? `min(100vw, calc(100vh * ${stageAspectRatio}))`
+                    : '100%',
+
                 height:
-                  `${layout.height}px`
+                  stageAspectRatio &&
+                  containerWidth
+                    ? `${stageHeight}px`
+                    : `${naturalLayout.height}px`
               }}
             >
 
@@ -1164,14 +1452,18 @@ export default function FadeGallery() {
 
                   return (
                     <motion.div
-                      key={idx}
+                      key={
+                        idx
+                      }
                       onClick={() =>
                         handleImageClick(
                           image?.src
                         )
                       }
                       className="absolute overflow-hidden cursor-zoom-in"
-                      initial={false}
+                      initial={
+                        false
+                      }
                       animate={{
                         x:
                           rect.x,
@@ -1186,9 +1478,16 @@ export default function FadeGallery() {
                           rect.height
                       }}
                       transition={{
-                        duration: 10,
+                        duration:
+                          10,
+
                         ease:
-                          [0.45, 0, 0.2, 1]
+                          [
+                            0.45,
+                            0,
+                            0.2,
+                            1
+                          ]
                       }}
                       style={{
                         zIndex:
@@ -1237,7 +1536,9 @@ export default function FadeGallery() {
             index >= 0
           }
           close={() =>
-            setIndex(-1)
+            setIndex(
+              -1
+            )
           }
           plugins={[
             Video
@@ -1247,6 +1548,7 @@ export default function FadeGallery() {
               ({
                 slide
               }) => (
+
                 <div className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content">
 
                   {slide.title && (
@@ -1322,12 +1624,16 @@ function FadeSlot({
   const [
     currentImage,
     setCurrentImage
-  ] = useState(image)
+  ] = useState(
+    image
+  )
 
   const [
     previousImage,
     setPreviousImage
-  ] = useState(null)
+  ] = useState(
+    null
+  )
 
 
   if (
@@ -1353,10 +1659,13 @@ function FadeSlot({
 
     if (
       (
-        image?.src ?? ''
+        image?.src ??
+        ''
       )
         .toLowerCase()
-        .includes('.webm')
+        .includes(
+          '.webm'
+        )
     ) {
       const preload =
         document.createElement(
@@ -1395,6 +1704,7 @@ function FadeSlot({
         }
 
     } else {
+
       const preload =
         new Image()
 
@@ -1421,7 +1731,9 @@ function FadeSlot({
         }
     }
 
-  }, [image?.id])
+  }, [
+    image?.id
+  ])
 
 
   useEffect(() => {
@@ -1447,23 +1759,34 @@ function FadeSlot({
     observer.observe(
       document.body,
       {
-        childList: true,
-        subtree: true
+        childList:
+          true,
+
+        subtree:
+          true
       }
     )
 
 
     return () =>
       observer.disconnect()
+
   }, [])
 
 
   return (
     <div className="relative w-full h-full overflow-hidden">
 
-      {(previousImage?.src ?? '')
+      {/* OUTGOING */}
+
+      {(
+        previousImage?.src ??
+        ''
+      )
         .toLowerCase()
-        .includes('.webm') ? (
+        .includes(
+          '.webm'
+        ) ? (
 
         <motion.video
           key={
@@ -1479,13 +1802,17 @@ function FadeSlot({
           preload="metadata"
           poster="/assets/transparent.png"
           initial={{
-            opacity: 1
+            opacity:
+              1
           }}
           animate={{
-            opacity: 0
+            opacity:
+              0
           }}
           transition={{
-            duration: 2,
+            duration:
+              2,
+
             ease:
               'easeInOut'
           }}
@@ -1504,13 +1831,17 @@ function FadeSlot({
               previousImage.src
             }
             initial={{
-              opacity: 1
+              opacity:
+                1
             }}
             animate={{
-              opacity: 0
+              opacity:
+                0
             }}
             transition={{
-              duration: 2,
+              duration:
+                2,
+
               ease:
                 'easeInOut'
             }}
@@ -1523,9 +1854,16 @@ function FadeSlot({
       )}
 
 
-      {(currentImage?.src ?? '')
+      {/* INCOMING */}
+
+      {(
+        currentImage?.src ??
+        ''
+      )
         .toLowerCase()
-        .includes('.webm') ? (
+        .includes(
+          '.webm'
+        ) ? (
 
         <motion.video
           key={
@@ -1541,13 +1879,17 @@ function FadeSlot({
           preload="metadata"
           poster="/assets/transparent.png"
           initial={{
-            opacity: 0
+            opacity:
+              0
           }}
           animate={{
-            opacity: 1
+            opacity:
+              1
           }}
           transition={{
-            duration: 2,
+            duration:
+              2,
+
             ease:
               'easeInOut'
           }}
@@ -1566,13 +1908,17 @@ function FadeSlot({
               currentImage.src
             }
             initial={{
-              opacity: 0
+              opacity:
+                0
             }}
             animate={{
-              opacity: 1
+              opacity:
+                1
             }}
             transition={{
-              duration: 2,
+              duration:
+                2,
+
               ease:
                 'easeInOut'
             }}
