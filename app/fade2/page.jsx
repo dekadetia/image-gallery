@@ -37,6 +37,7 @@ const SLOT_FADE_DURATION = 2
 const WALL_FADE_DURATION = 5
 
 const GAP = 10
+const MOBILE_BREAKPOINT = 768
 
 const WEBM_INTERVAL = 20
 
@@ -292,7 +293,7 @@ function getRatioKey(photo) {
 
 
 /* =========================================================
-   LIGHTBOX SLIDE CREATION
+   LIGHTBOX SLIDE
 ========================================================= */
 
 function makeSlide(photo) {
@@ -401,7 +402,7 @@ function makeSlide(photo) {
 
 
 /* =========================================================
-   TETRIS CONFIGURATIONS
+   DESKTOP TETRIS CONFIGURATIONS
 ========================================================= */
 
 const WALL_CONFIGURATIONS = [
@@ -449,7 +450,7 @@ const WALL_CONFIGURATIONS = [
 
 
 /* =========================================================
-   PREFERRED BAND GEOMETRY
+   DESKTOP PREFERRED BAND
 ========================================================= */
 
 function getPreferredBand(
@@ -573,7 +574,7 @@ function getPreferredBand(
 
 
 /* =========================================================
-   FIXED BAND
+   DESKTOP FIXED BAND
 ========================================================= */
 
 function solveFixedBand(
@@ -772,10 +773,10 @@ function solveFixedBand(
 
 
 /* =========================================================
-   FIXED 16:9 STAGE SOLVER
+   DESKTOP FIXED-STAGE SOLVER
 ========================================================= */
 
-function buildFixedStageLayout(
+function buildDesktopLayout(
   images,
   configuration,
   stageWidth,
@@ -1027,7 +1028,7 @@ function buildFixedStageLayout(
 
 
 /* =========================================================
-   CHOOSE BEST CONFIGURATION
+   DESKTOP BEST CONFIGURATION
 ========================================================= */
 
 function chooseBestConfiguration(
@@ -1044,7 +1045,7 @@ function chooseBestConfiguration(
       ) => {
 
         const layout =
-          buildFixedStageLayout(
+          buildDesktopLayout(
             images,
             configuration,
             stageWidth,
@@ -1098,6 +1099,461 @@ function chooseBestConfiguration(
 
 
 /* =========================================================
+   MOBILE WALL GRAMMAR
+========================================================= */
+
+function mobileRoll(id) {
+  const value =
+    String(id ?? '')
+
+  let hash = 0
+
+
+  for (
+    let i = 0;
+    i < value.length;
+    i++
+  ) {
+
+    hash =
+      (
+        (hash << 5) -
+        hash
+      ) +
+      value.charCodeAt(i)
+
+    hash |= 0
+  }
+
+
+  return (
+    Math.abs(hash) %
+    100
+  )
+}
+
+
+function getMobileSizeClass(photo) {
+  const ratio =
+    parseImageMeta(
+      photo.dimensions
+    ).ratio
+
+
+  const roll =
+    mobileRoll(
+      photo.id
+    )
+
+
+  if (
+    ratio > 1.85
+  ) {
+    return 'full'
+  }
+
+
+  if (
+    ratio > 1.70
+  ) {
+
+    return (
+      roll < 20
+        ? 'full'
+        : 'pair'
+    )
+  }
+
+
+  return (
+    roll < 5
+      ? 'full'
+      : 'pair'
+  )
+}
+
+
+/* ---------------------------------------------------------
+   Freeze mobile row grammar when a wall is born.
+--------------------------------------------------------- */
+
+function buildMobileRowsPattern(images) {
+  const rows = []
+
+  let cursor = 0
+
+
+  while (
+    cursor <
+    images.length
+  ) {
+
+    const current =
+      images[
+        cursor
+      ]
+
+
+    const currentClass =
+      getMobileSizeClass(
+        current
+      )
+
+
+    if (
+      currentClass ===
+      'full'
+    ) {
+
+      rows.push([
+        cursor
+      ])
+
+      cursor += 1
+
+      continue
+    }
+
+
+    const next =
+      images[
+        cursor + 1
+      ]
+
+
+    if (!next) {
+
+      rows.push([
+        cursor
+      ])
+
+      cursor += 1
+
+      continue
+    }
+
+
+    const nextClass =
+      getMobileSizeClass(
+        next
+      )
+
+
+    if (
+      nextClass ===
+      'pair'
+    ) {
+
+      rows.push([
+        cursor,
+        cursor + 1
+      ])
+
+      cursor += 2
+
+      continue
+    }
+
+
+    rows.push([
+      cursor
+    ])
+
+    cursor += 1
+  }
+
+
+  return rows
+}
+
+
+/* =========================================================
+   MOBILE FIXED-STAGE SOLVER
+
+   Stage is always 9:19.5 on mobile.
+
+   Rows retain /wall-style one/two-image grammar.
+
+   Every mobile grid has:
+     - identical outer height
+     - identical outer width
+     - 10px gutters
+     - no overlap
+     - no empty bands
+     - never more than 2 images across
+========================================================= */
+
+function buildMobileLayout(
+  images,
+  rowsPattern,
+  stageWidth,
+  stageHeight
+) {
+  if (
+    !images ||
+    images.length !== 9 ||
+    !rowsPattern?.length ||
+    !stageWidth ||
+    !stageHeight
+  ) {
+
+    return {
+      rects: []
+    }
+  }
+
+
+  const preparedRows =
+    rowsPattern.map(
+      slotIndexes => {
+
+        const rowImages =
+          slotIndexes.map(
+            slotIndex => {
+
+              const image =
+                images[
+                  slotIndex
+                ]
+
+
+              return {
+
+                image,
+
+                slotIndex,
+
+                ratio:
+                  parseImageMeta(
+                    image.dimensions
+                  ).ratio
+              }
+            }
+          )
+
+
+        let preferredHeight
+
+
+        if (
+          rowImages.length === 1
+        ) {
+
+          preferredHeight =
+            stageWidth /
+            rowImages[0].ratio
+
+        } else {
+
+          const availableWidth =
+            stageWidth -
+            GAP
+
+
+          const ratioTotal =
+            rowImages.reduce(
+              (
+                total,
+                item
+              ) =>
+                total +
+                item.ratio,
+              0
+            )
+
+
+          preferredHeight =
+            availableWidth /
+            ratioTotal
+        }
+
+
+        return {
+
+          items:
+            rowImages,
+
+          preferredHeight
+        }
+      }
+    )
+
+
+  const totalRowGaps =
+    GAP *
+    Math.max(
+      0,
+      preparedRows.length -
+        1
+    )
+
+
+  const availableHeight =
+    stageHeight -
+    totalRowGaps
+
+
+  const preferredHeightTotal =
+    preparedRows.reduce(
+      (
+        total,
+        row
+      ) =>
+        total +
+        row.preferredHeight,
+      0
+    )
+
+
+  const rects =
+    Array(9).fill(
+      null
+    )
+
+
+  let currentY = 0
+
+
+  preparedRows.forEach(
+    (
+      row,
+      rowIndex
+    ) => {
+
+      const rowHeight =
+        preferredHeightTotal > 0
+          ? availableHeight *
+            (
+              row.preferredHeight /
+              preferredHeightTotal
+            )
+          : availableHeight /
+            preparedRows.length
+
+
+      if (
+        row.items.length === 1
+      ) {
+
+        const item =
+          row.items[0]
+
+
+        rects[
+          item.slotIndex
+        ] = {
+
+          x:
+            0,
+
+          y:
+            currentY,
+
+          width:
+            stageWidth,
+
+          height:
+            rowHeight
+        }
+
+      } else {
+
+        const availableWidth =
+          stageWidth -
+          GAP
+
+
+        const ratioTotal =
+          row.items.reduce(
+            (
+              total,
+              item
+            ) =>
+              total +
+              item.ratio,
+            0
+          )
+
+
+        let currentX = 0
+
+
+        row.items.forEach(
+          (
+            item,
+            itemIndex
+          ) => {
+
+            const width =
+              ratioTotal > 0
+                ? availableWidth *
+                  (
+                    item.ratio /
+                    ratioTotal
+                  )
+                : availableWidth /
+                  row.items.length
+
+
+            rects[
+              item.slotIndex
+            ] = {
+
+              x:
+                currentX,
+
+              y:
+                currentY,
+
+              width,
+
+              height:
+                rowHeight
+            }
+
+
+            currentX +=
+              width
+
+
+            if (
+              itemIndex <
+              row.items.length -
+                1
+            ) {
+
+              currentX +=
+                GAP
+            }
+          }
+        )
+      }
+
+
+      currentY +=
+        rowHeight
+
+
+      if (
+        rowIndex <
+        preparedRows.length -
+          1
+      ) {
+
+        currentY +=
+          GAP
+      }
+    }
+  )
+
+
+  return {
+    rects
+  }
+}
+
+
+/* =========================================================
    WALL OBJECT
 ========================================================= */
 
@@ -1114,6 +1570,11 @@ function makeWall(
     configuration,
 
     configurationIndex,
+
+    mobileRows:
+      buildMobileRowsPattern(
+        images
+      ),
 
     slots:
       images.map(
@@ -1481,8 +1942,6 @@ function PersistentFadeSlot({
 
 /* =========================================================
    WALL BUFFER
-
-   Hidden wall remains mounted but cannot intercept clicks.
 ========================================================= */
 
 function WallBuffer({
@@ -1494,6 +1953,12 @@ function WallBuffer({
   interactive,
   onImageClick
 }) {
+  const isMobile =
+    stageWidth > 0 &&
+    stageWidth <
+      MOBILE_BREAKPOINT
+
+
   const layout =
     useMemo(
       () => {
@@ -1510,12 +1975,33 @@ function WallBuffer({
         }
 
 
-        return buildFixedStageLayout(
-
+        const images =
           wall.slots.map(
             slot =>
               slot.image
-          ),
+          )
+
+
+        if (
+          isMobile
+        ) {
+
+          return buildMobileLayout(
+
+            images,
+
+            wall.mobileRows,
+
+            stageWidth,
+
+            stageHeight
+          )
+        }
+
+
+        return buildDesktopLayout(
+
+          images,
 
           wall.configuration,
 
@@ -1527,7 +2013,8 @@ function WallBuffer({
       [
         wall,
         stageWidth,
-        stageHeight
+        stageHeight,
+        isMobile
       ]
     )
 
@@ -1749,6 +2236,23 @@ export default function FadeGallery() {
   ] = useState([])
 
 
+  /* =======================================================
+     STAGE
+
+     Mobile:
+       fixed portrait 9:19.5
+       full available width
+
+     Black Mode:
+       width remains king.
+       No mobile max-height constraint.
+       Any excess vertical height is cropped by the
+       fullscreen overflow-hidden container.
+
+     Desktop:
+       fixed 16:9
+  ======================================================= */
+
   const stageRef =
     useRef(null)
 
@@ -1836,11 +2340,6 @@ export default function FadeGallery() {
 
   /* =======================================================
      RAW FETCH
-
-     This fetches the batch but does NOT automatically
-     push it into the pool or slides.
-
-     That lets initial startup use the response immediately.
   ======================================================= */
 
   const fetchImageBatch =
@@ -1904,10 +2403,6 @@ export default function FadeGallery() {
 
   /* =======================================================
      NORMAL FETCH
-
-     Used after startup.
-
-     Adds results directly to normal pool + slide inventory.
   ======================================================= */
 
   const fetchImages =
@@ -1942,13 +2437,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     INITIAL FAST-PATH SELECTION
-
-     Takes nine images directly from the FIRST response.
-
-     Enforces the same WebM spacing rule.
-
-     Anything not selected becomes the initial normal pool.
+     INITIAL FAST PATH
   ======================================================= */
 
   const takeInitialWallImages =
@@ -1997,13 +2486,6 @@ export default function FadeGallery() {
 
           } else {
 
-            /*
-              Too early for this WebM.
-
-              Don't discard it. Put it into the
-              pending WebM queue for later use.
-            */
-
             pendingWebmsRef
               .current
               .push(
@@ -2031,10 +2513,6 @@ export default function FadeGallery() {
           )
       }
 
-
-      /*
-        Carry startup spacing state into normal Fade stream.
-      */
 
       imagesSinceWebmRef.current =
         imagesSinceWebm
@@ -2298,7 +2776,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     CREATE NORMAL SUBSEQUENT WALL
+     CREATE SUBSEQUENT WALL
   ======================================================= */
 
   const createNewWall =
@@ -2347,14 +2825,31 @@ export default function FadeGallery() {
       }
 
 
+      const isMobile =
+        stageSize.width <
+        MOBILE_BREAKPOINT
+
+
       const best =
         chooseBestConfiguration(
 
           images,
 
-          stageSize.width,
+          isMobile
+            ? Math.max(
+                stageSize.width,
+                768
+              )
+            : stageSize.width,
 
-          stageSize.height,
+          isMobile
+            ? Math.max(
+                stageSize.width,
+                768
+              ) *
+              9 /
+              16
+            : stageSize.height,
 
           lastConfigurationRef
             .current
@@ -2382,21 +2877,6 @@ export default function FadeGallery() {
 
   /* =======================================================
      FAST INITIALIZATION
-
-     BEFORE:
-       fetch
-       push into pool
-       update slide state
-       pull nine back from pool
-       create wall
-
-     NOW:
-       fetch
-       take nine directly
-       solve
-       SHOW
-
-     Leftovers + lightbox inventory are populated afterward.
   ======================================================= */
 
   const initInProgressRef =
@@ -2478,14 +2958,6 @@ export default function FadeGallery() {
             9
           ) {
 
-            /*
-              Extremely WebM-heavy batch or otherwise
-              insufficient eligible media.
-
-              Put still-usable leftovers into the pool
-              and retry through normal pipeline.
-            */
-
             poolRef.current.push(
               ...leftovers
             )
@@ -2506,20 +2978,31 @@ export default function FadeGallery() {
           }
 
 
-          /*
-            Solve immediately.
-            No media preload.
-            No pool round-trip.
-          */
+          const isMobile =
+            stageSize.width <
+            MOBILE_BREAKPOINT
+
 
           const best =
             chooseBestConfiguration(
 
               selected,
 
-              stageSize.width,
+              isMobile
+                ? Math.max(
+                    stageSize.width,
+                    768
+                  )
+                : stageSize.width,
 
-              stageSize.height,
+              isMobile
+                ? Math.max(
+                    stageSize.width,
+                    768
+                  ) *
+                  9 /
+                  16
+                : stageSize.height,
 
               lastConfigurationRef
                 .current
@@ -2545,11 +3028,6 @@ export default function FadeGallery() {
             )
 
 
-          /*
-            FIRST PRIORITY:
-            put the wall onscreen and dismiss Loader.
-          */
-
           setWallA(
             wall
           )
@@ -2573,25 +3051,10 @@ export default function FadeGallery() {
             false
 
 
-          /*
-            SECONDARY BOOKKEEPING:
-
-            Leftover first-batch images become the
-            normal future pool.
-          */
-
           poolRef.current.push(
             ...leftovers
           )
 
-
-          /*
-            Build the lightbox inventory just after the
-            visible grid has been committed.
-
-            requestAnimationFrame lets the wall paint get
-            priority over this larger state update.
-          */
 
           requestAnimationFrame(
             () => {
@@ -3591,15 +4054,29 @@ export default function FadeGallery() {
           }
         >
 
+          {/*
+
+            MOBILE:
+              fixed 9:19.5 portrait stage
+              full available width
+
+              In Black Mode:
+                width remains maxed
+                no max-height constraint
+                stage stays vertically centered
+                excess top/bottom is cropped by the
+                fullscreen overflow-hidden wrapper
+
+            DESKTOP:
+              fixed 16:9 stage
+
+          */}
+
           <div
             ref={
               stageRef
             }
-            className="relative w-full overflow-hidden"
-            style={{
-              aspectRatio:
-                '16 / 9'
-            }}
+            className="relative w-full overflow-hidden aspect-[9/19.5] md:aspect-[16/9]"
           >
 
             {loader && (
