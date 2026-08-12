@@ -39,9 +39,14 @@ const WALL_FADE_DURATION = 5
 const GAP = 10
 
 const WEBM_INTERVAL = 20
+
 const MIN_IMAGES_BETWEEN_WEBMS =
   WEBM_INTERVAL - 1
 
+
+/* =========================================================
+   MEDIA
+========================================================= */
 
 function isWebm(photo) {
   return (
@@ -87,9 +92,10 @@ function afterTwoFrames(callback) {
 /* ---------------------------------------------------------
    SAFE PRELOAD
 
-   Used only for transitions after initial load.
+   Initial wall does NOT require this.
 
-   No asset may stall a transition forever.
+   Later slot/wall transitions use it, but no asset can
+   stall the page indefinitely.
 --------------------------------------------------------- */
 
 function preloadMedia(photo) {
@@ -106,24 +112,6 @@ function preloadMedia(photo) {
 
     let finished =
       false
-
-
-    const timeout =
-      setTimeout(
-        () => {
-
-          if (finished) {
-            return
-          }
-
-          finished =
-            true
-
-          resolve()
-
-        },
-        5000
-      )
 
 
     const finish =
@@ -145,6 +133,13 @@ function preloadMedia(photo) {
 
         resolve()
       }
+
+
+    const timeout =
+      setTimeout(
+        finish,
+        5000
+      )
 
 
     if (
@@ -198,6 +193,10 @@ function preloadMedia(photo) {
   })
 }
 
+
+/* =========================================================
+   METADATA
+========================================================= */
 
 function parseImageMeta(dimensions) {
   const parts =
@@ -290,6 +289,10 @@ function getRatioKey(photo) {
 }
 
 
+/* =========================================================
+   TETRIS CONFIGURATIONS
+========================================================= */
+
 const WALL_CONFIGURATIONS = [
 
   [
@@ -333,6 +336,10 @@ const WALL_CONFIGURATIONS = [
   ]
 ]
 
+
+/* =========================================================
+   PREFERRED BAND GEOMETRY
+========================================================= */
 
 function getPreferredBand(
   items,
@@ -453,6 +460,16 @@ function getPreferredBand(
   }
 }
 
+
+/* =========================================================
+   FIXED BAND
+
+   Every band fills its assigned rectangle exactly.
+
+   No holes.
+   No overlaps.
+   Exact 10px gaps.
+========================================================= */
 
 function solveFixedBand(
   items,
@@ -649,6 +666,10 @@ function solveFixedBand(
 }
 
 
+/* =========================================================
+   FIXED 16:9 STAGE SOLVER
+========================================================= */
+
 function buildFixedStageLayout(
   images,
   configuration,
@@ -835,7 +856,8 @@ function buildFixedStageLayout(
           1
       ) {
 
-        currentY += GAP
+        currentY +=
+          GAP
       }
     }
   )
@@ -892,6 +914,10 @@ function buildFixedStageLayout(
   }
 }
 
+
+/* =========================================================
+   CHOOSE BEST CONFIGURATION
+========================================================= */
 
 function chooseBestConfiguration(
   images,
@@ -960,6 +986,10 @@ function chooseBestConfiguration(
 }
 
 
+/* =========================================================
+   WALL OBJECT
+========================================================= */
+
 function makeWall(
   images,
   configuration,
@@ -989,6 +1019,10 @@ function makeWall(
   }
 }
 
+
+/* =========================================================
+   MEDIA LAYER
+========================================================= */
 
 function MediaLayer({
   photo,
@@ -1057,6 +1091,10 @@ function MediaLayer({
   )
 }
 
+
+/* =========================================================
+   PERSISTENT SLOT A/B
+========================================================= */
 
 function PersistentFadeSlot({
   image
@@ -1330,6 +1368,10 @@ function PersistentFadeSlot({
 }
 
 
+/* =========================================================
+   WALL BUFFER
+========================================================= */
+
 function WallBuffer({
   wall,
   stageWidth,
@@ -1452,6 +1494,10 @@ function WallBuffer({
   )
 }
 
+
+/* =========================================================
+   PAGE
+========================================================= */
 
 export default function FadeGallery() {
 
@@ -1583,6 +1629,17 @@ export default function FadeGallery() {
   ] = useState([])
 
 
+  /* ---------------------------------------------------------
+     STAGE
+
+     The box has a real CSS aspect ratio immediately.
+
+     Therefore:
+     - it has height on first paint
+     - ResizeObserver can measure it immediately
+     - Footer does not begin directly under a 0px stage
+--------------------------------------------------------- */
+
   const stageRef =
     useRef(null)
 
@@ -1665,10 +1722,12 @@ export default function FadeGallery() {
       observer.disconnect()
     }
 
-  }, [
-    blackMode
-  ])
+  }, [])
 
+
+  /* =======================================================
+     FETCH
+  ======================================================= */
 
   const fetchImages =
     async () => {
@@ -1690,6 +1749,16 @@ export default function FadeGallery() {
           await fetch(
             `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-fade-images`
           )
+
+
+        if (
+          !response.ok
+        ) {
+
+          throw new Error(
+            `Fade image fetch failed: ${response.status}`
+          )
+        }
 
 
         const data =
@@ -1830,12 +1899,18 @@ export default function FadeGallery() {
           )
         }
 
+
+        return images
+
       } catch (error) {
 
         console.error(
           'Failed to fetch fade images:',
           error
         )
+
+
+        return []
 
       } finally {
 
@@ -1844,6 +1919,10 @@ export default function FadeGallery() {
       }
     }
 
+
+  /* =======================================================
+     WEBM STREAM
+  ======================================================= */
 
   const pullNextImage =
     () => {
@@ -1865,7 +1944,8 @@ export default function FadeGallery() {
 
 
         imagesSinceWebmRef
-          .current = 0
+          .current =
+          0
 
 
         return webm
@@ -1900,7 +1980,8 @@ export default function FadeGallery() {
           ) {
 
             imagesSinceWebmRef
-              .current = 0
+              .current =
+              0
 
 
             return image
@@ -1937,6 +2018,10 @@ export default function FadeGallery() {
       return null
     }
 
+
+  /* =======================================================
+     EXACT-AR REPLACEMENT
+  ======================================================= */
 
   const pullMatchingImage =
     async ratioKey => {
@@ -1994,7 +2079,8 @@ export default function FadeGallery() {
 
 
             imagesSinceWebmRef
-              .current = 0
+              .current =
+              0
 
 
             return candidate
@@ -2031,33 +2117,27 @@ export default function FadeGallery() {
     }
 
 
+  /* =======================================================
+     GET N IMAGES
+
+     Explicit finite attempts.
+========================================================= */
+
   const getImagesForWall =
     async count => {
 
       const result = []
 
-      let attempts = 0
 
-
-      while (
-        result.length <
-          count &&
-        attempts <
-          40
+      for (
+        let attempt = 0;
+        attempt < 20 &&
+        result.length < count;
+        attempt++
       ) {
 
         let image =
           pullNextImage()
-
-
-        if (!image) {
-
-          await fetchImages()
-
-
-          image =
-            pullNextImage()
-        }
 
 
         if (
@@ -2067,10 +2147,27 @@ export default function FadeGallery() {
           result.push(
             image
           )
+
+          continue
         }
 
 
-        attempts++
+        const fetched =
+          await fetchImages()
+
+
+        if (
+          !fetched.length &&
+          poolRef.current.length === 0
+        ) {
+
+          /*
+            Nothing came back.
+            Don't loop endlessly.
+          */
+
+          break
+        }
       }
 
 
@@ -2078,10 +2175,9 @@ export default function FadeGallery() {
     }
 
 
-  /* ---------------------------------------------------------
-     INITIAL WALL MAY SKIP PRELOAD.
-     FUTURE WALLS DEFAULT TO PRELOAD.
-  --------------------------------------------------------- */
+  /* =======================================================
+     CREATE WALL
+  ======================================================= */
 
   const createNewWall =
     async ({
@@ -2107,6 +2203,11 @@ export default function FadeGallery() {
         images.length <
         9
       ) {
+
+        console.warn(
+          `Fade2 needed 9 images but only obtained ${images.length}`
+        )
+
 
         return null
       }
@@ -2157,24 +2258,38 @@ export default function FadeGallery() {
     }
 
 
-  const initializedRef =
+  /* =======================================================
+     INITIALIZATION
+
+     IMPORTANT:
+
+     There is NO permanent "initialized" latch.
+
+     initInProgress prevents simultaneous duplicate attempts,
+     but resets if the attempt fails.
+
+     If a first attempt gets no wall, we retry shortly.
+========================================================= */
+
+  const initInProgressRef =
     useRef(false)
+
+
+  const initRetryRef =
+    useRef(null)
 
 
   useEffect(() => {
 
     if (
-      initializedRef.current ||
       !stageSize.width ||
-      !stageSize.height
+      !stageSize.height ||
+      wallA ||
+      initInProgressRef.current
     ) {
 
       return
     }
-
-
-    initializedRef.current =
-      true
 
 
     let cancelled =
@@ -2184,30 +2299,62 @@ export default function FadeGallery() {
     const initialize =
       async () => {
 
-        __loader(
+        initInProgressRef.current =
           true
-        )
 
 
-        await fetchImages()
+        try {
+
+          await fetchImages()
 
 
-        /*
-          IMPORTANT:
-          initial wall does NOT wait for 9 preloads.
-        */
+          const wall =
+            await createNewWall({
+              preload:
+                false
+            })
 
-        const wall =
-          await createNewWall({
-            preload:
+
+          if (
+            cancelled
+          ) {
+
+            return
+          }
+
+
+          if (
+            !wall
+          ) {
+
+            /*
+              Release the lock and retry rather than
+              leaving Loader spinning forever.
+            */
+
+            initInProgressRef.current =
               false
-          })
 
 
-        if (
-          !cancelled &&
-          wall
-        ) {
+            initRetryRef.current =
+              setTimeout(
+                () => {
+
+                  /*
+                    Tiny stage-size nudge is unnecessary;
+                    simply invoke another attempt directly.
+                  */
+
+                  initialize()
+
+                },
+                1500
+              )
+
+
+            return
+          }
+
 
           setWallA(
             wall
@@ -2226,6 +2373,33 @@ export default function FadeGallery() {
           __loader(
             false
           )
+
+
+          initInProgressRef.current =
+            false
+
+        } catch (error) {
+
+          console.error(
+            'Fade2 initialization failed:',
+            error
+          )
+
+
+          initInProgressRef.current =
+            false
+
+
+          if (
+            !cancelled
+          ) {
+
+            initRetryRef.current =
+              setTimeout(
+                initialize,
+                1500
+              )
+          }
         }
       }
 
@@ -2237,11 +2411,21 @@ export default function FadeGallery() {
 
       cancelled =
         true
+
+
+      clearTimeout(
+        initRetryRef.current
+      )
+
+
+      initInProgressRef.current =
+        false
     }
 
   }, [
     stageSize.width,
-    stageSize.height
+    stageSize.height,
+    wallA
   ])
 
 
@@ -2250,6 +2434,10 @@ export default function FadeGallery() {
       ? wallA
       : wallB
 
+
+  /* =======================================================
+     SLOT PICK
+  ======================================================= */
 
   const pickSlot =
     () => {
@@ -2313,6 +2501,10 @@ export default function FadeGallery() {
     }
 
 
+  /* =======================================================
+     SLOT CHANGES
+  ======================================================= */
+
   useEffect(() => {
 
     if (
@@ -2364,7 +2556,9 @@ export default function FadeGallery() {
             ]
 
 
-          if (!slot) {
+          if (
+            !slot
+          ) {
             return
           }
 
@@ -2390,7 +2584,9 @@ export default function FadeGallery() {
             setWallA(
               previous => {
 
-                if (!previous) {
+                if (
+                  !previous
+                ) {
                   return previous
                 }
 
@@ -2424,7 +2620,9 @@ export default function FadeGallery() {
             setWallB(
               previous => {
 
-                if (!previous) {
+                if (
+                  !previous
+                ) {
                   return previous
                 }
 
@@ -2474,6 +2672,10 @@ export default function FadeGallery() {
   ])
 
 
+  /* =======================================================
+     WHOLE WALL CHANGES
+  ======================================================= */
+
   useEffect(() => {
 
     if (
@@ -2511,11 +2713,6 @@ export default function FadeGallery() {
               ? 'B'
               : 'A'
 
-
-          /*
-            FUTURE WALLS STILL PRELOAD.
-            Safe preload now has a timeout.
-          */
 
           const newWall =
             await createNewWall({
@@ -2615,6 +2812,10 @@ export default function FadeGallery() {
   ])
 
 
+  /* =======================================================
+     WALL OPACITY
+  ======================================================= */
+
   let opacityA =
     frontBuffer === 'A'
       ? 1
@@ -2644,6 +2845,10 @@ export default function FadeGallery() {
     opacityB = 1
   }
 
+
+  /* =======================================================
+     BLACK MODE
+  ======================================================= */
 
   const toggleBlackMode =
     async () => {
@@ -2870,6 +3075,10 @@ export default function FadeGallery() {
   ])
 
 
+  /* =======================================================
+     LIGHTBOX
+  ======================================================= */
+
   const handleImageClick =
     imageSrc => {
 
@@ -2950,6 +3159,10 @@ export default function FadeGallery() {
   ])
 
 
+  /* =======================================================
+     CLEANUP
+  ======================================================= */
+
   useEffect(() => {
 
     return () => {
@@ -2969,12 +3182,21 @@ export default function FadeGallery() {
       )
 
 
+      clearTimeout(
+        initRetryRef.current
+      )
+
+
       wallFrameCleanupRef
         .current?.()
     }
 
   }, [])
 
+
+  /* =======================================================
+     RENDER
+  ======================================================= */
 
   return (
     <RootLayout>
@@ -3136,40 +3358,18 @@ export default function FadeGallery() {
           }
         >
 
+          {/* Fixed stage exists immediately */}
+
           <div
             ref={
               stageRef
             }
             className="relative w-full overflow-hidden"
+            style={{
+              aspectRatio:
+                '16 / 9'
+            }}
           >
-
-            {/* Exact old-Fade footprint */}
-
-            <div
-              aria-hidden="true"
-              className="invisible pointer-events-none grid grid-cols-3 gap-[10px] w-full"
-            >
-
-              {Array.from({
-                length: 9
-              }).map(
-                (
-                  _,
-                  index
-                ) => (
-
-                  <div
-                    key={
-                      `fade-sizer-${index}`
-                    }
-                    className="w-full aspect-[16/9]"
-                  />
-
-                )
-              )}
-
-            </div>
-
 
             {loader && (
 
