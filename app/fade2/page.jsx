@@ -7,10 +7,7 @@ import {
   useMemo
 } from 'react'
 
-import {
-  motion,
-  AnimatePresence
-} from 'framer-motion'
+import { motion } from 'framer-motion'
 
 import RootLayout from '../layout'
 import Link from 'next/link'
@@ -67,10 +64,141 @@ function isWebm(photo) {
 
 
 /* =========================================================
+   PRELOAD ONE MEDIA ITEM
+
+   Critical for seamless fades.
+
+   Nothing begins transitioning until the incoming media
+   has actually loaded.
+========================================================= */
+
+function preloadMedia(photo) {
+  return new Promise(resolve => {
+
+    if (
+      !photo ||
+      !photo.src
+    ) {
+      resolve()
+      return
+    }
+
+
+    if (
+      isWebm(photo)
+    ) {
+      const video =
+        document.createElement(
+          'video'
+        )
+
+      video.preload =
+        'auto'
+
+      video.muted =
+        true
+
+      video.playsInline =
+        true
+
+      video.src =
+        photo.src
+
+
+      const finish =
+        () => {
+
+          video.onloadeddata =
+            null
+
+          video.onerror =
+            null
+
+          resolve()
+        }
+
+
+      /*
+        loadeddata is preferable to metadata here because
+        it means an actual frame is available to paint.
+      */
+
+      video.onloadeddata =
+        finish
+
+      video.onerror =
+        finish
+
+      video.load()
+
+      return
+    }
+
+
+    const image =
+      new Image()
+
+    image.src =
+      photo.src
+
+    image.onload =
+      resolve
+
+    image.onerror =
+      resolve
+  })
+}
+
+
+/* =========================================================
+   TWO PAINTS
+
+   Allows newly mounted opacity-0 media to actually exist
+   in a rendered browser frame before the transition begins.
+========================================================= */
+
+function afterTwoFrames(
+  callback
+) {
+  let frame1
+  let frame2
+
+  frame1 =
+    requestAnimationFrame(
+      () => {
+
+        frame2 =
+          requestAnimationFrame(
+            callback
+          )
+      }
+    )
+
+
+  return () => {
+
+    if (frame1) {
+      cancelAnimationFrame(
+        frame1
+      )
+    }
+
+    if (frame2) {
+      cancelAnimationFrame(
+        frame2
+      )
+    }
+  }
+}
+
+
+/* =========================================================
    METADATA
 ========================================================= */
 
-function parseImageMeta(dimensions) {
+function parseImageMeta(
+  dimensions
+) {
   const parts =
     dimensions
       ?.split('|')
@@ -136,22 +264,17 @@ function parseImageMeta(dimensions) {
 /* =========================================================
    DECLARED AR KEY
 
-   Individual Fade slot replacements must match this
-   EXACT declared category.
-
-   Examples:
-
-   1.33
-   1.37
-   1.85
-   2.39
+   Slot replacements must match EXACTLY.
 ========================================================= */
 
-function getRatioKey(photo) {
+function getRatioKey(
+  photo
+) {
   const meta =
     parseImageMeta(
       photo?.dimensions
     )
+
 
   if (
     meta.declaredRatio !==
@@ -162,9 +285,6 @@ function getRatioKey(photo) {
     )
   }
 
-  /*
-    Fallback only for malformed metadata.
-  */
 
   return String(
     Number(
@@ -175,19 +295,10 @@ function getRatioKey(photo) {
 
 
 /* =========================================================
-   EXACT OLD-FADE STAGE HEIGHT
+   OLD FADE STAGE
 
-   Original desktop Fade:
-
-   3 columns
-   3 rows
-   16:9 cells
-   10px gaps
-
-   Width remains responsive exactly as old Fade did.
-
-   Height is derived from that width and NEVER from the
-   current Tetris geometry.
+   Exactly the height of the old 3x3 16:9 layout
+   at the current width.
 ========================================================= */
 
 function getFadeStageHeight(
@@ -221,7 +332,7 @@ function getFadeStageHeight(
 /* =========================================================
    WALL CONFIGURATIONS
 
-   Every configuration consumes exactly 9 slots.
+   Each consumes exactly nine images.
 ========================================================= */
 
 const WALL_CONFIGURATIONS = [
@@ -413,12 +524,7 @@ function solveBand(
 
 
 /* =========================================================
-   BUILD NATURAL TETRIS GEOMETRY
-
-   This geometry always consumes full WIDTH.
-
-   Its natural HEIGHT may be larger or smaller than the
-   fixed old-Fade stage. We do NOT globally scale it.
+   BUILD NATURAL WALL
 ========================================================= */
 
 function buildWallLayout(
@@ -475,12 +581,14 @@ function buildWallLayout(
               slot,
               index
             ) => ({
+
               slotIndex:
                 slotCursor +
                 index,
 
               frameRatio:
                 slot.frameRatio
+
             })
           )
 
@@ -519,6 +627,7 @@ function buildWallLayout(
               rects[
                 item.slotIndex
               ] = {
+
                 x:
                   currentX,
 
@@ -568,6 +677,7 @@ function buildWallLayout(
 
   return {
     rects,
+
     height:
       currentY
   }
@@ -575,12 +685,7 @@ function buildWallLayout(
 
 
 /* =========================================================
-   CREATE WALL OBJECT
-
-   Each slot records the declared AR of the image that
-   establishes its geometry.
-
-   Future individual replacements MUST match ratioKey.
+   MAKE WALL
 ========================================================= */
 
 function makeWall(
@@ -589,6 +694,7 @@ function makeWall(
   id
 ) {
   return {
+
     id,
 
     configuration,
@@ -604,6 +710,7 @@ function makeWall(
 
 
           return {
+
             image,
 
             frameRatio:
@@ -622,17 +729,6 @@ function makeWall(
 
 /* =========================================================
    WALL LAYER
-
-   The natural Tetris gets centered vertically inside the
-   invariant old-Fade stage.
-
-   If taller than the stage, the excess is clipped equally
-   from top and bottom.
-
-   If shorter, blank stage space is shared top and bottom.
-
-   WIDTH IS NEVER SCALED.
-   HEIGHT IS NEVER SCALED.
 ========================================================= */
 
 function WallLayer({
@@ -664,6 +760,12 @@ function WallLayer({
   }
 
 
+  /*
+    Natural Tetris remains native-sized.
+
+    We simply center it inside the invariant Fade stage.
+  */
+
   const offsetY =
     (
       stageHeight -
@@ -673,9 +775,7 @@ function WallLayer({
 
 
   return (
-    <div
-      className="absolute inset-0 overflow-hidden"
-    >
+    <div className="absolute inset-0 overflow-hidden">
 
       {wall.slots.map(
         (
@@ -701,6 +801,7 @@ function WallLayer({
               }
               className="absolute overflow-hidden cursor-zoom-in"
               style={{
+
                 left:
                   `${rect.x}px`,
 
@@ -715,6 +816,7 @@ function WallLayer({
 
                 height:
                   `${rect.height}px`
+
               }}
               onClick={() =>
                 onImageClick(
@@ -745,25 +847,40 @@ function WallLayer({
 
 export default function FadeGallery() {
 
+  /*
+    IMPORTANT CHANGE:
+
+    currentWall remains the current wall until the
+    whole-wall crossfade is completely finished.
+
+    nextWall is mounted separately underneath/above it.
+  */
+
   const [
-    activeWall,
-    setActiveWall
+    currentWall,
+    setCurrentWall
   ] = useState(null)
 
 
   const [
-    outgoingWall,
-    setOutgoingWall
+    nextWall,
+    setNextWall
   ] = useState(null)
+
+
+  const [
+    wallFadeStarted,
+    setWallFadeStarted
+  ] = useState(false)
+
+
+  const wallTransitioningRef =
+    useRef(false)
 
 
   const poolRef =
     useRef([])
 
-
-  /*
-    WebMs arriving too soon wait here.
-  */
 
   const pendingWebmsRef =
     useRef([])
@@ -806,20 +923,19 @@ export default function FadeGallery() {
   const cursorTimerRef =
     useRef(null)
 
-
   const activityTimerRef =
     useRef(null)
-
 
   const slotTimerRef =
     useRef(null)
 
-
   const wallTimerRef =
     useRef(null)
 
+  const wallFadeTimerRef =
+    useRef(null)
 
-  const wallFadeCleanupRef =
+  const wallFrameCleanupRef =
     useRef(null)
 
 
@@ -858,7 +974,7 @@ export default function FadeGallery() {
 
 
   /* -------------------------------------------------------
-     STAGE MEASUREMENT
+     STAGE
   ------------------------------------------------------- */
 
   const galleryRef =
@@ -894,6 +1010,7 @@ export default function FadeGallery() {
         if (
           width > 0
         ) {
+
           setContainerWidth(
             width
           )
@@ -916,7 +1033,9 @@ export default function FadeGallery() {
 
 
     return () => {
+
       observer.disconnect()
+
     }
 
   }, [
@@ -938,7 +1057,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     FETCH RAW IMAGES
+     FETCH
   ======================================================= */
 
   const fetchImages =
@@ -957,14 +1076,14 @@ export default function FadeGallery() {
 
       try {
 
-        const res =
+        const response =
           await fetch(
             `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-fade-images`
           )
 
 
         const data =
-          await res.json()
+          await response.json()
 
 
         const images =
@@ -980,10 +1099,6 @@ export default function FadeGallery() {
             ...images
           )
 
-
-          /*
-            Lightbox inventory gets every fetched image.
-          */
 
           const newSlides =
             images.map(
@@ -1020,6 +1135,7 @@ export default function FadeGallery() {
                 ) {
 
                   return {
+
                     type:
                       'video',
 
@@ -1067,6 +1183,7 @@ export default function FadeGallery() {
 
 
                 return {
+
                   type:
                     'image',
 
@@ -1122,10 +1239,6 @@ export default function FadeGallery() {
 
   const pullNextImage =
     () => {
-
-      /*
-        Eligible queued WebM gets first priority.
-      */
 
       if (
         pendingWebmsRef
@@ -1200,6 +1313,7 @@ export default function FadeGallery() {
         imagesSinceWebmRef
           .current =
             Math.min(
+
               MIN_IMAGES_BETWEEN_WEBMS,
 
               imagesSinceWebmRef
@@ -1217,36 +1331,17 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     PULL IMAGE OF A PARTICULAR AR
-
-     This is the key slot-swap fix.
-
-     We search the pool for an image with exactly the same
-     declared AR category as the slot.
-
-     Other images remain available for future use.
+     AR-LOCKED REPLACEMENT
   ======================================================= */
 
   const pullMatchingImage =
     async ratioKey => {
-
-      /*
-        We may need more than one fetch if the requested
-        AR happens to be sparse in the current pool.
-      */
 
       for (
         let attempt = 0;
         attempt < 6;
         attempt++
       ) {
-
-        /*
-          First scan existing raw pool.
-
-          We deliberately DON'T call pullNextImage here,
-          because that would consume unrelated ARs.
-        */
 
         for (
           let i = 0;
@@ -1256,7 +1351,9 @@ export default function FadeGallery() {
         ) {
 
           const candidate =
-            poolRef.current[i]
+            poolRef.current[
+              i
+            ]
 
 
           if (
@@ -1269,10 +1366,6 @@ export default function FadeGallery() {
           }
 
 
-          /*
-            Respect WebM spacing.
-          */
-
           if (
             isWebm(
               candidate
@@ -1284,12 +1377,6 @@ export default function FadeGallery() {
                 .current <
               MIN_IMAGES_BETWEEN_WEBMS
             ) {
-
-              /*
-                Don't use this WebM yet.
-                Keep searching for a still of this AR.
-              */
-
               continue
             }
 
@@ -1308,10 +1395,6 @@ export default function FadeGallery() {
           }
 
 
-          /*
-            Matching still.
-          */
-
           poolRef.current.splice(
             i,
             1
@@ -1321,6 +1404,7 @@ export default function FadeGallery() {
           imagesSinceWebmRef
             .current =
             Math.min(
+
               MIN_IMAGES_BETWEEN_WEBMS,
 
               imagesSinceWebmRef
@@ -1333,10 +1417,6 @@ export default function FadeGallery() {
         }
 
 
-        /*
-          Nothing appropriate in current pool.
-        */
-
         await fetchImages()
       }
 
@@ -1346,14 +1426,13 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     GET N STREAM IMAGES FOR A FRESH WALL
+     GET N IMAGES FOR NEW WALL
   ======================================================= */
 
   const getImagesForWall =
     async count => {
 
       const result = []
-
 
       let attempts = 0
 
@@ -1372,7 +1451,6 @@ export default function FadeGallery() {
         if (!image) {
 
           await fetchImages()
-
 
           image =
             pullNextImage()
@@ -1396,7 +1474,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     CONFIGURATION CHOICE
+     CONFIGURATION
   ======================================================= */
 
   const chooseConfiguration =
@@ -1409,8 +1487,11 @@ export default function FadeGallery() {
               config,
               index
             ) => ({
+
               config,
+
               index
+
             })
           )
           .filter(
@@ -1440,7 +1521,9 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     CREATE WHOLE NEW TETRIS
+     CREATE NEW WALL
+
+     All nine pieces preload before the wall is returned.
   ======================================================= */
 
   const createNewWall =
@@ -1460,7 +1543,20 @@ export default function FadeGallery() {
       }
 
 
+      /*
+        Critical for grid-to-grid transition:
+        preload every visible source before mounting nextWall.
+      */
+
+      await Promise.all(
+        images.map(
+          preloadMedia
+        )
+      )
+
+
       return makeWall(
+
         images,
 
         chooseConfiguration(),
@@ -1472,7 +1568,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     INITIAL WALL
+     INITIALIZE
   ======================================================= */
 
   useEffect(() => {
@@ -1501,7 +1597,7 @@ export default function FadeGallery() {
           wall
         ) {
 
-          setActiveWall(
+          setCurrentWall(
             wall
           )
 
@@ -1527,7 +1623,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     SLOT SELECTION
+     PICK SLOT
   ======================================================= */
 
   const pickSlot =
@@ -1544,8 +1640,11 @@ export default function FadeGallery() {
               lastUpdate,
               index
             ) => ({
+
               index,
+
               lastUpdate
+
             })
           )
           .sort(
@@ -1593,12 +1692,14 @@ export default function FadeGallery() {
   /* =======================================================
      INDIVIDUAL SLOT CHANGE
 
-     SAME AR ONLY.
-========================================================= */
+     No slot changes during a whole-wall transition.
+  ======================================================= */
 
   useEffect(() => {
 
-    if (!activeWall) {
+    if (
+      !currentWall
+    ) {
       return
     }
 
@@ -1607,21 +1708,27 @@ export default function FadeGallery() {
       setInterval(
         async () => {
 
+          if (
+            wallTransitioningRef
+              .current
+          ) {
+            return
+          }
+
+
           const slotIndex =
             pickSlot()
 
 
-          /*
-            Read current slot's frozen ratio category.
-          */
-
           const currentSlot =
-            activeWall.slots[
+            currentWall.slots[
               slotIndex
             ]
 
 
-          if (!currentSlot) {
+          if (
+            !currentSlot
+          ) {
             return
           }
 
@@ -1632,19 +1739,19 @@ export default function FadeGallery() {
             )
 
 
-          if (!replacement) {
-
-            /*
-              Sparse AR category.
-              Just skip this cycle rather than introducing
-              the wrong geometry.
-            */
-
+          if (
+            !replacement
+          ) {
             return
           }
 
 
-          setActiveWall(
+          /*
+            FadeSlot will perform its own preload before
+            visually transitioning.
+          */
+
+          setCurrentWall(
             previous => {
 
               if (!previous) {
@@ -1667,11 +1774,8 @@ export default function FadeGallery() {
                     }
 
 
-                    /*
-                      frameRatio + ratioKey remain unchanged.
-                    */
-
                     return {
+
                       ...slot,
 
                       image:
@@ -1682,8 +1786,11 @@ export default function FadeGallery() {
 
 
               return {
+
                 ...previous,
+
                 slots
+
               }
             }
           )
@@ -1702,22 +1809,29 @@ export default function FadeGallery() {
     }
 
   }, [
-    activeWall?.id
+    currentWall?.id
   ])
 
 
   /* =======================================================
-     WHOLE WALL CHANGE
+     WALL CHANGE
 
-     New geometry is allowed ONLY here.
+     currentWall stays untouched.
 
-     Both old and new Tetris live inside exactly the same
-     invariant old-Fade stage.
+     nextWall:
+       1. is completely generated
+       2. all 9 media preload
+       3. mounts at opacity 0
+       4. waits two paints
+       5. crossfade begins
+       6. ONLY AFTER fade finishes does next become current
   ======================================================= */
 
   useEffect(() => {
 
-    if (!activeWall) {
+    if (
+      !currentWall
+    ) {
       return
     }
 
@@ -1726,53 +1840,47 @@ export default function FadeGallery() {
       setInterval(
         async () => {
 
-          const newWall =
+          if (
+            wallTransitioningRef
+              .current
+          ) {
+            return
+          }
+
+
+          wallTransitioningRef
+            .current =
+            true
+
+
+          const preparedWall =
             await createNewWall()
 
 
-          if (!newWall) {
+          if (
+            !preparedWall
+          ) {
+
+            wallTransitioningRef
+              .current =
+              false
+
             return
           }
 
 
           /*
-            Snapshot outgoing wall.
+            Mount invisible wall.
           */
 
-          setOutgoingWall(
-            activeWall
+          setWallFadeStarted(
+            false
           )
 
 
-          /*
-            Install next wall.
-          */
-
-          setActiveWall(
-            newWall
+          setNextWall(
+            preparedWall
           )
-
-
-          clearTimeout(
-            wallFadeCleanupRef
-              .current
-          )
-
-
-          wallFadeCleanupRef
-            .current =
-            setTimeout(
-              () => {
-
-                setOutgoingWall(
-                  null
-                )
-
-              },
-              WALL_FADE_DURATION *
-                1000 +
-                250
-            )
 
         },
         WALL_CHANGE_INTERVAL
@@ -1785,15 +1893,91 @@ export default function FadeGallery() {
         wallTimerRef.current
       )
 
+    }
+
+  }, [
+    currentWall?.id
+  ])
+
+
+  /* =======================================================
+     NEXT WALL HAS MOUNTED
+
+     Wait two browser paints, THEN start crossfade.
+  ======================================================= */
+
+  useEffect(() => {
+
+    if (
+      !nextWall
+    ) {
+      return
+    }
+
+
+    wallFrameCleanupRef
+      .current =
+      afterTwoFrames(
+        () => {
+
+          setWallFadeStarted(
+            true
+          )
+
+
+          wallFadeTimerRef
+            .current =
+            setTimeout(
+              () => {
+
+                /*
+                  New wall becomes canonical only after
+                  crossfade is fully finished.
+                */
+
+                setCurrentWall(
+                  nextWall
+                )
+
+
+                setNextWall(
+                  null
+                )
+
+
+                setWallFadeStarted(
+                  false
+                )
+
+
+                wallTransitioningRef
+                  .current =
+                  false
+
+              },
+              WALL_FADE_DURATION *
+                1000 +
+                100
+            )
+        }
+      )
+
+
+    return () => {
+
+      wallFrameCleanupRef
+        .current?.()
+
+
       clearTimeout(
-        wallFadeCleanupRef
+        wallFadeTimerRef
           .current
       )
 
     }
 
   }, [
-    activeWall?.id
+    nextWall
   ])
 
 
@@ -1804,7 +1988,9 @@ export default function FadeGallery() {
   const toggleBlackMode =
     async () => {
 
-      if (!blackMode) {
+      if (
+        !blackMode
+      ) {
 
         document.body
           .style
@@ -1936,7 +2122,9 @@ export default function FadeGallery() {
 
   useEffect(() => {
 
-    if (!blackMode) {
+    if (
+      !blackMode
+    ) {
       return
     }
 
@@ -2049,13 +2237,6 @@ export default function FadeGallery() {
         setIndex(
           idx
         )
-
-      } else {
-
-        console.warn(
-          'Image clicked but no slide found for:',
-          imageSrc
-        )
       }
     }
 
@@ -2120,8 +2301,6 @@ export default function FadeGallery() {
   return (
     <RootLayout>
 
-      {/* Moon */}
-
       {!blackMode && (
 
         <motion.button
@@ -2154,8 +2333,6 @@ export default function FadeGallery() {
 
       )}
 
-
-      {/* X */}
 
       {blackMode && (
 
@@ -2210,8 +2387,6 @@ export default function FadeGallery() {
             : 'px-4 lg:px-16 pb-10'
         }
       >
-
-        {/* Navigation */}
 
         {!blackMode && (
 
@@ -2288,18 +2463,7 @@ export default function FadeGallery() {
             }
           >
 
-            {/*
-
-              THIS IS THE INVARIANT STAGE.
-
-              Its width is exactly the width old Fade would use.
-
-              Its height is exactly the height old Fade's
-              3x3 16:9 grid would use at that width.
-
-              It never changes because of Tetris geometry.
-
-            */}
+            {/* Invariant old-Fade-sized stage */}
 
             <div
               ref={
@@ -2307,89 +2471,40 @@ export default function FadeGallery() {
               }
               className="relative w-full overflow-hidden"
               style={{
+                /*
+                  Reserve essentially the correct footprint
+                  immediately, before ResizeObserver fires.
+                  Once measured, exact old-Fade height wins.
+                */
+
+                aspectRatio:
+                  containerWidth
+                    ? undefined
+                    : '16 / 9',
+
                 height:
-                  `${stageHeight}px`
+                  containerWidth
+                    ? `${stageHeight}px`
+                    : undefined
               }}
             >
 
-              {/* Outgoing configuration */}
+              {/* CURRENT WALL — never replaced early */}
 
-              <AnimatePresence>
-
-                {outgoingWall && (
-
-                  <motion.div
-                    key={
-                      `outgoing-${outgoingWall.id}`
-                    }
-                    className="absolute inset-0 overflow-hidden"
-                    initial={{
-                      opacity:
-                        1
-                    }}
-                    animate={{
-                      opacity:
-                        0
-                    }}
-                    exit={{
-                      opacity:
-                        0
-                    }}
-                    transition={{
-                      duration:
-                        WALL_FADE_DURATION,
-
-                      ease:
-                        'easeInOut'
-                    }}
-                  >
-
-                    <WallLayer
-                      wall={
-                        outgoingWall
-                      }
-                      containerWidth={
-                        containerWidth
-                      }
-                      stageHeight={
-                        stageHeight
-                      }
-                      onImageClick={
-                        handleImageClick
-                      }
-                    />
-
-                  </motion.div>
-
-                )}
-
-              </AnimatePresence>
-
-
-              {/* Active configuration */}
-
-              {activeWall && (
+              {currentWall && (
 
                 <motion.div
-                  key={
-                    `active-${activeWall.id}`
-                  }
                   className="absolute inset-0 overflow-hidden"
-                  initial={{
+                  initial={false}
+                  animate={{
                     opacity:
-                      outgoingWall
+                      wallFadeStarted
                         ? 0
                         : 1
                   }}
-                  animate={{
-                    opacity:
-                      1
-                  }}
                   transition={{
                     duration:
-                      outgoingWall
-                        ? WALL_FADE_DURATION
-                        : 0,
+                      WALL_FADE_DURATION,
 
                     ease:
                       'easeInOut'
@@ -2398,7 +2513,52 @@ export default function FadeGallery() {
 
                   <WallLayer
                     wall={
-                      activeWall
+                      currentWall
+                    }
+                    containerWidth={
+                      containerWidth
+                    }
+                    stageHeight={
+                      stageHeight
+                    }
+                    onImageClick={
+                      handleImageClick
+                    }
+                  />
+
+                </motion.div>
+
+              )}
+
+
+              {/* NEXT WALL — mounts invisibly first */}
+
+              {nextWall && (
+
+                <motion.div
+                  className="absolute inset-0 overflow-hidden"
+                  initial={{
+                    opacity:
+                      0
+                  }}
+                  animate={{
+                    opacity:
+                      wallFadeStarted
+                        ? 1
+                        : 0
+                  }}
+                  transition={{
+                    duration:
+                      WALL_FADE_DURATION,
+
+                    ease:
+                      'easeInOut'
+                  }}
+                >
+
+                  <WallLayer
+                    wall={
+                      nextWall
                     }
                     containerWidth={
                       containerWidth
@@ -2431,8 +2591,6 @@ export default function FadeGallery() {
 
         )}
 
-
-      {/* Lightbox */}
 
       {slides && (
 
@@ -2540,7 +2698,15 @@ export default function FadeGallery() {
 
 
 /* =========================================================
-   INDIVIDUAL FADE SLOT
+   FADE SLOT
+
+   EXPLICIT DOUBLE BUFFER
+
+   currentImage never disappears until incomingImage:
+   - has loaded
+   - has mounted
+   - has painted twice
+   - has completed its opacity transition
 ========================================================= */
 
 function FadeSlot({
@@ -2556,88 +2722,92 @@ function FadeSlot({
 
 
   const [
-    previousImage,
-    setPreviousImage
+    incomingImage,
+    setIncomingImage
   ] = useState(
     null
   )
+
+
+  const [
+    fadeStarted,
+    setFadeStarted
+  ] = useState(false)
+
+
+  const fadeTimerRef =
+    useRef(null)
+
+
+  const frameCleanupRef =
+    useRef(null)
 
 
   useEffect(() => {
 
     if (
       !image ||
-      !image.src ||
-      image.id ===
-        currentImage?.id
+      !image.src
     ) {
       return
     }
 
 
     if (
-      isWebm(
-        image
-      )
+      image.id ===
+      currentImage?.id
     ) {
+      return
+    }
 
-      const preload =
-        document.createElement(
-          'video'
+
+    let cancelled =
+      false
+
+
+    const prepare =
+      async () => {
+
+        /*
+          Incoming source is completely loaded BEFORE
+          we even put it into the rendered slot.
+        */
+
+        await preloadMedia(
+          image
         )
 
 
-      preload.src =
-        image.src
-
-
-      preload.preload =
-        'metadata'
-
-
-      preload.muted =
-        true
-
-
-      preload.playsInline =
-        true
-
-
-      preload.onloadeddata =
-        () => {
-
-          setPreviousImage(
-            currentImage
-          )
-
-
-          setCurrentImage(
-            image
-          )
+        if (
+          cancelled
+        ) {
+          return
         }
 
-    } else {
 
-      const preload =
-        new Image()
+        /*
+          Mount at opacity 0.
+        */
 
-
-      preload.src =
-        image.src
-
-
-      preload.onload =
-        () => {
-
-          setPreviousImage(
-            currentImage
-          )
+        setFadeStarted(
+          false
+        )
 
 
-          setCurrentImage(
-            image
-          )
-        }
+        setIncomingImage(
+          image
+        )
+      }
+
+
+    prepare()
+
+
+    return () => {
+
+      cancelled =
+        true
+
     }
 
   }, [
@@ -2645,37 +2815,112 @@ function FadeSlot({
   ])
 
 
+  /*
+    incomingImage now exists in React DOM.
+
+    Give browser two real paint frames before changing
+    either opacity.
+  */
+
+  useEffect(() => {
+
+    if (
+      !incomingImage
+    ) {
+      return
+    }
+
+
+    frameCleanupRef
+      .current =
+      afterTwoFrames(
+        () => {
+
+          setFadeStarted(
+            true
+          )
+
+
+          fadeTimerRef
+            .current =
+            setTimeout(
+              () => {
+
+                /*
+                  ONLY NOW do we discard outgoing media.
+                */
+
+                setCurrentImage(
+                  incomingImage
+                )
+
+
+                setIncomingImage(
+                  null
+                )
+
+
+                setFadeStarted(
+                  false
+                )
+
+              },
+              SLOT_FADE_DURATION *
+                1000 +
+                100
+            )
+        }
+      )
+
+
+    return () => {
+
+      frameCleanupRef
+        .current?.()
+
+
+      clearTimeout(
+        fadeTimerRef
+          .current
+      )
+
+    }
+
+  }, [
+    incomingImage
+  ])
+
+
   return (
     <div className="relative w-full h-full overflow-hidden">
 
-      {/* Outgoing */}
+      {/* CURRENT / OUTGOING LAYER */}
 
-      {previousImage && (
+      {currentImage && (
 
         isWebm(
-          previousImage
+          currentImage
         ) ? (
 
           <motion.video
             key={
-              `previous-${previousImage.id}`
+              `current-video-${currentImage.id}`
             }
             src={
-              previousImage.src
+              currentImage.src
             }
             autoPlay
             muted
             loop
             playsInline
-            preload="metadata"
+            preload="auto"
             poster="/assets/transparent.png"
-            initial={{
-              opacity:
-                1
-            }}
+            initial={false}
             animate={{
               opacity:
-                0
+                fadeStarted
+                  ? 0
+                  : 1
             }}
             transition={{
               duration:
@@ -2691,18 +2936,17 @@ function FadeSlot({
 
           <motion.img
             key={
-              `previous-${previousImage.id}`
+              `current-image-${currentImage.id}`
             }
             src={
-              previousImage.src
+              currentImage.src
             }
-            initial={{
-              opacity:
-                1
-            }}
+            initial={false}
             animate={{
               opacity:
-                0
+                fadeStarted
+                  ? 0
+                  : 1
             }}
             transition={{
               duration:
@@ -2720,36 +2964,36 @@ function FadeSlot({
       )}
 
 
-      {/* Incoming */}
+      {/* INCOMING LAYER */}
 
-      {currentImage && (
+      {incomingImage && (
 
         isWebm(
-          currentImage
+          incomingImage
         ) ? (
 
           <motion.video
             key={
-              `current-${currentImage.id}`
+              `incoming-video-${incomingImage.id}`
             }
             src={
-              currentImage.src
+              incomingImage.src
             }
             autoPlay
             muted
             loop
             playsInline
-            preload="metadata"
+            preload="auto"
             poster="/assets/transparent.png"
             initial={{
               opacity:
-                previousImage
-                  ? 0
-                  : 1
+                0
             }}
             animate={{
               opacity:
-                1
+                fadeStarted
+                  ? 1
+                  : 0
             }}
             transition={{
               duration:
@@ -2765,20 +3009,20 @@ function FadeSlot({
 
           <motion.img
             key={
-              `current-${currentImage.id}`
+              `incoming-image-${incomingImage.id}`
             }
             src={
-              currentImage.src
+              incomingImage.src
             }
             initial={{
               opacity:
-                previousImage
-                  ? 0
-                  : 1
+                0
             }}
             animate={{
               opacity:
-                1
+                fadeStarted
+                  ? 1
+                  : 0
             }}
             transition={{
               duration:
