@@ -23,13 +23,6 @@ export function cn(...inputs) {
 const GAP = 10
 const MOBILE_BREAKPOINT = 768
 
-/*
-  No more often than once every 20 images.
-
-  After a WebM appears, at least 19 other images
-  must appear before another WebM is eligible.
-*/
-
 const WEBM_INTERVAL = 20
 const MIN_IMAGES_BETWEEN_WEBMS =
   WEBM_INTERVAL - 1
@@ -51,14 +44,12 @@ function isWebm(photo) {
 /* ---------------------------------------------------------
    LAZY WEBM
 
-   The actual <video> only exists while the tile is
-   reasonably close to the viewport.
+   Only mount a real <video> while the tile is within
+   800px of the viewport.
 
-   Once sufficiently far away, the video is completely
-   unmounted, releasing its decoder/buffer resources.
-
-   1200px gives us enough advance loading that normal
-   scrolling should not reveal an empty tile.
+   Once it moves sufficiently far away, the <video>
+   disappears completely from the DOM, freeing decoder
+   and buffering resources while preserving tile geometry.
 --------------------------------------------------------- */
 
 function LazyWebm({
@@ -97,7 +88,7 @@ function LazyWebm({
           root: null,
 
           rootMargin:
-            '1200px 0px',
+            '800px 0px',
 
           threshold: 0
         }
@@ -202,6 +193,7 @@ function parseImageMeta(dimensions) {
 function prepareImages(images) {
   return images.map(image => ({
     ...image,
+
     _meta:
       parseImageMeta(
         image.dimensions
@@ -436,13 +428,6 @@ function buildWall(
       ]
 
 
-    /*
-      Rare full-width desktop hero.
-
-      Only use [1] when the candidate
-      is at least 1.85.
-    */
-
     if (
       isDesktop &&
       pattern.length === 1 &&
@@ -463,6 +448,7 @@ function buildWall(
       if (
         candidateRatio < 1.85
       ) {
+
         pattern = [
           1,
           2,
@@ -775,6 +761,7 @@ function solveMobilePair(
 
   return {
     height,
+
     images:
       solvedImages
   }
@@ -784,15 +771,16 @@ function solveMobilePair(
 /* ---------------------------------------------------------
    MEDIA TILE
 
-   Static images remain normal <img>s.
+   Static images now use native browser lazy loading.
 
-   WebMs use LazyWebm so only nearby videos exist
-   as real <video> elements.
+   WebMs use LazyWebm so only nearby videos exist as
+   actual <video> elements.
 --------------------------------------------------------- */
 
 function WallMedia({
   photo
 }) {
+
   if (
     isWebm(photo)
   ) {
@@ -816,6 +804,7 @@ function WallMedia({
       src={
         photo.src
       }
+      loading="lazy"
       decoding="async"
       className="block w-full h-full object-cover"
     />
@@ -851,10 +840,6 @@ function MobileWall({
           row,
           rowIndex
         ) => {
-
-          /*
-            FULL-WIDTH IMAGE
-          */
 
           if (
             row.type ===
@@ -905,10 +890,6 @@ function MobileWall({
             )
           }
 
-
-          /*
-            TWO-IMAGE ROW
-          */
 
           const solved =
             solveMobilePair(
@@ -1269,8 +1250,7 @@ export default function Tetris() {
 
 
   /*
-    Start at 19 so a WebM can appear anywhere
-    in the initial stream.
+    Start at 19 so the first WebM is immediately eligible.
   */
 
   const imagesSinceWebmRef =
@@ -1281,6 +1261,12 @@ export default function Tetris() {
 
   /* -------------------------------------------------------
      WEBM SPACING
+
+     After a WebM is emitted, 19 other images must pass
+     before the next WebM may enter the visible stream.
+
+     Early WebMs remain queued rather than being discarded.
+     The state persists across InfiniteScroll fetches.
   ------------------------------------------------------- */
 
   const applyWebmSpacing =
@@ -1335,8 +1321,8 @@ export default function Tetris() {
       ) {
 
         /*
-          If an older queued WebM has now become
-          eligible, emit it before newer media.
+          Give an older queued WebM priority once
+          it becomes eligible.
         */
 
         flushPendingWebm()
@@ -1379,7 +1365,7 @@ export default function Tetris() {
 
 
         /*
-          Still image.
+          Normal still image.
         */
 
         output.push(
@@ -1399,8 +1385,8 @@ export default function Tetris() {
 
 
         /*
-          If this was the 19th still,
-          a queued WebM may immediately follow.
+          If this was the 19th intervening image,
+          an older queued WebM may follow it now.
         */
 
         flushPendingWebm()
@@ -1413,6 +1399,8 @@ export default function Tetris() {
 
   /* -------------------------------------------------------
      RESET WEBM STREAM
+
+     Shuffle starts a completely fresh Wall stream.
   ------------------------------------------------------- */
 
   const resetWebmSpacing =
