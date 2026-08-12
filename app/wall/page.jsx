@@ -23,6 +23,28 @@ export function cn(...inputs) {
 const GAP = 10
 const MOBILE_BREAKPOINT = 768
 
+/*
+  "No more often than once every 20 images"
+
+  Therefore, after a WebM appears, at least 19 other
+  images must appear before another WebM is eligible.
+*/
+const WEBM_INTERVAL = 20
+const MIN_IMAGES_BETWEEN_WEBMS = WEBM_INTERVAL - 1
+
+
+/* ---------------------------------------------------------
+   MEDIA TYPE
+--------------------------------------------------------- */
+
+function isWebm(photo) {
+  return (
+    photo?.src
+      ?.toLowerCase()
+      .includes('.webm') ?? false
+  )
+}
+
 
 /* ---------------------------------------------------------
    METADATA
@@ -628,11 +650,7 @@ function MobileWall({
                   }
                 >
 
-                  {photo.src
-                    ?.toLowerCase()
-                    .includes(
-                      '.webm'
-                    ) ? (
+                  {isWebm(photo) ? (
 
                     <video
                       src={
@@ -717,11 +735,7 @@ function MobileWall({
                     }
                   >
 
-                    {photo.src
-                      ?.toLowerCase()
-                      .includes(
-                        '.webm'
-                      ) ? (
+                    {isWebm(photo) ? (
 
                       <video
                         src={
@@ -859,11 +873,7 @@ function PackedWall({
                         }
                       >
 
-                        {photo.src
-                          ?.toLowerCase()
-                          .includes(
-                            '.webm'
-                          ) ? (
+                        {isWebm(photo) ? (
 
                           <video
                             src={
@@ -1047,6 +1057,200 @@ export default function Tetris() {
     useRef(new Set())
 
 
+  /*
+    WebMs that arrive before they're eligible are kept here
+    until enough still images have appeared.
+  */
+  const pendingWebmsRef =
+    useRef([])
+
+
+  /*
+    Start at 19 so a WebM is allowed anywhere in the initial
+    stream. After a WebM is emitted this resets to zero.
+  */
+  const imagesSinceWebmRef =
+    useRef(
+      MIN_IMAGES_BETWEEN_WEBMS
+    )
+
+
+  /* -------------------------------------------------------
+     WEBM SPACING
+
+     This operates on the DISPLAY STREAM.
+
+     It does not alter the Wall geometry.
+
+     Example:
+
+       WebM
+       still 1
+       still 2
+       ...
+       still 19
+       next WebM may now appear
+
+     If another WebM arrives before then, it waits in the
+     pending queue.
+
+     The queue survives InfiniteScroll batches.
+  ------------------------------------------------------- */
+
+  const applyWebmSpacing =
+    incomingImages => {
+
+      const output = []
+
+
+      const flushPendingWebm =
+        () => {
+
+          if (
+            pendingWebmsRef
+              .current
+              .length === 0
+          ) {
+            return false
+          }
+
+
+          if (
+            imagesSinceWebmRef
+              .current <
+            MIN_IMAGES_BETWEEN_WEBMS
+          ) {
+            return false
+          }
+
+
+          const nextWebm =
+            pendingWebmsRef
+              .current
+              .shift()
+
+
+          output.push(
+            nextWebm
+          )
+
+
+          imagesSinceWebmRef
+            .current = 0
+
+
+          return true
+        }
+
+
+      for (
+        const image of
+        incomingImages
+      ) {
+
+        /*
+          If a previously queued WebM has now become
+          eligible, give it priority before processing
+          newer incoming media.
+        */
+
+        flushPendingWebm()
+
+
+        if (
+          isWebm(image)
+        ) {
+
+          /*
+            If no earlier WebM is waiting and the spacing
+            requirement has been satisfied, emit this one.
+          */
+
+          if (
+            pendingWebmsRef
+              .current
+              .length === 0 &&
+            imagesSinceWebmRef
+              .current >=
+              MIN_IMAGES_BETWEEN_WEBMS
+          ) {
+
+            output.push(
+              image
+            )
+
+
+            imagesSinceWebmRef
+              .current = 0
+
+          } else {
+
+            /*
+              Too early.
+
+              Keep it rather than discarding it.
+            */
+
+            pendingWebmsRef
+              .current
+              .push(
+                image
+              )
+          }
+
+
+          continue
+        }
+
+
+        /*
+          Normal still image.
+        */
+
+        output.push(
+          image
+        )
+
+
+        imagesSinceWebmRef
+          .current =
+            Math.min(
+              MIN_IMAGES_BETWEEN_WEBMS,
+              imagesSinceWebmRef
+                .current + 1
+            )
+
+
+        /*
+          If this still was the 19th image since the last
+          WebM, a queued WebM can now immediately follow it.
+        */
+
+        flushPendingWebm()
+      }
+
+
+      return output
+    }
+
+
+  /* -------------------------------------------------------
+     RESET WEBM STREAM
+
+     Used whenever Shuffle begins an entirely new Wall.
+  ------------------------------------------------------- */
+
+  const resetWebmSpacing =
+    () => {
+
+      pendingWebmsRef.current =
+        []
+
+      imagesSinceWebmRef.current =
+        MIN_IMAGES_BETWEEN_WEBMS
+    }
+
+
   /* -------------------------------------------------------
      LIGHTBOX SLIDES
   ------------------------------------------------------- */
@@ -1177,6 +1381,11 @@ export default function Tetris() {
           const images =
             data.images
 
+
+          /*
+            Existing duplicate protection.
+          */
+
           const uniqueImages =
             images.filter(
               img =>
@@ -1185,6 +1394,7 @@ export default function Tetris() {
                   .has(img.id)
             )
 
+
           uniqueImages.forEach(
             img =>
               seenImageIds
@@ -1192,12 +1402,30 @@ export default function Tetris() {
                 .add(img.id)
           )
 
-          setImages(
-            prev => [
-              ...prev,
-              ...uniqueImages
-            ]
-          )
+
+          /*
+            NEW:
+
+            Enforce the WebM spacing before adding the batch
+            to the visible Wall.
+          */
+
+          const spacedImages =
+            applyWebmSpacing(
+              uniqueImages
+            )
+
+
+          if (
+            spacedImages.length
+          ) {
+            setImages(
+              prev => [
+                ...prev,
+                ...spacedImages
+              ]
+            )
+          }
 
         } else {
           console.error(
@@ -1228,6 +1456,14 @@ export default function Tetris() {
       seenImageIds.current =
         new Set()
 
+
+      /*
+        New Wall = new WebM-spacing stream.
+      */
+
+      resetWebmSpacing()
+
+
       try {
         const response =
           await fetch(
@@ -1249,6 +1485,7 @@ export default function Tetris() {
           const images =
             data.images
 
+
           images.forEach(
             img =>
               seenImageIds
@@ -1256,7 +1493,20 @@ export default function Tetris() {
                 .add(img.id)
           )
 
-          setImages(images)
+
+          /*
+            Apply the same spacing rule to the fresh Wall.
+          */
+
+          const spacedImages =
+            applyWebmSpacing(
+              images
+            )
+
+
+          setImages(
+            spacedImages
+          )
 
         } else {
           console.error(
@@ -1507,10 +1757,10 @@ export default function Tetris() {
 
                     <div
                       className={cn(
-                        "!space-y-0",
+                        '!space-y-0',
 
                         slide.director &&
-                          "!mb-5"
+                          '!mb-5'
                       )}
                     >
 
