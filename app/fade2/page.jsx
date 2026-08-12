@@ -30,10 +30,6 @@ import AudioPlayer from '../../components/AudioPlayer'
 import AnimatedLogo from '../../components/AnimatedLogo'
 
 
-/* =========================================================
-   TIMING
-========================================================= */
-
 const SLOT_CHANGE_INTERVAL = 5000
 const WALL_CHANGE_INTERVAL = 60000
 
@@ -42,13 +38,7 @@ const WALL_FADE_DURATION = 5
 
 const GAP = 10
 
-
-/* =========================================================
-   WEBM SPACING
-========================================================= */
-
 const WEBM_INTERVAL = 20
-
 const MIN_IMAGES_BETWEEN_WEBMS =
   WEBM_INTERVAL - 1
 
@@ -62,10 +52,6 @@ function isWebm(photo) {
   )
 }
 
-
-/* =========================================================
-   TWO PAINTS
-========================================================= */
 
 function afterTwoFrames(callback) {
   let frame1 = null
@@ -98,9 +84,13 @@ function afterTwoFrames(callback) {
 }
 
 
-/* =========================================================
-   MEDIA PRELOAD
-========================================================= */
+/* ---------------------------------------------------------
+   SAFE PRELOAD
+
+   Used only for transitions after initial load.
+
+   No asset may stall a transition forever.
+--------------------------------------------------------- */
 
 function preloadMedia(photo) {
   return new Promise(resolve => {
@@ -114,6 +104,49 @@ function preloadMedia(photo) {
     }
 
 
+    let finished =
+      false
+
+
+    const timeout =
+      setTimeout(
+        () => {
+
+          if (finished) {
+            return
+          }
+
+          finished =
+            true
+
+          resolve()
+
+        },
+        5000
+      )
+
+
+    const finish =
+      () => {
+
+        if (finished) {
+          return
+        }
+
+
+        finished =
+          true
+
+
+        clearTimeout(
+          timeout
+        )
+
+
+        resolve()
+      }
+
+
     if (
       isWebm(photo)
     ) {
@@ -122,6 +155,7 @@ function preloadMedia(photo) {
         document.createElement(
           'video'
         )
+
 
       video.preload =
         'auto'
@@ -136,28 +170,12 @@ function preloadMedia(photo) {
         photo.src
 
 
-      const finish =
-        () => {
-
-          video.onloadeddata =
-            null
-
-          video.onerror =
-            null
-
-          resolve()
-        }
-
-
-      /*
-        Wait until a real video frame is available.
-      */
-
       video.onloadeddata =
         finish
 
       video.onerror =
         finish
+
 
       video.load()
 
@@ -168,21 +186,18 @@ function preloadMedia(photo) {
     const image =
       new Image()
 
+
     image.onload =
-      resolve
+      finish
 
     image.onerror =
-      resolve
+      finish
 
     image.src =
       photo.src
   })
 }
 
-
-/* =========================================================
-   METADATA
-========================================================= */
 
 function parseImageMeta(dimensions) {
   const parts =
@@ -249,12 +264,6 @@ function parseImageMeta(dimensions) {
 }
 
 
-/* =========================================================
-   DECLARED AR CATEGORY
-
-   Individual replacements remain AR-locked.
-========================================================= */
-
 function getRatioKey(photo) {
   const meta =
     parseImageMeta(
@@ -280,25 +289,6 @@ function getRatioKey(photo) {
   )
 }
 
-
-/* =========================================================
-   TETRIS CONFIGURATIONS
-
-   Exactly nine images each.
-
-   Each outer array is a set of horizontal bands.
-   Each number describes how many images are stacked
-   vertically in that column.
-
-   Example:
-
-     [1, 2, 1]
-
-   = three columns
-     column 1 has one image
-     column 2 has two
-     column 3 has one
-========================================================= */
 
 const WALL_CONFIGURATIONS = [
 
@@ -343,20 +333,6 @@ const WALL_CONFIGURATIONS = [
   ]
 ]
 
-
-/* =========================================================
-   BUILD PREFERRED BAND
-
-   This asks:
-
-   If these images could preserve their exact ARs while
-   filling the full stage width, how tall would this band
-   naturally want to be?
-
-   We use that only to determine relative proportions.
-
-   It does NOT determine the final wall height.
-========================================================= */
 
 function getPreferredBand(
   items,
@@ -478,30 +454,6 @@ function getPreferredBand(
 }
 
 
-/* =========================================================
-   SOLVE ONE BAND INSIDE A FIXED HEIGHT
-
-   This is the important new part.
-
-   bandWidth is fixed.
-   bandHeight is fixed.
-
-   Therefore:
-     - no external resizing
-     - no overlap
-     - no empty band space
-
-   We first calculate each column's preferred width from
-   its images, then normalize all column widths so they
-   fill the entire stage width.
-
-   Inside each stacked column, preferred image heights
-   are likewise normalized so the column fills the exact
-   band height.
-
-   Thus every rectangle is complete and contiguous.
-========================================================= */
-
 function solveFixedBand(
   items,
   pattern,
@@ -559,12 +511,6 @@ function solveFixedBand(
               1
           )
 
-
-        /*
-          Width this column would prefer if all contained
-          images kept their exact AR while filling the
-          chosen band height.
-        */
 
         const preferredWidth =
           (
@@ -624,10 +570,6 @@ function solveFixedBand(
         column.verticalGap
 
 
-      /*
-        Native preferred heights at the FINAL column width.
-      */
-
       const preferredHeights =
         column.items.map(
           item =>
@@ -647,11 +589,6 @@ function solveFixedBand(
           0
         )
 
-
-      /*
-        Normalize vertical sizes so this stack exactly fills
-        its fixed-height band.
-      */
 
       const heightScale =
         preferredHeightTotal > 0
@@ -711,28 +648,6 @@ function solveFixedBand(
   return rects
 }
 
-
-/* =========================================================
-   FIXED-STAGE TETRIS SOLVER
-
-   The stage is immutable.
-
-   We determine how much height each band WANTS based on
-   the nine source ARs, then normalize all band heights so
-   their combined height is exactly:
-
-     stageHeight - inter-band gutters
-
-   Every band then gets solved exactly inside that space.
-
-   RESULT:
-   - exact outer width
-   - exact outer height
-   - exact 10px gaps
-   - zero overlaps
-   - zero holes
-   - nine rectangles
-========================================================= */
 
 function buildFixedStageLayout(
   images,
@@ -926,16 +841,6 @@ function buildFixedStageLayout(
   )
 
 
-  /*
-    Score the crop/distortion implied by this arrangement.
-
-    log(cellAR / imageAR) is symmetrical:
-    being twice as wide is penalized the same as
-    being twice as tall.
-
-    Lower score = better fit.
-  */
-
   let score = 0
 
 
@@ -946,7 +851,10 @@ function buildFixedStageLayout(
     ) => {
 
       if (!rect) {
-        score += 1000
+
+        score +=
+          1000
+
         return
       }
 
@@ -985,17 +893,6 @@ function buildFixedStageLayout(
 }
 
 
-/* =========================================================
-   PICK BEST CONFIGURATION FOR THESE NINE IMAGES
-
-   We evaluate all available Tetris patterns against the
-   exact fixed stage and choose the one requiring the least
-   AR compromise.
-
-   Tiny random jitter prevents one pattern from winning
-   every near-tie.
-========================================================= */
-
 function chooseBestConfiguration(
   images,
   stageWidth,
@@ -1022,23 +919,15 @@ function chooseBestConfiguration(
           layout.score
 
 
-        /*
-          Slight preference not to repeat the exact same
-          configuration consecutively, but image fit wins
-          if the difference is meaningful.
-        */
-
         if (
           index ===
           previousIndex
         ) {
-          score += 0.06
+
+          score +=
+            0.06
         }
 
-
-        /*
-          Minuscule tie-break randomness.
-        */
 
         score +=
           Math.random() *
@@ -1071,10 +960,6 @@ function chooseBestConfiguration(
 }
 
 
-/* =========================================================
-   MAKE WALL
-========================================================= */
-
 function makeWall(
   images,
   configuration,
@@ -1104,10 +989,6 @@ function makeWall(
   }
 }
 
-
-/* =========================================================
-   MEDIA LAYER
-========================================================= */
 
 function MediaLayer({
   photo,
@@ -1176,10 +1057,6 @@ function MediaLayer({
   )
 }
 
-
-/* =========================================================
-   PERSISTENT SLOT A/B BUFFERS
-========================================================= */
 
 function PersistentFadeSlot({
   image
@@ -1331,13 +1208,6 @@ function PersistentFadeSlot({
                 setTimeout(
                   () => {
 
-                    /*
-                      Crucial:
-                      the newly visible node remains the
-                      visible node. We merely change which
-                      buffer is designated active.
-                    */
-
                     setActiveLayer(
                       inactiveLayer
                     )
@@ -1460,20 +1330,6 @@ function PersistentFadeSlot({
 }
 
 
-/* =========================================================
-   WALL BUFFER
-
-   The OUTER BUFFER stays mounted.
-
-   When a hidden wall buffer is repopulated, its internal
-   slots receive keys containing wall.id. That means we can
-   replace hidden stale content cleanly without making the
-   currently visible wall participate in the remount.
-
-   Once a new wall becomes visible, those nodes remain
-   mounted through completion of their wall fade.
-========================================================= */
-
 function WallBuffer({
   wall,
   stageWidth,
@@ -1491,6 +1347,7 @@ function WallBuffer({
           !stageWidth ||
           !stageHeight
         ) {
+
           return {
             rects: []
           }
@@ -1596,15 +1453,7 @@ function WallBuffer({
 }
 
 
-/* =========================================================
-   MAIN
-========================================================= */
-
 export default function FadeGallery() {
-
-  /* -------------------------------------------------------
-     WALL A/B BUFFERS
-  ------------------------------------------------------- */
 
   const [
     wallA,
@@ -1650,10 +1499,6 @@ export default function FadeGallery() {
     useRef(-1)
 
 
-  /* -------------------------------------------------------
-     IMAGE POOL
-  ------------------------------------------------------- */
-
   const poolRef =
     useRef([])
 
@@ -1677,10 +1522,6 @@ export default function FadeGallery() {
     __loader
   ] = useState(true)
 
-
-  /* -------------------------------------------------------
-     BLACK MODE
-  ------------------------------------------------------- */
 
   const [
     blackMode,
@@ -1708,10 +1549,6 @@ export default function FadeGallery() {
     useRef(null)
 
 
-  /* -------------------------------------------------------
-     TIMERS
-  ------------------------------------------------------- */
-
   const slotTimerRef =
     useRef(null)
 
@@ -1719,10 +1556,6 @@ export default function FadeGallery() {
   const wallTimerRef =
     useRef(null)
 
-
-  /* -------------------------------------------------------
-     SLOT CHOICE
-  ------------------------------------------------------- */
 
   const lastSlotRef =
     useRef(-1)
@@ -1738,10 +1571,6 @@ export default function FadeGallery() {
     useRef(0)
 
 
-  /* -------------------------------------------------------
-     LIGHTBOX
-  ------------------------------------------------------- */
-
   const [
     index,
     setIndex
@@ -1753,19 +1582,6 @@ export default function FadeGallery() {
     setSlides
   ] = useState([])
 
-
-  /* -------------------------------------------------------
-     STAGE
-
-     The invisible 3x3 grid below literally establishes
-     old Fade's footprint in normal document flow.
-
-     So:
-       - correct on first paint
-       - no footer slide
-       - responsive at 2K / 4K
-       - exact 3x3 16:9 + 10px gaps dimensions
-  ------------------------------------------------------- */
 
   const stageRef =
     useRef(null)
@@ -1850,14 +1666,9 @@ export default function FadeGallery() {
     }
 
   }, [
-    loader,
     blackMode
   ])
 
-
-  /* =======================================================
-     FETCH
-  ======================================================= */
 
   const fetchImages =
     async () => {
@@ -2034,10 +1845,6 @@ export default function FadeGallery() {
     }
 
 
-  /* =======================================================
-     1-IN-20 WEBM STREAM
-  ======================================================= */
-
   const pullNextImage =
     () => {
 
@@ -2130,10 +1937,6 @@ export default function FadeGallery() {
       return null
     }
 
-
-  /* =======================================================
-     EXACT-AR SLOT REPLACEMENT
-  ======================================================= */
 
   const pullMatchingImage =
     async ratioKey => {
@@ -2228,10 +2031,6 @@ export default function FadeGallery() {
     }
 
 
-  /* =======================================================
-     GET N IMAGES
-  ======================================================= */
-
   const getImagesForWall =
     async count => {
 
@@ -2279,15 +2078,15 @@ export default function FadeGallery() {
     }
 
 
-  /* =======================================================
-     CREATE NEW FIXED-STAGE WALL
-
-     Stage dimensions must already be known because
-     configuration choice now depends on the exact stage.
-  ======================================================= */
+  /* ---------------------------------------------------------
+     INITIAL WALL MAY SKIP PRELOAD.
+     FUTURE WALLS DEFAULT TO PRELOAD.
+  --------------------------------------------------------- */
 
   const createNewWall =
-    async () => {
+    async ({
+      preload = true
+    } = {}) => {
 
       if (
         !stageSize.width ||
@@ -2313,11 +2112,16 @@ export default function FadeGallery() {
       }
 
 
-      await Promise.all(
-        images.map(
-          preloadMedia
+      if (
+        preload
+      ) {
+
+        await Promise.all(
+          images.map(
+            preloadMedia
+          )
         )
-      )
+      }
 
 
       const best =
@@ -2352,13 +2156,6 @@ export default function FadeGallery() {
       )
     }
 
-
-  /* =======================================================
-     INITIAL WALL
-
-     We must wait until the invisible old-Fade sizer has
-     supplied actual dimensions.
-  ======================================================= */
 
   const initializedRef =
     useRef(false)
@@ -2395,8 +2192,16 @@ export default function FadeGallery() {
         await fetchImages()
 
 
+        /*
+          IMPORTANT:
+          initial wall does NOT wait for 9 preloads.
+        */
+
         const wall =
-          await createNewWall()
+          await createNewWall({
+            preload:
+              false
+          })
 
 
         if (
@@ -2445,10 +2250,6 @@ export default function FadeGallery() {
       ? wallA
       : wallB
 
-
-  /* =======================================================
-     SLOT PICK
-  ======================================================= */
 
   const pickSlot =
     () => {
@@ -2511,10 +2312,6 @@ export default function FadeGallery() {
       return chosen.index
     }
 
-
-  /* =======================================================
-     INDIVIDUAL SLOT CHANGE
-  ======================================================= */
 
   useEffect(() => {
 
@@ -2677,21 +2474,6 @@ export default function FadeGallery() {
   ])
 
 
-  /* =======================================================
-     WHOLE WALL CHANGE
-
-     Persistent A/B buffers.
-
-     Visible wall is never modified during preparation.
-
-     Hidden buffer gets entirely new content.
-     Two paint frames.
-     A/B crossfade.
-     Target stays visible afterward.
-
-     No black frame required anywhere.
-  ======================================================= */
-
   useEffect(() => {
 
     if (
@@ -2730,8 +2512,16 @@ export default function FadeGallery() {
               : 'A'
 
 
+          /*
+            FUTURE WALLS STILL PRELOAD.
+            Safe preload now has a timeout.
+          */
+
           const newWall =
-            await createNewWall()
+            await createNewWall({
+              preload:
+                true
+            })
 
 
           if (
@@ -2745,10 +2535,6 @@ export default function FadeGallery() {
             return
           }
 
-
-          /*
-            Refill ONLY hidden buffer.
-          */
 
           if (
             targetBuffer === 'A'
@@ -2775,11 +2561,6 @@ export default function FadeGallery() {
             afterTwoFrames(
               () => {
 
-                /*
-                  Start crossfade only after hidden wall
-                  has actually existed in painted DOM.
-                */
-
                 setWallFadeTarget(
                   targetBuffer
                 )
@@ -2788,13 +2569,6 @@ export default function FadeGallery() {
                 wallFadeTimerRef.current =
                   setTimeout(
                     () => {
-
-                      /*
-                        Do not destroy either wall.
-
-                        Simply declare target buffer the new
-                        front buffer. Its opacity is already 1.
-                      */
 
                       setFrontBuffer(
                         targetBuffer
@@ -2841,10 +2615,6 @@ export default function FadeGallery() {
   ])
 
 
-  /* =======================================================
-     WALL OPACITY
-  ======================================================= */
-
   let opacityA =
     frontBuffer === 'A'
       ? 1
@@ -2874,10 +2644,6 @@ export default function FadeGallery() {
     opacityB = 1
   }
 
-
-  /* =======================================================
-     BLACK MODE
-  ======================================================= */
 
   const toggleBlackMode =
     async () => {
@@ -3104,10 +2870,6 @@ export default function FadeGallery() {
   ])
 
 
-  /* =======================================================
-     LIGHTBOX
-  ======================================================= */
-
   const handleImageClick =
     imageSrc => {
 
@@ -3188,10 +2950,6 @@ export default function FadeGallery() {
   ])
 
 
-  /* =======================================================
-     CLEANUP
-  ======================================================= */
-
   useEffect(() => {
 
     return () => {
@@ -3217,10 +2975,6 @@ export default function FadeGallery() {
 
   }, [])
 
-
-  /* =======================================================
-     RENDER
-  ======================================================= */
 
   return (
     <RootLayout>
@@ -3374,16 +3128,6 @@ export default function FadeGallery() {
         )}
 
 
-        {/*
-
-          IMPORTANT:
-
-          The old-Fade sizer is rendered regardless of the
-          loading state, so its correct height exists in the
-          document immediately.
-
-        */}
-
         <div
           className={
             blackMode
@@ -3399,15 +3143,7 @@ export default function FadeGallery() {
             className="relative w-full overflow-hidden"
           >
 
-            {/* ==============================================
-                EXACT OLD FADE FOOTPRINT
-
-                3 x 3
-                each cell 16:9
-                10px gaps
-
-                Invisible, but owns stage height.
-            ============================================== */}
+            {/* Exact old-Fade footprint */}
 
             <div
               aria-hidden="true"
@@ -3450,8 +3186,6 @@ export default function FadeGallery() {
 
               <>
 
-                {/* WALL BUFFER A */}
-
                 <WallBuffer
                   wall={
                     wallA
@@ -3475,8 +3209,6 @@ export default function FadeGallery() {
                   }
                 />
 
-
-                {/* WALL BUFFER B */}
 
                 <WallBuffer
                   wall={
