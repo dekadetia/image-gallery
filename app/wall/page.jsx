@@ -24,13 +24,15 @@ const GAP = 10
 const MOBILE_BREAKPOINT = 768
 
 /*
-  "No more often than once every 20 images"
+  No more often than once every 20 images.
 
-  Therefore, after a WebM appears, at least 19 other
-  images must appear before another WebM is eligible.
+  After a WebM appears, at least 19 other images
+  must appear before another WebM is eligible.
 */
+
 const WEBM_INTERVAL = 20
-const MIN_IMAGES_BETWEEN_WEBMS = WEBM_INTERVAL - 1
+const MIN_IMAGES_BETWEEN_WEBMS =
+  WEBM_INTERVAL - 1
 
 
 /* ---------------------------------------------------------
@@ -42,6 +44,103 @@ function isWebm(photo) {
     photo?.src
       ?.toLowerCase()
       .includes('.webm') ?? false
+  )
+}
+
+
+/* ---------------------------------------------------------
+   LAZY WEBM
+
+   The actual <video> only exists while the tile is
+   reasonably close to the viewport.
+
+   Once sufficiently far away, the video is completely
+   unmounted, releasing its decoder/buffer resources.
+
+   1200px gives us enough advance loading that normal
+   scrolling should not reveal an empty tile.
+--------------------------------------------------------- */
+
+function LazyWebm({
+  src,
+  className = ''
+}) {
+  const wrapperRef =
+    useRef(null)
+
+  const [
+    isNearby,
+    setIsNearby
+  ] = useState(false)
+
+
+  useEffect(() => {
+    const element =
+      wrapperRef.current
+
+    if (!element) {
+      return
+    }
+
+
+    const observer =
+      new IntersectionObserver(
+        entries => {
+          const entry =
+            entries[0]
+
+          setIsNearby(
+            entry.isIntersecting
+          )
+        },
+        {
+          root: null,
+
+          rootMargin:
+            '1200px 0px',
+
+          threshold: 0
+        }
+      )
+
+
+    observer.observe(
+      element
+    )
+
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+
+  return (
+    <div
+      ref={wrapperRef}
+      className="w-full h-full"
+    >
+
+      {isNearby ? (
+
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/assets/transparent.png"
+          className={className}
+        />
+
+      ) : (
+
+        <div className="w-full h-full" />
+
+      )}
+
+    </div>
   )
 }
 
@@ -88,7 +187,6 @@ function parseImageMeta(dimensions) {
     width,
     height,
 
-    // Wall geometry follows TNDR's declared ratio first.
     ratio:
       declaredRatio ||
       intrinsicRatio ||
@@ -104,9 +202,10 @@ function parseImageMeta(dimensions) {
 function prepareImages(images) {
   return images.map(image => ({
     ...image,
-    _meta: parseImageMeta(
-      image.dimensions
-    )
+    _meta:
+      parseImageMeta(
+        image.dimensions
+      )
   }))
 }
 
@@ -142,6 +241,7 @@ const DESKTOP_SEQUENCE = [
   [2, 1, 1]
 ]
 
+
 const TABLET_PATTERNS = [
   [1, 2, 2],
   [2, 1, 2],
@@ -151,6 +251,7 @@ const TABLET_PATTERNS = [
   [3, 1, 1],
   [1, 1, 3]
 ]
+
 
 function getPatterns(containerWidth) {
   if (containerWidth < 1024) {
@@ -179,12 +280,16 @@ function buildBand(
     containerWidth -
     GAP * (columnCount - 1)
 
-  if (availableImageWidth <= 0) {
+  if (
+    availableImageWidth <= 0
+  ) {
     return null
   }
 
+
   const columns =
     pattern.map(count => {
+
       const items =
         images.slice(
           cursor,
@@ -193,16 +298,15 @@ function buildBand(
 
       cursor += count
 
+
       const stackWeight =
         items.reduce(
-          (sum, image) => {
-            return (
-              sum +
-              1 / image._meta.ratio
-            )
-          },
+          (sum, image) =>
+            sum +
+            1 / image._meta.ratio,
           0
         )
+
 
       const verticalGapHeight =
         GAP *
@@ -211,6 +315,7 @@ function buildBand(
           items.length - 1
         )
 
+
       return {
         items,
         stackWeight,
@@ -218,28 +323,25 @@ function buildBand(
       }
     })
 
+
   const denominator =
     columns.reduce(
-      (sum, column) => {
-        return (
-          sum +
-          1 / column.stackWeight
-        )
-      },
+      (sum, column) =>
+        sum +
+        1 / column.stackWeight,
       0
     )
 
+
   const gapAdjustment =
     columns.reduce(
-      (sum, column) => {
-        return (
-          sum +
-          column.verticalGapHeight /
-            column.stackWeight
-        )
-      },
+      (sum, column) =>
+        sum +
+        column.verticalGapHeight /
+          column.stackWeight,
       0
     )
+
 
   const bandHeight =
     (
@@ -248,8 +350,10 @@ function buildBand(
     ) /
     denominator
 
+
   const solvedColumns =
     columns.map(column => {
+
       const width =
         (
           bandHeight -
@@ -257,11 +361,13 @@ function buildBand(
         ) /
         column.stackWeight
 
+
       return {
         ...column,
         width
       }
     })
+
 
   if (
     solvedColumns.some(
@@ -275,9 +381,13 @@ function buildBand(
     return null
   }
 
+
   return {
-    height: bandHeight,
-    columns: solvedColumns
+    height:
+      bandHeight,
+
+    columns:
+      solvedColumns
   }
 }
 
@@ -297,42 +407,58 @@ function buildWall(
     return []
   }
 
+
   const patterns =
     getPatterns(
       containerWidth
     )
 
+
   const isDesktop =
     containerWidth >= 1024
+
 
   const bands = []
 
   let imageCursor = 0
   let bandIndex = 0
 
+
   while (
     imageCursor <
     preparedImages.length
   ) {
+
     let pattern =
       patterns[
         bandIndex %
         patterns.length
       ]
 
+
+    /*
+      Rare full-width desktop hero.
+
+      Only use [1] when the candidate
+      is at least 1.85.
+    */
+
     if (
       isDesktop &&
       pattern.length === 1 &&
       pattern[0] === 1
     ) {
+
       const candidate =
         preparedImages[
           imageCursor
         ]
 
+
       const candidateRatio =
         candidate?._meta?.ratio ||
         0
+
 
       if (
         candidateRatio < 1.85
@@ -345,6 +471,7 @@ function buildWall(
       }
     }
 
+
     const requiredImages =
       pattern.reduce(
         (sum, count) =>
@@ -352,9 +479,11 @@ function buildWall(
         0
       )
 
+
     const remaining =
       preparedImages.length -
       imageCursor
+
 
     if (
       remaining <
@@ -363,12 +492,14 @@ function buildWall(
       break
     }
 
+
     const bandImages =
       preparedImages.slice(
         imageCursor,
         imageCursor +
           requiredImages
       )
+
 
     const band =
       buildBand(
@@ -377,15 +508,20 @@ function buildWall(
         containerWidth
       )
 
+
     if (band) {
-      bands.push(band)
+      bands.push(
+        band
+      )
     }
+
 
     imageCursor +=
       requiredImages
 
     bandIndex += 1
   }
+
 
   return bands
 }
@@ -401,11 +537,13 @@ function mobileRoll(id) {
 
   let hash = 0
 
+
   for (
     let i = 0;
     i < value.length;
     i++
   ) {
+
     hash =
       (
         (hash << 5) -
@@ -415,6 +553,7 @@ function mobileRoll(id) {
 
     hash |= 0
   }
+
 
   return (
     Math.abs(hash) %
@@ -445,19 +584,28 @@ function getMobileSizeClass(
     photo._meta.ratio
 
   const roll =
-    mobileRoll(photo.id)
+    mobileRoll(
+      photo.id
+    )
 
-  if (ratio > 1.85) {
+
+  if (
+    ratio > 1.85
+  ) {
     return 'full'
   }
 
-  if (ratio > 1.70) {
+
+  if (
+    ratio > 1.70
+  ) {
     return (
       roll < 20
         ? 'full'
         : 'pair'
     )
   }
+
 
   return (
     roll < 5
@@ -469,6 +617,8 @@ function getMobileSizeClass(
 
 /* ---------------------------------------------------------
    MOBILE ROW BUILDER
+
+   Maximum two images per row.
 --------------------------------------------------------- */
 
 function buildMobileRows(
@@ -478,72 +628,107 @@ function buildMobileRows(
 
   let cursor = 0
 
+
   while (
     cursor <
     preparedImages.length
   ) {
+
     const current =
-      preparedImages[cursor]
+      preparedImages[
+        cursor
+      ]
+
 
     const currentClass =
       getMobileSizeClass(
         current
       )
 
+
     if (
-      currentClass === 'full'
+      currentClass ===
+      'full'
     ) {
+
       rows.push({
-        type: 'full',
-        images: [current]
+        type:
+          'full',
+
+        images:
+          [current]
       })
 
+
       cursor += 1
+
       continue
     }
+
 
     const next =
       preparedImages[
         cursor + 1
       ]
 
+
     if (!next) {
+
       rows.push({
-        type: 'full',
-        images: [current]
+        type:
+          'full',
+
+        images:
+          [current]
       })
 
+
       cursor += 1
+
       continue
     }
+
 
     const nextClass =
       getMobileSizeClass(
         next
       )
 
+
     if (
-      nextClass === 'pair'
+      nextClass ===
+      'pair'
     ) {
+
       rows.push({
-        type: 'pair',
+        type:
+          'pair',
+
         images: [
           current,
           next
         ]
       })
 
+
       cursor += 2
+
       continue
     }
 
+
     rows.push({
-      type: 'full',
-      images: [current]
+      type:
+        'full',
+
+      images:
+        [current]
     })
+
 
     cursor += 1
   }
+
 
   return rows
 }
@@ -561,6 +746,7 @@ function solveMobilePair(
     containerWidth -
     GAP
 
+
   const ratioTotal =
     images.reduce(
       (sum, image) =>
@@ -569,23 +755,71 @@ function solveMobilePair(
       0
     )
 
+
   const height =
     availableWidth /
     ratioTotal
 
-  const solvedImages =
-    images.map(image => ({
-      ...image,
 
-      _mobileWidth:
-        height *
-        image._meta.ratio
-    }))
+  const solvedImages =
+    images.map(
+      image => ({
+        ...image,
+
+        _mobileWidth:
+          height *
+          image._meta.ratio
+      })
+    )
+
 
   return {
     height,
-    images: solvedImages
+    images:
+      solvedImages
   }
+}
+
+
+/* ---------------------------------------------------------
+   MEDIA TILE
+
+   Static images remain normal <img>s.
+
+   WebMs use LazyWebm so only nearby videos exist
+   as real <video> elements.
+--------------------------------------------------------- */
+
+function WallMedia({
+  photo
+}) {
+  if (
+    isWebm(photo)
+  ) {
+
+    return (
+      <LazyWebm
+        src={
+          photo.src
+        }
+        className="block w-full h-full object-cover"
+      />
+    )
+  }
+
+
+  return (
+    <img
+      alt={
+        photo.name
+      }
+      src={
+        photo.src
+      }
+      decoding="async"
+      className="block w-full h-full object-cover"
+    />
+  )
 }
 
 
@@ -598,6 +832,7 @@ function MobileWall({
   containerWidth,
   onImageClick
 }) {
+
   const rows =
     useMemo(
       () =>
@@ -606,6 +841,7 @@ function MobileWall({
         ),
       [images]
     )
+
 
   return (
     <div className="w-full">
@@ -616,11 +852,18 @@ function MobileWall({
           rowIndex
         ) => {
 
+          /*
+            FULL-WIDTH IMAGE
+          */
+
           if (
-            row.type === 'full'
+            row.type ===
+            'full'
           ) {
+
             const photo =
               row.images[0]
+
 
             return (
               <div
@@ -650,35 +893,11 @@ function MobileWall({
                   }
                 >
 
-                  {isWebm(photo) ? (
-
-                    <video
-                      src={
-                        photo.src
-                      }
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      preload="metadata"
-                      poster="/assets/transparent.png"
-                      className="block w-full h-full object-cover"
-                    />
-
-                  ) : (
-
-                    <img
-                      alt={
-                        photo.name
-                      }
-                      src={
-                        photo.src
-                      }
-                      decoding="async"
-                      className="block w-full h-full object-cover"
-                    />
-
-                  )}
+                  <WallMedia
+                    photo={
+                      photo
+                    }
+                  />
 
                 </div>
 
@@ -686,11 +905,17 @@ function MobileWall({
             )
           }
 
+
+          /*
+            TWO-IMAGE ROW
+          */
+
           const solved =
             solveMobilePair(
               row.images,
               containerWidth
             )
+
 
           return (
             <div
@@ -735,35 +960,11 @@ function MobileWall({
                     }
                   >
 
-                    {isWebm(photo) ? (
-
-                      <video
-                        src={
-                          photo.src
-                        }
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="metadata"
-                        poster="/assets/transparent.png"
-                        className="block w-full h-full object-cover"
-                      />
-
-                    ) : (
-
-                      <img
-                        alt={
-                          photo.name
-                        }
-                        src={
-                          photo.src
-                        }
-                        decoding="async"
-                        className="block w-full h-full object-cover"
-                      />
-
-                    )}
+                    <WallMedia
+                      photo={
+                        photo
+                      }
+                    />
 
                   </div>
 
@@ -789,6 +990,7 @@ function PackedWall({
   containerWidth,
   onImageClick
 }) {
+
   const bands =
     useMemo(
       () =>
@@ -801,6 +1003,7 @@ function PackedWall({
         containerWidth
       ]
     )
+
 
   return (
     <div className="w-full">
@@ -873,35 +1076,11 @@ function PackedWall({
                         }
                       >
 
-                        {isWebm(photo) ? (
-
-                          <video
-                            src={
-                              photo.src
-                            }
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            preload="metadata"
-                            poster="/assets/transparent.png"
-                            className="block w-full h-full object-cover"
-                          />
-
-                        ) : (
-
-                          <img
-                            alt={
-                              photo.name
-                            }
-                            src={
-                              photo.src
-                            }
-                            decoding="async"
-                            className="block w-full h-full object-cover"
-                          />
-
-                        )}
+                        <WallMedia
+                          photo={
+                            photo
+                          }
+                        />
 
                       </div>
 
@@ -931,6 +1110,7 @@ function TetrisWall({
   images,
   onImageClick
 }) {
+
   const wallRef =
     useRef(null)
 
@@ -939,37 +1119,51 @@ function TetrisWall({
     setContainerWidth
   ] = useState(0)
 
+
   useEffect(() => {
-    if (!wallRef.current) {
+
+    if (
+      !wallRef.current
+    ) {
       return
     }
 
-    const measure = () => {
-      const width =
-        wallRef.current
-          .getBoundingClientRect()
-          .width
 
-      setContainerWidth(
-        width
-      )
-    }
+    const measure =
+      () => {
+
+        const width =
+          wallRef.current
+            .getBoundingClientRect()
+            .width
+
+
+        setContainerWidth(
+          width
+        )
+      }
+
 
     measure()
+
 
     const resizeObserver =
       new ResizeObserver(
         measure
       )
 
+
     resizeObserver.observe(
       wallRef.current
     )
 
+
     return () => {
       resizeObserver.disconnect()
     }
+
   }, [])
+
 
   const preparedImages =
     useMemo(
@@ -980,14 +1174,18 @@ function TetrisWall({
       [images]
     )
 
+
   const isMobile =
     containerWidth > 0 &&
     containerWidth <
       MOBILE_BREAKPOINT
 
+
   return (
     <div
-      ref={wallRef}
+      ref={
+        wallRef
+      }
       className="w-full"
     >
 
@@ -1035,6 +1233,7 @@ function TetrisWall({
 --------------------------------------------------------- */
 
 export default function Tetris() {
+
   const [
     index,
     setIndex
@@ -1050,25 +1249,30 @@ export default function Tetris() {
     __loader
   ] = useState(true)
 
+
   const wasCalled =
     useRef(false)
 
   const seenImageIds =
-    useRef(new Set())
+    useRef(
+      new Set()
+    )
 
 
   /*
-    WebMs that arrive before they're eligible are kept here
-    until enough still images have appeared.
+    WebMs that arrive before they're eligible
+    wait here rather than being discarded.
   */
+
   const pendingWebmsRef =
     useRef([])
 
 
   /*
-    Start at 19 so a WebM is allowed anywhere in the initial
-    stream. After a WebM is emitted this resets to zero.
+    Start at 19 so a WebM can appear anywhere
+    in the initial stream.
   */
+
   const imagesSinceWebmRef =
     useRef(
       MIN_IMAGES_BETWEEN_WEBMS
@@ -1077,24 +1281,6 @@ export default function Tetris() {
 
   /* -------------------------------------------------------
      WEBM SPACING
-
-     This operates on the DISPLAY STREAM.
-
-     It does not alter the Wall geometry.
-
-     Example:
-
-       WebM
-       still 1
-       still 2
-       ...
-       still 19
-       next WebM may now appear
-
-     If another WebM arrives before then, it waits in the
-     pending queue.
-
-     The queue survives InfiniteScroll batches.
   ------------------------------------------------------- */
 
   const applyWebmSpacing =
@@ -1149,9 +1335,8 @@ export default function Tetris() {
       ) {
 
         /*
-          If a previously queued WebM has now become
-          eligible, give it priority before processing
-          newer incoming media.
+          If an older queued WebM has now become
+          eligible, emit it before newer media.
         */
 
         flushPendingWebm()
@@ -1160,11 +1345,6 @@ export default function Tetris() {
         if (
           isWebm(image)
         ) {
-
-          /*
-            If no earlier WebM is waiting and the spacing
-            requirement has been satisfied, emit this one.
-          */
 
           if (
             pendingWebmsRef
@@ -1185,17 +1365,12 @@ export default function Tetris() {
 
           } else {
 
-            /*
-              Too early.
-
-              Keep it rather than discarding it.
-            */
-
             pendingWebmsRef
               .current
               .push(
                 image
               )
+
           }
 
 
@@ -1204,7 +1379,7 @@ export default function Tetris() {
 
 
         /*
-          Normal still image.
+          Still image.
         */
 
         output.push(
@@ -1216,14 +1391,16 @@ export default function Tetris() {
           .current =
             Math.min(
               MIN_IMAGES_BETWEEN_WEBMS,
+
               imagesSinceWebmRef
-                .current + 1
+                .current +
+                1
             )
 
 
         /*
-          If this still was the 19th image since the last
-          WebM, a queued WebM can now immediately follow it.
+          If this was the 19th still,
+          a queued WebM may immediately follow.
         */
 
         flushPendingWebm()
@@ -1236,17 +1413,17 @@ export default function Tetris() {
 
   /* -------------------------------------------------------
      RESET WEBM STREAM
-
-     Used whenever Shuffle begins an entirely new Wall.
   ------------------------------------------------------- */
 
   const resetWebmSpacing =
     () => {
 
-      pendingWebmsRef.current =
-        []
+      pendingWebmsRef
+        .current = []
 
-      imagesSinceWebmRef.current =
+
+      imagesSinceWebmRef
+        .current =
         MIN_IMAGES_BETWEEN_WEBMS
     }
 
@@ -1258,33 +1435,89 @@ export default function Tetris() {
   const slides =
     useMemo(
       () =>
-        Images.map(photo => {
-          const src =
-            photo.src ?? ''
+        Images.map(
+          photo => {
 
-          const meta =
-            parseImageMeta(
-              photo.dimensions
-            )
+            const src =
+              photo.src ??
+              ''
 
-          const width =
-            meta.width ||
-            1920
 
-          const height =
-            meta.height ||
-            Math.round(
-              width /
-              meta.ratio
-            )
+            const meta =
+              parseImageMeta(
+                photo.dimensions
+              )
 
-          if (
-            src
-              .toLowerCase()
-              .includes('.webm')
-          ) {
+
+            const width =
+              meta.width ||
+              1920
+
+
+            const height =
+              meta.height ||
+              Math.round(
+                width /
+                meta.ratio
+              )
+
+
+            if (
+              isWebm(photo)
+            ) {
+
+              return {
+                type:
+                  'video',
+
+                width,
+                height,
+
+                title:
+                  `${photo.caption}`,
+
+                description:
+                  photo.dimensions,
+
+                director:
+                  photo.director ||
+                  null,
+
+                year:
+                  photo.year,
+
+                sources: [
+                  {
+                    src,
+
+                    type:
+                      'video/webm'
+                  }
+                ],
+
+                poster:
+                  '/assets/transparent.png',
+
+                autoPlay:
+                  true,
+
+                muted:
+                  true,
+
+                loop:
+                  true,
+
+                controls:
+                  false
+              }
+            }
+
+
             return {
-              type: 'video',
+              type:
+                'image',
+
+              src,
 
               width,
               height,
@@ -1300,48 +1533,10 @@ export default function Tetris() {
                 null,
 
               year:
-                photo.year,
-
-              sources: [
-                {
-                  src,
-                  type:
-                    'video/webm'
-                }
-              ],
-
-              poster:
-                '/assets/transparent.png',
-
-              autoPlay: true,
-              muted: true,
-              loop: true,
-              controls: false
+                photo.year
             }
           }
-
-          return {
-            type: 'image',
-
-            src,
-
-            width,
-            height,
-
-            title:
-              `${photo.caption}`,
-
-            description:
-              photo.dimensions,
-
-            director:
-              photo.director ||
-              null,
-
-            year:
-              photo.year
-          }
-        }),
+        ),
       [Images]
     )
 
@@ -1357,15 +1552,20 @@ export default function Tetris() {
         load !==
         'load more'
       ) {
-        __loader(true)
+        __loader(
+          true
+        )
       }
 
+
       try {
+
         const response =
           await fetch(
             `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
             {
-              method: 'GET',
+              method:
+                'GET',
 
               headers: {
                 'Content-Type':
@@ -1374,24 +1574,27 @@ export default function Tetris() {
             }
           )
 
-        if (response.ok) {
+
+        if (
+          response.ok
+        ) {
+
           const data =
             await response.json()
+
 
           const images =
             data.images
 
-
-          /*
-            Existing duplicate protection.
-          */
 
           const uniqueImages =
             images.filter(
               img =>
                 !seenImageIds
                   .current
-                  .has(img.id)
+                  .has(
+                    img.id
+                  )
             )
 
 
@@ -1399,16 +1602,11 @@ export default function Tetris() {
             img =>
               seenImageIds
                 .current
-                .add(img.id)
+                .add(
+                  img.id
+                )
           )
 
-
-          /*
-            NEW:
-
-            Enforce the WebM spacing before adding the batch
-            to the visible Wall.
-          */
 
           const spacedImages =
             applyWebmSpacing(
@@ -1419,6 +1617,7 @@ export default function Tetris() {
           if (
             spacedImages.length
           ) {
+
             setImages(
               prev => [
                 ...prev,
@@ -1428,16 +1627,25 @@ export default function Tetris() {
           }
 
         } else {
+
           console.error(
             'Failed to get files'
           )
+
         }
 
       } catch (error) {
-        console.log(error)
+
+        console.log(
+          error
+        )
 
       } finally {
-        __loader(false)
+
+        __loader(
+          false
+        )
+
       }
     }
 
@@ -1449,27 +1657,31 @@ export default function Tetris() {
   const getRandmImages =
     async () => {
 
-      __loader(true)
+      __loader(
+        true
+      )
 
-      setImages([])
+
+      setImages(
+        []
+      )
+
 
       seenImageIds.current =
         new Set()
 
 
-      /*
-        New Wall = new WebM-spacing stream.
-      */
-
       resetWebmSpacing()
 
 
       try {
+
         const response =
           await fetch(
             `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
             {
-              method: 'GET',
+              method:
+                'GET',
 
               headers: {
                 'Content-Type':
@@ -1478,9 +1690,14 @@ export default function Tetris() {
             }
           )
 
-        if (response.ok) {
+
+        if (
+          response.ok
+        ) {
+
           const data =
             await response.json()
+
 
           const images =
             data.images
@@ -1490,13 +1707,11 @@ export default function Tetris() {
             img =>
               seenImageIds
                 .current
-                .add(img.id)
+                .add(
+                  img.id
+                )
           )
 
-
-          /*
-            Apply the same spacing rule to the fresh Wall.
-          */
 
           const spacedImages =
             applyWebmSpacing(
@@ -1509,16 +1724,25 @@ export default function Tetris() {
           )
 
         } else {
+
           console.error(
             'Failed to get files'
           )
+
         }
 
       } catch (error) {
-        console.log(error)
+
+        console.log(
+          error
+        )
 
       } finally {
-        __loader(false)
+
+        __loader(
+          false
+        )
+
       }
     }
 
@@ -1529,8 +1753,12 @@ export default function Tetris() {
 
   const handleCloseLightbox =
     () => {
-      setIndex(-1)
+
+      setIndex(
+        -1
+      )
     }
+
 
   const handleImageClick =
     imageId => {
@@ -1542,8 +1770,14 @@ export default function Tetris() {
             imageId
         )
 
-      if (idx !== -1) {
-        setIndex(idx)
+
+      if (
+        idx !== -1
+      ) {
+
+        setIndex(
+          idx
+        )
       }
     }
 
@@ -1552,58 +1786,83 @@ export default function Tetris() {
      INITIAL LOAD
   ------------------------------------------------------- */
 
-  useEffect(() => {
-    if (
-      wasCalled.current
-    ) {
-      return
-    }
+  useEffect(
+    () => {
 
-    wasCalled.current =
-      true
+      if (
+        wasCalled.current
+      ) {
+        return
+      }
 
-    getImages()
-  }, [])
+
+      wasCalled.current =
+        true
+
+
+      getImages()
+
+    },
+    []
+  )
 
 
   /* -------------------------------------------------------
      REMOVE LIGHTBOX CLOSE TITLE
   ------------------------------------------------------- */
 
-  useEffect(() => {
-    if (!slides.length) {
-      return
-    }
+  useEffect(
+    () => {
 
-    const observer =
-      new MutationObserver(
-        () => {
-          document
-            .querySelectorAll(
-              '.yarl__button[title="Close"]'
-            )
-            .forEach(
-              btn => {
-                btn.removeAttribute(
-                  'title'
-                )
-              }
-            )
+      if (
+        !slides.length
+      ) {
+        return
+      }
+
+
+      const observer =
+        new MutationObserver(
+          () => {
+
+            document
+              .querySelectorAll(
+                '.yarl__button[title="Close"]'
+              )
+              .forEach(
+                btn => {
+
+                  btn.removeAttribute(
+                    'title'
+                  )
+
+                }
+              )
+          }
+        )
+
+
+      observer.observe(
+        document.body,
+        {
+          childList:
+            true,
+
+          subtree:
+            true
         }
       )
 
-    observer.observe(
-      document.body,
-      {
-        childList: true,
-        subtree: true
-      }
-    )
 
-    return () => {
-      observer.disconnect()
-    }
-  }, [slides])
+      return () => {
+
+        observer.disconnect()
+
+      }
+
+    },
+    [slides]
+  )
 
 
   /* -------------------------------------------------------
@@ -1627,10 +1886,13 @@ export default function Tetris() {
                 id="logo"
                 className="w-40 h-auto cursor-pointer"
               >
+
                 <AnimatedLogo />
+
               </div>
 
             </Link>
+
 
             <div
               className="flex gap-8 items-center pt-[2.5px]"
@@ -1650,6 +1912,7 @@ export default function Tetris() {
 
               </Link>
 
+
               <Link href="/scrl">
 
                 <RxDoubleArrowUp
@@ -1657,6 +1920,7 @@ export default function Tetris() {
                 />
 
               </Link>
+
 
               <IoMdShuffle
                 onClick={
@@ -1689,7 +1953,9 @@ export default function Tetris() {
                 'load more'
               )
             }
-            hasMore={true}
+            hasMore={
+              true
+            }
             loader={
               <MoreImageLoader />
             }
@@ -1748,12 +2014,15 @@ export default function Tetris() {
                     {slide.title && (
 
                       <div className="yarl__slide_title">
+
                         {
                           slide.title
                         }
+
                       </div>
 
                     )}
+
 
                     <div
                       className={cn(
@@ -1769,21 +2038,26 @@ export default function Tetris() {
                         <div className="yarl__slide_description !text-[#99AABB]">
 
                           <span className="font-medium">
+
                             {
                               slide.director
                             }
+
                           </span>
 
                         </div>
 
                       )}
 
+
                       {slide.description && (
 
                         <div className="yarl__slide_description">
+
                           {
                             slide.description
                           }
+
                         </div>
 
                       )}
@@ -1802,7 +2076,9 @@ export default function Tetris() {
 
 
       {!loader && (
+
         <Footer />
+
       )}
 
     </RootLayout>
