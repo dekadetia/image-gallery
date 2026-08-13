@@ -1076,12 +1076,6 @@ function chooseBestConfiguration(
 
 /* =========================================================
    MOBILE GRAMMAR
-
-   This can now operate on ANY wall length.
-
-   Native mobile = 6.
-   A live 9-image desktop wall resized downward will simply
-   get a temporary 9-image mobile composition.
 ========================================================= */
 
 function mobileRoll(id) {
@@ -1248,11 +1242,10 @@ function buildMobileRowsPattern(images) {
 /* =========================================================
    MOBILE LAYOUT
 
-   Works for 6 native mobile images OR 9 temporary images
-   inherited from a desktop wall.
+   Native mobile wall is always six images.
 
-   It never returns blank just because the wall was born
-   at the other breakpoint.
+   Geometry is allowed to float vertically inside the
+   permanent stage rather than brutally filling it.
 ========================================================= */
 
 function buildMobileLayout(
@@ -1262,7 +1255,9 @@ function buildMobileLayout(
   stageHeight
 ) {
   if (
-    !images?.length ||
+    !images ||
+    images.length !==
+      MOBILE_WALL_COUNT ||
     !rowsPattern?.length ||
     !stageWidth ||
     !stageHeight
@@ -1396,39 +1391,24 @@ function buildMobileLayout(
 
 
   /*
-    If the natural composition is shorter than our permanent
-    mobile stage, do NOT stretch it brutally.
+    If natural content is taller than the fixed canvas,
+    shrink the composition uniformly.
 
-    Give rows only a modest amount of the surplus.
-
-    If it's taller, scale the complete composition down
-    uniformly instead.
+    If it is shorter, do not stretch it.
   */
 
-  let scale = 1
-
-
-  if (
+  const scale =
     naturalHeightTotal >
     availableHeight
-  ) {
-
-    scale =
-      availableHeight /
-      naturalHeightTotal
-  }
+      ? availableHeight /
+        naturalHeightTotal
+      : 1
 
 
   const scaledNaturalTotal =
     naturalHeightTotal *
     scale
 
-
-  /*
-    Any remaining space is simply vertical breathing room.
-
-    The composition floats centered inside the fixed stage.
-  */
 
   const unusedHeight =
     Math.max(
@@ -1445,7 +1425,7 @@ function buildMobileLayout(
 
   const rects =
     Array(
-      images.length
+      MOBILE_WALL_COUNT
     ).fill(
       null
     )
@@ -1470,23 +1450,11 @@ function buildMobileLayout(
           row.items[0]
 
 
-        /*
-          Preserve the natural AR.
-
-          If the complete mobile stack had to scale down,
-          this full-width row also scales horizontally and
-          is centered rather than becoming distorted.
-        */
-
-        const naturalWidth =
-          rowHeight *
-          item.ratio
-
-
         const width =
           Math.min(
             stageWidth,
-            naturalWidth
+            rowHeight *
+              item.ratio
           )
 
 
@@ -1536,13 +1504,6 @@ function buildMobileLayout(
             0
           )
 
-
-        /*
-          If this row fits naturally, center it.
-
-          If it exceeds stage width, scale this PAIR
-          uniformly rather than changing either cell AR.
-        */
 
         const pairScale =
           naturalWidthTotal >
@@ -1657,178 +1618,7 @@ function buildMobileLayout(
 
 
 /* =========================================================
-   DESKTOP FALLBACK FOR A LIVE 6-IMAGE MOBILE WALL
-
-   We do not suddenly replace its content when widening.
-
-   Instead arrange all six in a simple 3 x 2 temporary
-   composition until the normal wall lifecycle produces
-   the next native 9-image desktop wall.
-========================================================= */
-
-function buildDesktopFallbackLayout(
-  images,
-  stageWidth,
-  stageHeight
-) {
-  if (
-    !images?.length ||
-    !stageWidth ||
-    !stageHeight
-  ) {
-
-    return {
-      rects: []
-    }
-  }
-
-
-  /*
-    Native six-image mobile wall widened to desktop:
-    3 columns x 2 rows.
-
-    Geometry is intentionally conservative and temporary.
-  */
-
-  if (
-    images.length ===
-    MOBILE_WALL_COUNT
-  ) {
-
-    const columns = 3
-    const rows = 2
-
-
-    const cellWidth =
-      (
-        stageWidth -
-        GAP *
-        (
-          columns -
-          1
-        )
-      ) /
-      columns
-
-
-    const cellHeight =
-      (
-        stageHeight -
-        GAP *
-        (
-          rows -
-          1
-        )
-      ) /
-      rows
-
-
-    return {
-
-      rects:
-        images.map(
-          (
-            _,
-            index
-          ) => {
-
-            const column =
-              index %
-              columns
-
-
-            const row =
-              Math.floor(
-                index /
-                columns
-              )
-
-
-            return {
-
-              x:
-                column *
-                (
-                  cellWidth +
-                  GAP
-                ),
-
-              y:
-                row *
-                (
-                  cellHeight +
-                  GAP
-                ),
-
-              width:
-                cellWidth,
-
-              height:
-                cellHeight
-            }
-          }
-        )
-    }
-  }
-
-
-  /*
-    Generic safety fallback:
-    one image per row.
-
-    This should almost never be reached, but it ensures
-    malformed/intermediate wall counts remain visible.
-  */
-
-  const rowHeight =
-    (
-      stageHeight -
-      GAP *
-      (
-        images.length -
-        1
-      )
-    ) /
-    images.length
-
-
-  return {
-
-    rects:
-      images.map(
-        (
-          _,
-          index
-        ) => ({
-
-          x:
-            0,
-
-          y:
-            index *
-            (
-              rowHeight +
-              GAP
-            ),
-
-          width:
-            stageWidth,
-
-          height:
-            rowHeight
-        })
-      )
-  }
-}
-
-
-/* =========================================================
    WALL OBJECT
-
-   Every wall now stores mobileRows regardless of count.
-
-   This is what makes 9 -> mobile responsive instead of
-   disappearing.
 ========================================================= */
 
 function makeWall(
@@ -1846,9 +1636,12 @@ function makeWall(
     configurationIndex,
 
     mobileRows:
-      buildMobileRowsPattern(
-        images
-      ),
+      images.length ===
+      MOBILE_WALL_COUNT
+        ? buildMobileRowsPattern(
+            images
+          )
+        : null,
 
     slots:
       images.map(
@@ -1867,7 +1660,9 @@ function makeWall(
 
 
 /* =========================================================
-   MEDIA
+   MEDIA LAYER
+
+   Media itself never intercepts taps.
 ========================================================= */
 
 function MediaLayer({
@@ -2218,18 +2013,13 @@ function PersistentFadeSlot({
 /* =========================================================
    WALL BUFFER
 
-   KEY RESPONSIVE RULE:
+   No cross-breakpoint fallback.
 
-   Mobile width:
-     render ANY wall count through mobile composition.
+   Mobile renderer expects six.
+   Desktop renderer expects nine.
 
-   Desktop width:
-     9 images -> native Tetris
-     anything else -> visible fallback
-
-   Crossing a breakpoint can therefore never return an
-   empty rect array merely because the wall was born on
-   the other side.
+   Breakpoint effect below guarantees the front wall is
+   immediately rebuilt to the right count.
 ========================================================= */
 
 function WallBuffer({
@@ -2274,19 +2064,22 @@ function WallBuffer({
           isMobile
         ) {
 
-          const mobileRows =
-            wall.mobileRows?.length
-              ? wall.mobileRows
-              : buildMobileRowsPattern(
-                  images
-                )
+          if (
+            images.length !==
+            MOBILE_WALL_COUNT
+          ) {
+
+            return {
+              rects: []
+            }
+          }
 
 
           return buildMobileLayout(
 
             images,
 
-            mobileRows,
+            wall.mobileRows,
 
             stageWidth,
 
@@ -2296,32 +2089,21 @@ function WallBuffer({
 
 
         if (
-          images.length ===
+          images.length !==
           DESKTOP_WALL_COUNT
         ) {
 
-          return buildDesktopLayout(
-
-            images,
-
-            wall.configuration,
-
-            stageWidth,
-
-            stageHeight
-          )
+          return {
+            rects: []
+          }
         }
 
 
-        /*
-          Live mobile wall widened to desktop.
-
-          KEEP IT VISIBLE.
-        */
-
-        return buildDesktopFallbackLayout(
+        return buildDesktopLayout(
 
           images,
+
+          wall.configuration,
 
           stageWidth,
 
@@ -2558,17 +2340,6 @@ export default function FadeGallery() {
 
   /* =======================================================
      STAGE
-
-     Mobile:
-       9:19.5
-
-     Desktop:
-       16:9
-
-     ResizeObserver updates geometry continuously.
-
-     Existing content remains the same while the layout
-     recomposes around it.
   ======================================================= */
 
   const stageRef =
@@ -2945,7 +2716,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     AR-MATCHED SLOT REPLACEMENT
+     EXACT-AR SLOT REPLACEMENT
   ======================================================= */
 
   const pullMatchingImage =
@@ -3094,39 +2865,41 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     WALL BUILD
+     WALL BUILDERS
   ======================================================= */
 
-  const buildWallFromImages =
+  const buildMobileWall =
     images => {
 
-      if (
-        images.length ===
-        MOBILE_WALL_COUNT
-      ) {
+      return makeWall(
 
-        return makeWall(
+        images,
 
-          images,
+        WALL_CONFIGURATIONS[0],
 
-          WALL_CONFIGURATIONS[0],
+        0,
 
-          0,
+        Date.now() +
+        Math.random()
+      )
+    }
 
-          Date.now() +
-          Math.random()
-        )
-      }
 
+  const buildDesktopWall =
+    (
+      images,
+      width = stageSize.width,
+      height = stageSize.height
+    ) => {
 
       const best =
         chooseBestConfiguration(
 
           images,
 
-          stageSize.width,
+          width,
 
-          stageSize.height,
+          height,
 
           lastConfigurationRef
             .current
@@ -3148,6 +2921,26 @@ export default function FadeGallery() {
 
         Date.now() +
         Math.random()
+      )
+    }
+
+
+  const buildWallFromImages =
+    images => {
+
+      if (
+        images.length ===
+        MOBILE_WALL_COUNT
+      ) {
+
+        return buildMobileWall(
+          images
+        )
+      }
+
+
+      return buildDesktopWall(
+        images
       )
     }
 
@@ -3212,7 +3005,7 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     INITIALIZATION
+     FAST INITIALIZATION
   ======================================================= */
 
   const initInProgressRef =
@@ -3333,6 +3126,11 @@ export default function FadeGallery() {
           )
 
 
+          setWallB(
+            null
+          )
+
+
           setFrontBuffer(
             'A'
           )
@@ -3431,6 +3229,386 @@ export default function FadeGallery() {
       : wallB
 
 
+  /* =========================================================
+     BREAKPOINT MODE SWAP
+
+     THIS IS THE IMPORTANT CHANGE.
+
+     We do NOT preserve the wrong wall count.
+
+     9 -> 6 immediately on entering mobile.
+     6 -> 9 immediately on entering desktop.
+
+     No breakpoint fade.
+  ========================================================= */
+
+  const viewportModeRef =
+    useRef(null)
+
+
+  const breakpointSwapRef =
+    useRef(0)
+
+
+  useEffect(() => {
+
+    if (
+      !stageSize.width ||
+      !stageSize.height ||
+      !currentWall
+    ) {
+
+      return
+    }
+
+
+    const nowMobile =
+      stageSize.width <
+      MOBILE_BREAKPOINT
+
+
+    /*
+      First measurement only establishes the current mode.
+    */
+
+    if (
+      viewportModeRef.current ===
+      null
+    ) {
+
+      viewportModeRef.current =
+        nowMobile
+
+      return
+    }
+
+
+    /*
+      Width changed but breakpoint did not.
+    */
+
+    if (
+      viewportModeRef.current ===
+      nowMobile
+    ) {
+
+      return
+    }
+
+
+    viewportModeRef.current =
+      nowMobile
+
+
+    const swapId =
+      ++breakpointSwapRef.current
+
+
+    /*
+      Kill any whole-wall transition currently underway.
+
+      Breakpoint changes are authoritative.
+    */
+
+    clearTimeout(
+      wallFadeTimerRef.current
+    )
+
+
+    wallFrameCleanupRef
+      .current?.()
+
+
+    wallFrameCleanupRef.current =
+      null
+
+
+    setWallFadeTarget(
+      null
+    )
+
+
+    wallTransitioningRef.current =
+      true
+
+
+    const activeWall =
+      frontBufferRef.current ===
+      'A'
+        ? wallA
+        : wallB
+
+
+    if (
+      !activeWall
+    ) {
+
+      wallTransitioningRef.current =
+        false
+
+      return
+    }
+
+
+    const activeImages =
+      activeWall.slots.map(
+        slot =>
+          slot.image
+      )
+
+
+    /* -----------------------------------------------------
+       DESKTOP -> MOBILE
+
+       This path is genuinely immediate because we already
+       have 9 images. Keep six and put the remaining three
+       back into the future pool.
+    ----------------------------------------------------- */
+
+    if (
+      nowMobile
+    ) {
+
+      const mobileImages =
+        activeImages.slice(
+          0,
+          MOBILE_WALL_COUNT
+        )
+
+
+      const returnedImages =
+        activeImages.slice(
+          MOBILE_WALL_COUNT
+        )
+
+
+      /*
+        Put dropped desktop frames back near the front of
+        the pool rather than losing them.
+      */
+
+      if (
+        returnedImages.length
+      ) {
+
+        poolRef.current.unshift(
+          ...returnedImages
+        )
+      }
+
+
+      const mobileWall =
+        buildMobileWall(
+          mobileImages
+        )
+
+
+      /*
+        Direct install.
+        No crossfade.
+      */
+
+      setWallA(
+        mobileWall
+      )
+
+
+      setWallB(
+        null
+      )
+
+
+      setFrontBuffer(
+        'A'
+      )
+
+
+      frontBufferRef.current =
+        'A'
+
+
+      lastSlotRef.current =
+        -1
+
+
+      lastUpdatedRef.current =
+        Array(
+          DESKTOP_WALL_COUNT
+        ).fill(0)
+
+
+      wallTransitioningRef.current =
+        false
+
+
+      return
+    }
+
+
+    /* -----------------------------------------------------
+       MOBILE -> DESKTOP
+
+       Keep the six current images and obtain three more.
+
+       Usually these are already in the pool and the swap
+       completes effectively immediately.
+
+       If the pool must fetch, we wait only for those three.
+    ----------------------------------------------------- */
+
+    let cancelled =
+      false
+
+
+    const switchToDesktop =
+      async () => {
+
+        const desktopImages = [
+          ...activeImages.slice(
+            0,
+            MOBILE_WALL_COUNT
+          )
+        ]
+
+
+        while (
+          desktopImages.length <
+          DESKTOP_WALL_COUNT
+        ) {
+
+          const image =
+            pullNextImage()
+
+
+          if (
+            image
+          ) {
+
+            desktopImages.push(
+              image
+            )
+
+            continue
+          }
+
+
+          const fetched =
+            await fetchImages()
+
+
+          if (
+            cancelled ||
+            swapId !==
+            breakpointSwapRef.current
+          ) {
+
+            return
+          }
+
+
+          if (
+            !fetched.length &&
+            poolRef.current.length ===
+              0
+          ) {
+
+            break
+          }
+        }
+
+
+        if (
+          cancelled ||
+          swapId !==
+          breakpointSwapRef.current
+        ) {
+
+          return
+        }
+
+
+        if (
+          desktopImages.length <
+          DESKTOP_WALL_COUNT
+        ) {
+
+          console.warn(
+            'Fade2 could not complete desktop breakpoint rebuild'
+          )
+
+
+          wallTransitioningRef.current =
+            false
+
+          return
+        }
+
+
+        /*
+          stageSize already reflects the new desktop
+          16:9 stage at this point.
+        */
+
+        const desktopWall =
+          buildDesktopWall(
+
+            desktopImages,
+
+            stageSize.width,
+
+            stageSize.height
+          )
+
+
+        setWallA(
+          desktopWall
+        )
+
+
+        setWallB(
+          null
+        )
+
+
+        setFrontBuffer(
+          'A'
+        )
+
+
+        frontBufferRef.current =
+          'A'
+
+
+        lastSlotRef.current =
+          -1
+
+
+        lastUpdatedRef.current =
+          Array(
+            DESKTOP_WALL_COUNT
+          ).fill(0)
+
+
+        wallTransitioningRef.current =
+          false
+      }
+
+
+    switchToDesktop()
+
+
+    return () => {
+
+      cancelled =
+        true
+    }
+
+  }, [
+    stageSize.width,
+    stageSize.height
+  ])
+
+
   /* =======================================================
      SLOT PICK
   ======================================================= */
@@ -3479,6 +3657,14 @@ export default function FadeGallery() {
             item.index !==
             lastSlotRef.current
         )
+
+
+      if (
+        !candidates.length
+      ) {
+
+        return 0
+      }
 
 
       const chosen =
@@ -3680,11 +3866,6 @@ export default function FadeGallery() {
 
   /* =======================================================
      WHOLE WALL CHANGES
-
-     If you've resized across the breakpoint, THIS is when
-     the wall naturally converges to the native image count.
-
-     No immediate destructive rebuild on resize.
   ======================================================= */
 
   useEffect(() => {
@@ -4368,6 +4549,20 @@ export default function FadeGallery() {
               : 'w-full'
           }
         >
+
+          {/*
+            MOBILE:
+              6 images
+              9:19.5 portrait
+              full width
+
+            DESKTOP:
+              9 images
+              16:9
+
+            Crossing md changes the actual wall count
+            immediately. There is no temporary fallback.
+          */}
 
           <div
             ref={
