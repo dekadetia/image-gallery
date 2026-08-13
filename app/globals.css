@@ -103,15 +103,14 @@ body {
   }
 }
 
-/* Fix video layout for lightbox */
+/* Lightbox video sizing */
 @media (max-width: 767px) {
   .yarl__slide video {
     max-width: 100% !important;
-    height: 100% !important;
-    object-fit: contain !important;
     width: 100% !important;
-    max-height: 100% !important;
     height: auto !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
     display: block !important;
     margin: 0 auto !important;
   }
@@ -119,17 +118,13 @@ body {
 
 @media (min-width: 768px) {
   .yarl__slide video {
+    width: auto !important;
     max-width: 96% !important;
-    height: 100% !important;
-    object-fit: contain !important;
-    width: 100% !important;
-    margin-top: 26px !important;
-    max-height: 96% !important;
     height: auto !important;
+    max-height: calc(100vh - 10rem) !important;
+    object-fit: contain !important;
     display: block !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    align-self: flex-start !important;
+    margin: 26px auto 0 !important;
   }
 }
 
@@ -156,11 +151,10 @@ body {
   }
 }
 
-/* Fix: Prevent mobile video container from forcing metadata down */
-@media (max-width: 1279px) {
-  .yarl__video_container {
-    height: auto !important;
-  }
+/* Prevent the YARL video wrapper from forcing metadata below the viewport */
+.yarl__video_container {
+  height: auto !important;
+  max-height: 100% !important;
 }
 
 .yarl__navigation_next,
