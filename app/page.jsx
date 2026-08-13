@@ -1888,11 +1888,7 @@ export default function Page() {
             slideFooter:
               ({ slide }) => (
                 <div
-                  className={cn(
-                    "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
-                    slide.type === 'video' &&
-                      'relative top-auto bottom-unset'
-                  )}
+                  className="lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content"
                 >
                   {slide.title && (
                     <div className="yarl__slide_title">
