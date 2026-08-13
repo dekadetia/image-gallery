@@ -23,108 +23,6 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-
-/* ---------------------------------------------------------
-   LIGHTBOX WEBM
-
-   Reserve the final WebM geometry before the real <video>
-   element initializes. The video fills this fixed box after
-   mount, preventing footer reflow.
---------------------------------------------------------- */
-
-function LightboxWebm({
-  slide,
-  rect
-}) {
-  const ratio =
-    slide.width &&
-    slide.height
-      ? slide.width /
-        slide.height
-      : 16 / 9
-
-  const isDesktop =
-    rect.width >= 768
-
-  const maxWidth =
-    rect.width *
-    (
-      isDesktop
-        ? 0.96
-        : 1
-    )
-
-  const maxHeight =
-    isDesktop
-      ? Math.max(
-          1,
-          window.innerHeight -
-            160
-        )
-      : Math.max(
-          1,
-          rect.height
-        )
-
-  let width =
-    maxWidth
-
-  let height =
-    width /
-    ratio
-
-  if (
-    height >
-    maxHeight
-  ) {
-    height =
-      maxHeight
-
-    width =
-      height *
-      ratio
-  }
-
-  return (
-    <div
-      className="tndr-lightbox-webm-box"
-      style={{
-        width:
-          `${width}px`,
-
-        height:
-          `${height}px`,
-
-        flex:
-          '0 0 auto',
-
-        position:
-          'relative',
-
-        margin:
-          isDesktop
-            ? '26px auto 0'
-            : '0 auto'
-      }}
-    >
-      <video
-        className="tndr-lightbox-webm"
-        src={
-          slide.sources?.[0]?.src
-        }
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        poster={
-          slide.poster
-        }
-      />
-    </div>
-  )
-}
-
 const GAP = 10
 const MOBILE_BREAKPOINT = 768
 
@@ -1585,7 +1483,7 @@ export default function Scrl2() {
 
               return {
                 type:
-                  'tndr-webm',
+                  'video',
 
                 width,
                 height,
@@ -1934,6 +1832,13 @@ export default function Scrl2() {
   useEffect(
     () => {
 
+      if (
+        loader
+      ) {
+        return
+      }
+
+
       const isFirefox =
         typeof navigator !== 'undefined' &&
         /firefox/i.test(
@@ -1949,8 +1854,19 @@ export default function Scrl2() {
         performance.now()
 
 
+      let cancelled =
+        false
+
+
       const step =
         now => {
+
+          if (
+            cancelled
+          ) {
+            return
+          }
+
 
           const dt =
             now - last
@@ -1990,13 +1906,66 @@ export default function Scrl2() {
         }
 
 
-      scrollRafRef.current =
+      let settleFrame1 =
+        null
+
+
+      let settleFrame2 =
+        null
+
+
+      settleFrame1 =
         requestAnimationFrame(
-          step
+          () => {
+
+            settleFrame2 =
+              requestAnimationFrame(
+                () => {
+
+                  if (
+                    cancelled
+                  ) {
+                    return
+                  }
+
+
+                  last =
+                    performance.now()
+
+
+                  scrollRafRef.current =
+                    requestAnimationFrame(
+                      step
+                    )
+                }
+              )
+          }
         )
 
 
       return () => {
+
+        cancelled =
+          true
+
+
+        if (
+          settleFrame1
+        ) {
+          cancelAnimationFrame(
+            settleFrame1
+          )
+        }
+
+
+        if (
+          settleFrame2
+        ) {
+          cancelAnimationFrame(
+            settleFrame2
+          )
+        }
+
 
         if (
           scrollRafRef.current
@@ -2008,7 +1977,7 @@ export default function Scrl2() {
         }
       }
     },
-    []
+    [loader]
   )
 
 
@@ -2518,28 +2487,7 @@ export default function Scrl2() {
 
         {slides && (
 
-          <>
-
-            <style jsx global>{`
-              .yarl__slide .tndr-lightbox-webm-box {
-                box-sizing: border-box;
-              }
-
-              .yarl__slide video.tndr-lightbox-webm {
-                position: absolute !important;
-                inset: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                height: 100% !important;
-                max-height: 100% !important;
-                object-fit: contain !important;
-                display: block !important;
-                margin: 0 !important;
-              }
-            `}</style>
-
-
-            <Lightbox
+          <Lightbox
             index={
               index
             }
@@ -2556,25 +2504,6 @@ export default function Scrl2() {
               Video
             ]}
             render={{
-              slide:
-                ({
-                  slide,
-                  rect
-                }) =>
-                  slide.type ===
-                  'tndr-webm'
-                    ? (
-                        <LightboxWebm
-                          slide={
-                            slide
-                          }
-                          rect={
-                            rect
-                          }
-                        />
-                      )
-                    : undefined,
-
               slideFooter:
                 ({
                   slide
@@ -2585,7 +2514,7 @@ export default function Scrl2() {
                       "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
 
                       slide.type ===
-                        'tndr-webm' &&
+                        'video' &&
                         'relative top-auto bottom-unset'
                     )}
                   >
@@ -2647,9 +2576,7 @@ export default function Scrl2() {
 
                 )
             }}
-            />
-
-          </>
+          />
 
         )}
 
