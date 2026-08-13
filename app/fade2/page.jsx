@@ -37,10 +37,13 @@ const SLOT_FADE_DURATION = 2
 const WALL_FADE_DURATION = 5
 
 const GAP = 10
+
 const MOBILE_BREAKPOINT = 768
 
 const DESKTOP_WALL_COUNT = 9
 const MOBILE_WALL_COUNT = 6
+
+const MOBILE_SELECTION_POOL = 14
 
 const WEBM_INTERVAL = 20
 
@@ -58,6 +61,15 @@ function isWebm(photo) {
       ?.toLowerCase()
       .includes('.webm') ??
     false
+  )
+}
+
+
+function getMediaKey(photo) {
+  return (
+    photo?.id ||
+    photo?.src ||
+    ''
   )
 }
 
@@ -102,12 +114,14 @@ function preloadMedia(photo) {
       !photo ||
       !photo.src
     ) {
+
       resolve()
       return
     }
 
 
-    let finished = false
+    let finished =
+      false
 
 
     const finish =
@@ -118,7 +132,8 @@ function preloadMedia(photo) {
         }
 
 
-        finished = true
+        finished =
+          true
 
 
         clearTimeout(
@@ -285,6 +300,67 @@ function getRatioKey(photo) {
 
 
 /* =========================================================
+   AR FIT
+========================================================= */
+
+function ratioDistance(
+  imageRatio,
+  targetRatio
+) {
+  if (
+    !imageRatio ||
+    !targetRatio
+  ) {
+
+    return 100
+  }
+
+
+  return Math.abs(
+    Math.log(
+      imageRatio /
+      targetRatio
+    )
+  )
+}
+
+
+function ratioPenalty(
+  imageRatio,
+  targetRatio
+) {
+  const distance =
+    ratioDistance(
+      imageRatio,
+      targetRatio
+    )
+
+
+  let penalty =
+    distance *
+    distance *
+    8
+
+
+  if (
+    distance >
+    Math.log(1.35)
+  ) {
+
+    penalty +=
+      (
+        distance -
+        Math.log(1.35)
+      ) *
+      8
+  }
+
+
+  return penalty
+}
+
+
+/* =========================================================
    LIGHTBOX
 ========================================================= */
 
@@ -341,6 +417,7 @@ function makeSlide(photo) {
 
       sources: [
         {
+
           src,
 
           type:
@@ -465,6 +542,7 @@ function getPreferredBand(
   if (
     availableWidth <= 0
   ) {
+
     return null
   }
 
@@ -632,8 +710,6 @@ function solveFixedBand(
           items:
             columnItems,
 
-          verticalGap,
-
           preferredWidth
         }
       }
@@ -672,9 +748,18 @@ function solveFixedBand(
         widthScale
 
 
+      const verticalGap =
+        GAP *
+        Math.max(
+          0,
+          column.items.length -
+            1
+        )
+
+
       const availableStackHeight =
         bandHeight -
-        column.verticalGap
+        verticalGap
 
 
       const preferredHeights =
@@ -771,7 +856,9 @@ function buildDesktopLayout(
   ) {
 
     return {
+
       rects: [],
+
       score:
         Infinity
     }
@@ -1075,522 +1162,325 @@ function chooseBestConfiguration(
 
 
 /* =========================================================
-   MOBILE GRAMMAR
+   MOBILE TEMPLATES
+
+   These fill the entire fixed Fade2 mobile stage.
+
+   The OUTER page gutters are separate and handled by the
+   page wrapper below.
 ========================================================= */
 
-function mobileRoll(id) {
-  const value =
-    String(id ?? '')
+const MOBILE_TEMPLATES = [
 
-  let hash = 0
+  {
 
+    id:
+      'balanced-a',
 
-  for (
-    let i = 0;
-    i < value.length;
-    i++
-  ) {
+    rows: [
 
-    hash =
-      (
-        (hash << 5) -
-        hash
-      ) +
-      value.charCodeAt(i)
+      {
+        count: 2,
+        weight: 0.22
+      },
 
-    hash |= 0
+      {
+        count: 1,
+        weight: 0.28
+      },
+
+      {
+        count: 2,
+        weight: 0.22
+      },
+
+      {
+        count: 1,
+        weight: 0.28
+      }
+    ]
+  },
+
+  {
+
+    id:
+      'balanced-b',
+
+    rows: [
+
+      {
+        count: 1,
+        weight: 0.28
+      },
+
+      {
+        count: 2,
+        weight: 0.22
+      },
+
+      {
+        count: 1,
+        weight: 0.28
+      },
+
+      {
+        count: 2,
+        weight: 0.22
+      }
+    ]
+  },
+
+  {
+
+    id:
+      'mixed-a',
+
+    rows: [
+
+      {
+        count: 1,
+        weight: 0.26
+      },
+
+      {
+        count: 2,
+        weight: 0.24
+      },
+
+      {
+        count: 2,
+        weight: 0.24
+      },
+
+      {
+        count: 1,
+        weight: 0.26
+      }
+    ]
+  },
+
+  {
+
+    id:
+      'portrait',
+
+    rows: [
+
+      {
+        count: 2,
+        weight: 1
+      },
+
+      {
+        count: 2,
+        weight: 1
+      },
+
+      {
+        count: 2,
+        weight: 1
+      }
+    ]
+  },
+
+  {
+
+    id:
+      'wide',
+
+    rows: [
+
+      {
+        count: 1,
+        weight: 0.21
+      },
+
+      {
+        count: 1,
+        weight: 0.21
+      },
+
+      {
+        count: 2,
+        weight: 0.16
+      },
+
+      {
+        count: 1,
+        weight: 0.21
+      },
+
+      {
+        count: 1,
+        weight: 0.21
+      }
+    ]
   }
+]
 
 
+function getMobileTemplate(
+  id
+) {
   return (
-    Math.abs(hash) %
-    100
+    MOBILE_TEMPLATES.find(
+      template =>
+        template.id === id
+    ) ||
+    MOBILE_TEMPLATES[0]
   )
-}
-
-
-function getMobileSizeClass(photo) {
-  const ratio =
-    parseImageMeta(
-      photo.dimensions
-    ).ratio
-
-
-  const roll =
-    mobileRoll(
-      photo.id
-    )
-
-
-  if (
-    ratio > 1.85
-  ) {
-    return 'full'
-  }
-
-
-  if (
-    ratio > 1.70
-  ) {
-
-    return (
-      roll < 20
-        ? 'full'
-        : 'pair'
-    )
-  }
-
-
-  return (
-    roll < 5
-      ? 'full'
-      : 'pair'
-  )
-}
-
-
-function buildMobileRowsPattern(images) {
-  const rows = []
-
-  let cursor = 0
-
-
-  while (
-    cursor <
-    images.length
-  ) {
-
-    const current =
-      images[
-        cursor
-      ]
-
-
-    const currentClass =
-      getMobileSizeClass(
-        current
-      )
-
-
-    if (
-      currentClass ===
-      'full'
-    ) {
-
-      rows.push([
-        cursor
-      ])
-
-      cursor += 1
-
-      continue
-    }
-
-
-    const next =
-      images[
-        cursor + 1
-      ]
-
-
-    if (!next) {
-
-      rows.push([
-        cursor
-      ])
-
-      cursor += 1
-
-      continue
-    }
-
-
-    const nextClass =
-      getMobileSizeClass(
-        next
-      )
-
-
-    if (
-      nextClass ===
-      'pair'
-    ) {
-
-      rows.push([
-        cursor,
-        cursor + 1
-      ])
-
-      cursor += 2
-
-      continue
-    }
-
-
-    rows.push([
-      cursor
-    ])
-
-    cursor += 1
-  }
-
-
-  return rows
 }
 
 
 /* =========================================================
-   MOBILE LAYOUT
-
-   Native mobile wall is always six images.
-
-   Geometry is allowed to float vertically inside the
-   permanent stage rather than brutally filling it.
+   MOBILE TEMPLATE GEOMETRY
 ========================================================= */
 
-function buildMobileLayout(
-  images,
-  rowsPattern,
+function buildMobileTemplateLayout(
+  template,
   stageWidth,
   stageHeight
 ) {
   if (
-    !images ||
-    images.length !==
-      MOBILE_WALL_COUNT ||
-    !rowsPattern?.length ||
+    !template ||
     !stageWidth ||
     !stageHeight
   ) {
 
     return {
-      rects: []
+
+      rects: [],
+
+      targetRatios: []
     }
   }
 
 
-  const preparedRows =
-    rowsPattern.map(
-      slotIndexes => {
-
-        const rowImages =
-          slotIndexes
-            .map(
-              slotIndex => {
-
-                const image =
-                  images[
-                    slotIndex
-                  ]
-
-
-                if (!image) {
-                  return null
-                }
-
-
-                return {
-
-                  image,
-
-                  slotIndex,
-
-                  ratio:
-                    parseImageMeta(
-                      image.dimensions
-                    ).ratio
-                }
-              }
-            )
-            .filter(Boolean)
-
-
-        if (
-          !rowImages.length
-        ) {
-
-          return null
-        }
-
-
-        let naturalHeight
-
-
-        if (
-          rowImages.length === 1
-        ) {
-
-          naturalHeight =
-            stageWidth /
-            rowImages[0].ratio
-
-        } else {
-
-          const availableWidth =
-            stageWidth -
-            GAP
-
-
-          const ratioTotal =
-            rowImages.reduce(
-              (
-                total,
-                item
-              ) =>
-                total +
-                item.ratio,
-              0
-            )
-
-
-          naturalHeight =
-            ratioTotal > 0
-              ? availableWidth /
-                ratioTotal
-              : availableWidth /
-                2
-        }
-
-
-        return {
-
-          items:
-            rowImages,
-
-          naturalHeight
-        }
-      }
-    )
-    .filter(Boolean)
-
-
-  const rowGapTotal =
-    GAP *
-    Math.max(
-      0,
-      preparedRows.length -
-        1
-    )
+  const rowCount =
+    template.rows.length
 
 
   const availableHeight =
     stageHeight -
-    rowGapTotal
+    GAP *
+      Math.max(
+        0,
+        rowCount -
+          1
+      )
 
 
-  const naturalHeightTotal =
-    preparedRows.reduce(
+  const totalWeight =
+    template.rows.reduce(
       (
         total,
         row
       ) =>
         total +
-        row.naturalHeight,
+        row.weight,
       0
     )
 
 
-  /*
-    If natural content is taller than the fixed canvas,
-    shrink the composition uniformly.
+  const rects = []
 
-    If it is shorter, do not stretch it.
-  */
-
-  const scale =
-    naturalHeightTotal >
-    availableHeight
-      ? availableHeight /
-        naturalHeightTotal
-      : 1
+  const targetRatios = []
 
 
-  const scaledNaturalTotal =
-    naturalHeightTotal *
-    scale
+  let slotIndex = 0
+
+  let currentY = 0
 
 
-  const unusedHeight =
-    Math.max(
-      0,
-      availableHeight -
-        scaledNaturalTotal
-    )
-
-
-  let currentY =
-    unusedHeight /
-    2
-
-
-  const rects =
-    Array(
-      MOBILE_WALL_COUNT
-    ).fill(
-      null
-    )
-
-
-  preparedRows.forEach(
+  template.rows.forEach(
     (
       row,
       rowIndex
     ) => {
 
       const rowHeight =
-        row.naturalHeight *
-        scale
+        availableHeight *
+        (
+          row.weight /
+          totalWeight
+        )
 
 
       if (
-        row.items.length === 1
+        row.count === 1
       ) {
 
-        const item =
-          row.items[0]
+        rects.push({
 
+          slotIndex,
 
-        const width =
-          Math.min(
-            stageWidth,
-            rowHeight *
-              item.ratio
-          )
-
-
-        rects[
-          item.slotIndex
-        ] = {
-
-          x:
-            (
-              stageWidth -
-              width
-            ) /
-            2,
+          x: 0,
 
           y:
             currentY,
 
-          width,
+          width:
+            stageWidth,
 
           height:
             rowHeight
-        }
+        })
+
+
+        targetRatios.push(
+          stageWidth /
+          rowHeight
+        )
+
+
+        slotIndex += 1
 
       } else {
 
-        const availableWidth =
-          stageWidth -
-          GAP
-
-
-        const naturalWidths =
-          row.items.map(
-            item =>
-              item.ratio *
-              rowHeight
-          )
-
-
-        const naturalWidthTotal =
-          naturalWidths.reduce(
-            (
-              total,
-              width
-            ) =>
-              total +
-              width,
-            0
-          )
-
-
-        const pairScale =
-          naturalWidthTotal >
-          availableWidth
-            ? availableWidth /
-              naturalWidthTotal
-            : 1
-
-
-        const widths =
-          naturalWidths.map(
-            width =>
-              width *
-              pairScale
-          )
-
-
-        const finalRowHeight =
-          rowHeight *
-          pairScale
-
-
-        const usedWidth =
-          widths.reduce(
-            (
-              total,
-              width
-            ) =>
-              total +
-              width,
-            0
-          ) +
-          GAP
-
-
-        let currentX =
+        const cellWidth =
           (
             stageWidth -
-            usedWidth
+            GAP
           ) /
           2
 
 
-        row.items.forEach(
-          (
-            item,
-            itemIndex
-          ) => {
+        for (
+          let column = 0;
+          column < 2;
+          column++
+        ) {
 
-            const width =
-              widths[
-                itemIndex
-              ]
+          rects.push({
 
+            slotIndex,
 
-            rects[
-              item.slotIndex
-            ] = {
-
-              x:
-                currentX,
-
-              y:
-                currentY,
-
-              width,
-
-              height:
-                finalRowHeight
-            }
-
-
-            currentX +=
-              width
-
-
-            if (
-              itemIndex <
-              row.items.length -
-                1
-            ) {
-
-              currentX +=
+            x:
+              column *
+              (
+                cellWidth +
                 GAP
-            }
-          }
-        )
+              ),
+
+            y:
+              currentY,
+
+            width:
+              cellWidth,
+
+            height:
+              rowHeight
+          })
+
+
+          targetRatios.push(
+            cellWidth /
+            rowHeight
+          )
+
+
+          slotIndex += 1
+        }
       }
 
 
@@ -1600,28 +1490,354 @@ function buildMobileLayout(
 
       if (
         rowIndex <
-        preparedRows.length -
+        template.rows.length -
           1
       ) {
 
-        currentY +=
-          GAP
+        currentY += GAP
       }
     }
   )
 
 
   return {
-    rects
+
+    rects,
+
+    targetRatios
   }
 }
 
 
 /* =========================================================
-   WALL OBJECT
+   MOBILE ASSIGNMENT
 ========================================================= */
 
-function makeWall(
+function solveMobileAssignment(
+  candidates,
+  targetRatios
+) {
+  if (
+    candidates.length <
+    MOBILE_WALL_COUNT ||
+    targetRatios.length !==
+    MOBILE_WALL_COUNT
+  ) {
+
+    return null
+  }
+
+
+  const ranked =
+    candidates
+      .map(
+        (
+          image,
+          originalIndex
+        ) => {
+
+          const ratio =
+            parseImageMeta(
+              image.dimensions
+            ).ratio
+
+
+          const bestPossibleFit =
+            Math.min(
+              ...targetRatios.map(
+                targetRatio =>
+                  ratioPenalty(
+                    ratio,
+                    targetRatio
+                  )
+              )
+            )
+
+
+          return {
+
+            image,
+
+            originalIndex,
+
+            bestPossibleFit
+          }
+        }
+      )
+      .sort(
+        (
+          a,
+          b
+        ) => {
+
+          if (
+            a.bestPossibleFit !==
+            b.bestPossibleFit
+          ) {
+
+            return (
+              a.bestPossibleFit -
+              b.bestPossibleFit
+            )
+          }
+
+
+          return (
+            a.originalIndex -
+            b.originalIndex
+          )
+        }
+      )
+      .slice(
+        0,
+        MOBILE_SELECTION_POOL
+      )
+
+
+  if (
+    ranked.length <
+    MOBILE_WALL_COUNT
+  ) {
+
+    return null
+  }
+
+
+  const memo =
+    new Map()
+
+
+  const search =
+    (
+      slotIndex,
+      usedMask
+    ) => {
+
+      if (
+        slotIndex ===
+        MOBILE_WALL_COUNT
+      ) {
+
+        return {
+
+          score: 0,
+
+          picks: []
+        }
+      }
+
+
+      const memoKey =
+        `${slotIndex}:${usedMask}`
+
+
+      if (
+        memo.has(
+          memoKey
+        )
+      ) {
+
+        return memo.get(
+          memoKey
+        )
+      }
+
+
+      let best =
+        null
+
+
+      for (
+        let candidateIndex = 0;
+        candidateIndex <
+        ranked.length;
+        candidateIndex++
+      ) {
+
+        const bit =
+          1 <<
+          candidateIndex
+
+
+        if (
+          usedMask &
+          bit
+        ) {
+
+          continue
+        }
+
+
+        const candidate =
+          ranked[
+            candidateIndex
+          ]
+
+
+        const imageRatio =
+          parseImageMeta(
+            candidate.image.dimensions
+          ).ratio
+
+
+        const localScore =
+          ratioPenalty(
+
+            imageRatio,
+
+            targetRatios[
+              slotIndex
+            ]
+          ) +
+
+          candidate.originalIndex *
+          0.00025
+
+
+        const remainder =
+          search(
+
+            slotIndex + 1,
+
+            usedMask |
+            bit
+          )
+
+
+        if (!remainder) {
+          continue
+        }
+
+
+        const totalScore =
+          localScore +
+          remainder.score
+
+
+        if (
+          !best ||
+          totalScore <
+          best.score
+        ) {
+
+          best = {
+
+            score:
+              totalScore,
+
+            picks: [
+
+              candidate.image,
+
+              ...remainder.picks
+            ]
+          }
+        }
+      }
+
+
+      memo.set(
+        memoKey,
+        best
+      )
+
+
+      return best
+    }
+
+
+  return search(
+    0,
+    0
+  )
+}
+
+
+function chooseBestMobileComposition(
+  candidates,
+  stageWidth,
+  stageHeight
+) {
+  if (
+    candidates.length <
+    MOBILE_WALL_COUNT
+  ) {
+
+    return null
+  }
+
+
+  let best =
+    null
+
+
+  MOBILE_TEMPLATES.forEach(
+    template => {
+
+      const geometry =
+        buildMobileTemplateLayout(
+
+          template,
+
+          stageWidth,
+
+          stageHeight
+        )
+
+
+      const assignment =
+        solveMobileAssignment(
+
+          candidates,
+
+          geometry.targetRatios
+        )
+
+
+      if (!assignment) {
+        return
+      }
+
+
+      const totalScore =
+        assignment.score +
+        Math.random() *
+          0.01
+
+
+      if (
+        !best ||
+        totalScore <
+        best.score
+      ) {
+
+        best = {
+
+          score:
+            totalScore,
+
+          template,
+
+          images:
+            assignment.picks,
+
+          targetRatios:
+            geometry.targetRatios
+        }
+      }
+    }
+  )
+
+
+  return best
+}
+
+
+/* =========================================================
+   WALL OBJECTS
+========================================================= */
+
+function makeDesktopWall(
   images,
   configuration,
   configurationIndex,
@@ -1631,17 +1847,12 @@ function makeWall(
 
     id,
 
+    mode:
+      'desktop',
+
     configuration,
 
     configurationIndex,
-
-    mobileRows:
-      images.length ===
-      MOBILE_WALL_COUNT
-        ? buildMobileRowsPattern(
-            images
-          )
-        : null,
 
     slots:
       images.map(
@@ -1652,7 +1863,49 @@ function makeWall(
           ratioKey:
             getRatioKey(
               image
-            )
+            ),
+
+          targetRatio:
+            null
+        })
+      )
+  }
+}
+
+
+function makeMobileWall(
+  composition,
+  id
+) {
+  return {
+
+    id,
+
+    mode:
+      'mobile',
+
+    mobileTemplateId:
+      composition.template.id,
+
+    slots:
+      composition.images.map(
+        (
+          image,
+          index
+        ) => ({
+
+          image,
+
+          ratioKey:
+            getRatioKey(
+              image
+            ),
+
+          targetRatio:
+            composition
+              .targetRatios[
+                index
+              ]
         })
       )
   }
@@ -1661,8 +1914,6 @@ function makeWall(
 
 /* =========================================================
    MEDIA LAYER
-
-   Media itself never intercepts taps.
 ========================================================= */
 
 function MediaLayer({
@@ -1674,6 +1925,7 @@ function MediaLayer({
     !photo ||
     !photo.src
   ) {
+
     return null
   }
 
@@ -1799,6 +2051,7 @@ function PersistentFadeSlot({
       !image ||
       !image.src
     ) {
+
       return
     }
 
@@ -1811,9 +2064,12 @@ function PersistentFadeSlot({
 
 
     if (
-      image.id ===
-      currentPhoto?.id
+      getMediaKey(image) ===
+      getMediaKey(
+        currentPhoto
+      )
     ) {
+
       return
     }
 
@@ -1821,6 +2077,7 @@ function PersistentFadeSlot({
     if (
       transitionRef.current
     ) {
+
       return
     }
 
@@ -1925,7 +2182,8 @@ function PersistentFadeSlot({
     }
 
   }, [
-    image?.id
+    image?.id,
+    image?.src
   ])
 
 
@@ -2012,14 +2270,6 @@ function PersistentFadeSlot({
 
 /* =========================================================
    WALL BUFFER
-
-   No cross-breakpoint fallback.
-
-   Mobile renderer expects six.
-   Desktop renderer expects nine.
-
-   Breakpoint effect below guarantees the front wall is
-   immediately rebuilt to the right count.
 ========================================================= */
 
 function WallBuffer({
@@ -2031,12 +2281,6 @@ function WallBuffer({
   interactive,
   onImageClick
 }) {
-  const isMobile =
-    stageWidth > 0 &&
-    stageWidth <
-      MOBILE_BREAKPOINT
-
-
   const layout =
     useMemo(
       () => {
@@ -2053,33 +2297,20 @@ function WallBuffer({
         }
 
 
-        const images =
-          wall.slots.map(
-            slot =>
-              slot.image
-          )
-
-
         if (
-          isMobile
+          wall.mode ===
+          'mobile'
         ) {
 
-          if (
-            images.length !==
-            MOBILE_WALL_COUNT
-          ) {
-
-            return {
-              rects: []
-            }
-          }
+          const template =
+            getMobileTemplate(
+              wall.mobileTemplateId
+            )
 
 
-          return buildMobileLayout(
+          return buildMobileTemplateLayout(
 
-            images,
-
-            wall.mobileRows,
+            template,
 
             stageWidth,
 
@@ -2088,20 +2319,12 @@ function WallBuffer({
         }
 
 
-        if (
-          images.length !==
-          DESKTOP_WALL_COUNT
-        ) {
-
-          return {
-            rects: []
-          }
-        }
-
-
         return buildDesktopLayout(
 
-          images,
+          wall.slots.map(
+            slot =>
+              slot.image
+          ),
 
           wall.configuration,
 
@@ -2113,8 +2336,7 @@ function WallBuffer({
       [
         wall,
         stageWidth,
-        stageHeight,
-        isMobile
+        stageHeight
       ]
     )
 
@@ -2220,6 +2442,34 @@ export default function FadeGallery() {
   ] = useState(null)
 
 
+  const wallARef =
+    useRef(null)
+
+
+  const wallBRef =
+    useRef(null)
+
+
+  useEffect(() => {
+
+    wallARef.current =
+      wallA
+
+  }, [
+    wallA
+  ])
+
+
+  useEffect(() => {
+
+    wallBRef.current =
+      wallB
+
+  }, [
+    wallB
+  ])
+
+
   const [
     frontBuffer,
     setFrontBuffer
@@ -2228,6 +2478,16 @@ export default function FadeGallery() {
 
   const frontBufferRef =
     useRef('A')
+
+
+  useEffect(() => {
+
+    frontBufferRef.current =
+      frontBuffer
+
+  }, [
+    frontBuffer
+  ])
 
 
   const [
@@ -2340,6 +2600,20 @@ export default function FadeGallery() {
 
   /* =======================================================
      STAGE
+
+     NORMAL MOBILE PAGE:
+       /wall-style outer gutter = 16px each side
+       stage width = viewport minus those gutters
+       stage AR = 9:19.5
+
+     BLACK MODE:
+       no outer page gutter
+       stage = full width
+       stage AR = 9:19.5
+       vertical overflow/crop is allowed
+
+     DESKTOP:
+       existing 16:9 stage
   ======================================================= */
 
   const stageRef =
@@ -2351,21 +2625,28 @@ export default function FadeGallery() {
     setStageSize
   ] = useState({
 
-    width:
-      0,
+    width: 0,
 
-    height:
-      0
+    height: 0
   })
+
+
+  const stageSizeRef =
+    useRef({
+
+      width: 0,
+
+      height: 0
+    })
 
 
   useEffect(() => {
 
-    frontBufferRef.current =
-      frontBuffer
+    stageSizeRef.current =
+      stageSize
 
   }, [
-    frontBuffer
+    stageSize
   ])
 
 
@@ -2393,14 +2674,23 @@ export default function FadeGallery() {
           rect.height > 0
         ) {
 
-          setStageSize({
+          const next = {
 
             width:
               rect.width,
 
             height:
               rect.height
-          })
+          }
+
+
+          stageSizeRef.current =
+            next
+
+
+          setStageSize(
+            next
+          )
         }
       }
 
@@ -2437,6 +2727,7 @@ export default function FadeGallery() {
       if (
         loadingRef.current
       ) {
+
         return []
       }
 
@@ -2490,6 +2781,54 @@ export default function FadeGallery() {
     }
 
 
+  const addSlides =
+    images => {
+
+      if (
+        !images.length
+      ) {
+
+        return
+      }
+
+
+      setSlides(
+        previous => {
+
+          const existingKeys =
+            new Set(
+              previous.map(
+                slide =>
+                  slide.src ||
+                  slide
+                    .sources?.[0]
+                    ?.src
+              )
+            )
+
+
+          const additions =
+            images
+              .filter(
+                image =>
+                  !existingKeys.has(
+                    image.src
+                  )
+              )
+              .map(
+                makeSlide
+              )
+
+
+          return [
+            ...previous,
+            ...additions
+          ]
+        }
+      )
+    }
+
+
   const fetchImages =
     async () => {
 
@@ -2506,13 +2845,8 @@ export default function FadeGallery() {
         )
 
 
-        setSlides(
-          previous => [
-            ...previous,
-            ...images.map(
-              makeSlide
-            )
-          ]
+        addSlides(
+          images
         )
       }
 
@@ -2521,103 +2855,80 @@ export default function FadeGallery() {
     }
 
 
-  /* =======================================================
-     INITIAL SELECTION
-  ======================================================= */
-
-  const takeInitialWallImages =
-    (
-      images,
-      count
+  const ensurePoolSize =
+    async (
+      minimum,
+      maxFetches = 3
     ) => {
 
-      const selected = []
-      const leftovers = []
+      let fetchCount = 0
 
 
-      let imagesSinceWebm =
-        MIN_IMAGES_BETWEEN_WEBMS
-
-
-      for (
-        const image of images
+      while (
+        poolRef.current.length <
+          minimum &&
+        fetchCount <
+          maxFetches
       ) {
 
-        if (
-          selected.length >=
-          count
-        ) {
+        const fetched =
+          await fetchImages()
 
-          leftovers.push(
-            image
-          )
 
-          continue
-        }
+        fetchCount++
 
 
         if (
-          isWebm(image)
+          !fetched.length
         ) {
 
-          if (
-            imagesSinceWebm >=
-            MIN_IMAGES_BETWEEN_WEBMS
-          ) {
-
-            selected.push(
-              image
-            )
-
-
-            imagesSinceWebm =
-              0
-
-          } else {
-
-            pendingWebmsRef
-              .current
-              .push(
-                image
-              )
-          }
-
-
-          continue
+          break
         }
-
-
-        selected.push(
-          image
-        )
-
-
-        imagesSinceWebm =
-          Math.min(
-
-            MIN_IMAGES_BETWEEN_WEBMS,
-
-            imagesSinceWebm +
-              1
-          )
-      }
-
-
-      imagesSinceWebmRef.current =
-        imagesSinceWebm
-
-
-      return {
-
-        selected,
-
-        leftovers
       }
     }
 
 
   /* =======================================================
-     WEBM STREAM
+     WEBM ACCOUNTING
+  ======================================================= */
+
+  const noteImageConsumed =
+    image => {
+
+      if (
+        isWebm(image)
+      ) {
+
+        imagesSinceWebmRef.current =
+          0
+
+        return
+      }
+
+
+      imagesSinceWebmRef.current =
+        Math.min(
+
+          MIN_IMAGES_BETWEEN_WEBMS,
+
+          imagesSinceWebmRef
+            .current +
+            1
+        )
+    }
+
+
+  const noteImagesConsumed =
+    images => {
+
+      images.forEach(
+        noteImageConsumed
+      )
+    }
+
+
+  /* =======================================================
+     NORMAL STREAM
   ======================================================= */
 
   const pullNextImage =
@@ -2639,9 +2950,9 @@ export default function FadeGallery() {
             .shift()
 
 
-        imagesSinceWebmRef
-          .current =
-          0
+        noteImageConsumed(
+          webm
+        )
 
 
         return webm
@@ -2666,18 +2977,14 @@ export default function FadeGallery() {
         ) {
 
           if (
-            pendingWebmsRef
-              .current
-              .length ===
-              0 &&
             imagesSinceWebmRef
               .current >=
-              MIN_IMAGES_BETWEEN_WEBMS
+            MIN_IMAGES_BETWEEN_WEBMS
           ) {
 
-            imagesSinceWebmRef
-              .current =
-              0
+            noteImageConsumed(
+              image
+            )
 
 
             return image
@@ -2695,16 +3002,9 @@ export default function FadeGallery() {
         }
 
 
-        imagesSinceWebmRef
-          .current =
-            Math.min(
-
-              MIN_IMAGES_BETWEEN_WEBMS,
-
-              imagesSinceWebmRef
-                .current +
-                1
-            )
+        noteImageConsumed(
+          image
+        )
 
 
         return image
@@ -2715,11 +3015,59 @@ export default function FadeGallery() {
     }
 
 
+  const getImagesForWall =
+    async count => {
+
+      const result = []
+
+
+      for (
+        let attempt = 0;
+        attempt < 30 &&
+        result.length < count;
+        attempt++
+      ) {
+
+        let image =
+          pullNextImage()
+
+
+        if (
+          image
+        ) {
+
+          result.push(
+            image
+          )
+
+          continue
+        }
+
+
+        const fetched =
+          await fetchImages()
+
+
+        if (
+          !fetched.length &&
+          poolRef.current.length ===
+            0
+        ) {
+
+          break
+        }
+      }
+
+
+      return result
+    }
+
+
   /* =======================================================
-     EXACT-AR SLOT REPLACEMENT
+     DESKTOP EXACT-AR REPLACEMENT
   ======================================================= */
 
-  const pullMatchingImage =
+  const pullExactDesktopMatch =
     async ratioKey => {
 
       for (
@@ -2755,31 +3103,13 @@ export default function FadeGallery() {
           if (
             isWebm(
               candidate
-            )
+            ) &&
+            imagesSinceWebmRef
+              .current <
+            MIN_IMAGES_BETWEEN_WEBMS
           ) {
 
-            if (
-              imagesSinceWebmRef
-                .current <
-              MIN_IMAGES_BETWEEN_WEBMS
-            ) {
-
-              continue
-            }
-
-
-            poolRef.current.splice(
-              i,
-              1
-            )
-
-
-            imagesSinceWebmRef
-              .current =
-              0
-
-
-            return candidate
+            continue
           }
 
 
@@ -2789,16 +3119,9 @@ export default function FadeGallery() {
           )
 
 
-          imagesSinceWebmRef
-            .current =
-            Math.min(
-
-              MIN_IMAGES_BETWEEN_WEBMS,
-
-              imagesSinceWebmRef
-                .current +
-                1
-            )
+          noteImageConsumed(
+            candidate
+          )
 
 
           return candidate
@@ -2814,82 +3137,133 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     GET WALL IMAGES
+     MOBILE SOFT-AR REPLACEMENT
   ======================================================= */
 
-  const getImagesForWall =
-    async count => {
+  const pullBestMobileMatch =
+    async targetRatio => {
 
-      const result = []
+      let bestCandidate =
+        null
+
+
+      let bestIndex =
+        -1
+
+
+      let bestDistance =
+        Infinity
 
 
       for (
         let attempt = 0;
-        attempt < 20 &&
-        result.length < count;
+        attempt < 4;
         attempt++
       ) {
 
-        let image =
-          pullNextImage()
-
-
-        if (
-          image
+        for (
+          let i = 0;
+          i <
+          poolRef.current.length;
+          i++
         ) {
 
-          result.push(
-            image
-          )
+          const candidate =
+            poolRef.current[
+              i
+            ]
 
-          continue
+
+          if (
+            isWebm(candidate) &&
+            imagesSinceWebmRef
+              .current <
+            MIN_IMAGES_BETWEEN_WEBMS
+          ) {
+
+            continue
+          }
+
+
+          const candidateRatio =
+            parseImageMeta(
+              candidate.dimensions
+            ).ratio
+
+
+          const distance =
+            ratioDistance(
+
+              candidateRatio,
+
+              targetRatio
+            )
+
+
+          if (
+            distance <
+            bestDistance
+          ) {
+
+            bestCandidate =
+              candidate
+
+            bestIndex =
+              i
+
+            bestDistance =
+              distance
+          }
         }
 
 
-        const fetched =
-          await fetchImages()
-
-
         if (
-          !fetched.length &&
-          poolRef.current.length === 0
+          bestCandidate &&
+          bestDistance <=
+          Math.log(1.25)
         ) {
 
           break
         }
+
+
+        await fetchImages()
       }
 
 
-      return result
+      if (
+        !bestCandidate ||
+        bestIndex < 0
+      ) {
+
+        return null
+      }
+
+
+      poolRef.current.splice(
+        bestIndex,
+        1
+      )
+
+
+      noteImageConsumed(
+        bestCandidate
+      )
+
+
+      return bestCandidate
     }
 
 
   /* =======================================================
-     WALL BUILDERS
+     DESKTOP WALL BUILDER
   ======================================================= */
-
-  const buildMobileWall =
-    images => {
-
-      return makeWall(
-
-        images,
-
-        WALL_CONFIGURATIONS[0],
-
-        0,
-
-        Date.now() +
-        Math.random()
-      )
-    }
-
 
   const buildDesktopWall =
     (
       images,
-      width = stageSize.width,
-      height = stageSize.height
+      width,
+      height
     ) => {
 
       const best =
@@ -2906,12 +3280,11 @@ export default function FadeGallery() {
         )
 
 
-      lastConfigurationRef
-        .current =
+      lastConfigurationRef.current =
         best.index
 
 
-      return makeWall(
+      return makeDesktopWall(
 
         images,
 
@@ -2925,62 +3298,238 @@ export default function FadeGallery() {
     }
 
 
-  const buildWallFromImages =
+  /* =======================================================
+     MOBILE CANDIDATE FILTER
+  ======================================================= */
+
+  const getMobileEligibleCandidates =
     images => {
 
-      if (
-        images.length ===
-        MOBILE_WALL_COUNT
+      const result = []
+
+      let webmIncluded =
+        false
+
+
+      for (
+        const image of images
       ) {
 
-        return buildMobileWall(
-          images
+        if (
+          !isWebm(image)
+        ) {
+
+          result.push(
+            image
+          )
+
+          continue
+        }
+
+
+        if (
+          webmIncluded
+        ) {
+
+          continue
+        }
+
+
+        if (
+          imagesSinceWebmRef
+            .current <
+          MIN_IMAGES_BETWEEN_WEBMS
+        ) {
+
+          continue
+        }
+
+
+        webmIncluded =
+          true
+
+
+        result.push(
+          image
         )
       }
 
 
-      return buildDesktopWall(
-        images
-      )
+      return result
     }
 
 
-  const createNewWall =
+  /* =======================================================
+     MOBILE WALL FROM CANDIDATES
+  ======================================================= */
+
+  const buildMobileWallFromCandidates =
+    (
+      candidates,
+      width,
+      height
+    ) => {
+
+      const eligible =
+        getMobileEligibleCandidates(
+          candidates
+        )
+
+
+      const composition =
+        chooseBestMobileComposition(
+
+          eligible,
+
+          width,
+
+          height
+        )
+
+
+      if (!composition) {
+
+        return null
+      }
+
+
+      return {
+
+        wall:
+          makeMobileWall(
+
+            composition,
+
+            Date.now() +
+            Math.random()
+          ),
+
+        images:
+          composition.images
+      }
+    }
+
+
+  /* =======================================================
+     CREATE MOBILE WALL
+  ======================================================= */
+
+  const createMobileWall =
     async ({
       preload = true
     } = {}) => {
 
+      const {
+        width,
+        height
+      } =
+        stageSizeRef.current
+
+
       if (
-        !stageSize.width ||
-        !stageSize.height
+        !width ||
+        !height
       ) {
 
         return null
       }
 
 
-      const count =
-        stageSize.width <
-        MOBILE_BREAKPOINT
-          ? MOBILE_WALL_COUNT
-          : DESKTOP_WALL_COUNT
+      await ensurePoolSize(
+        MOBILE_SELECTION_POOL
+      )
+
+
+      const result =
+        buildMobileWallFromCandidates(
+
+          poolRef.current,
+
+          width,
+
+          height
+        )
+
+
+      if (!result) {
+
+        return null
+      }
+
+
+      const selectedKeys =
+        new Set(
+          result.images.map(
+            getMediaKey
+          )
+        )
+
+
+      poolRef.current =
+        poolRef.current.filter(
+          image =>
+            !selectedKeys.has(
+              getMediaKey(image)
+            )
+        )
+
+
+      noteImagesConsumed(
+        result.images
+      )
+
+
+      if (
+        preload
+      ) {
+
+        await Promise.all(
+          result.images.map(
+            preloadMedia
+          )
+        )
+      }
+
+
+      return result.wall
+    }
+
+
+  /* =======================================================
+     CREATE DESKTOP WALL
+  ======================================================= */
+
+  const createDesktopWall =
+    async ({
+      preload = true
+    } = {}) => {
+
+      const {
+        width,
+        height
+      } =
+        stageSizeRef.current
+
+
+      if (
+        !width ||
+        !height
+      ) {
+
+        return null
+      }
 
 
       const images =
         await getImagesForWall(
-          count
+          DESKTOP_WALL_COUNT
         )
 
 
       if (
         images.length <
-        count
+        DESKTOP_WALL_COUNT
       ) {
-
-        console.warn(
-          `Fade2 needed ${count} images but only obtained ${images.length}`
-        )
-
 
         return null
       }
@@ -2998,14 +3547,19 @@ export default function FadeGallery() {
       }
 
 
-      return buildWallFromImages(
-        images
+      return buildDesktopWall(
+
+        images,
+
+        width,
+
+        height
       )
     }
 
 
   /* =======================================================
-     FAST INITIALIZATION
+     INITIALIZATION
   ======================================================= */
 
   const initInProgressRef =
@@ -3049,20 +3603,13 @@ export default function FadeGallery() {
           if (
             cancelled
           ) {
+
             return
           }
 
 
-          const count =
-            stageSize.width <
-            MOBILE_BREAKPOINT
-              ? MOBILE_WALL_COUNT
-              : DESKTOP_WALL_COUNT
-
-
           if (
-            firstBatch.length <
-            count
+            !firstBatch.length
           ) {
 
             initInProgressRef.current =
@@ -3080,23 +3627,162 @@ export default function FadeGallery() {
           }
 
 
-          const {
-            selected,
-            leftovers
-          } =
-            takeInitialWallImages(
-              firstBatch,
-              count
-            )
+          addSlides(
+            firstBatch
+          )
+
+
+          const mobile =
+            window
+              .matchMedia(
+                `(max-width: ${
+                  MOBILE_BREAKPOINT -
+                  1
+                }px)`
+              )
+              .matches
+
+
+          let wall =
+            null
 
 
           if (
-            selected.length <
-            count
+            mobile
           ) {
+
+            const result =
+              buildMobileWallFromCandidates(
+
+                firstBatch,
+
+                stageSize.width,
+
+                stageSize.height
+              )
+
+
+            if (
+              result
+            ) {
+
+              wall =
+                result.wall
+
+
+              const selectedKeys =
+                new Set(
+                  result.images.map(
+                    getMediaKey
+                  )
+                )
+
+
+              poolRef.current.push(
+
+                ...firstBatch.filter(
+                  image =>
+                    !selectedKeys.has(
+                      getMediaKey(
+                        image
+                      )
+                    )
+                )
+              )
+
+
+              noteImagesConsumed(
+                result.images
+              )
+            }
+
+          } else {
+
+            const selected = []
+
+            const leftovers = []
+
+
+            for (
+              const image of firstBatch
+            ) {
+
+              if (
+                selected.length >=
+                DESKTOP_WALL_COUNT
+              ) {
+
+                leftovers.push(
+                  image
+                )
+
+                continue
+              }
+
+
+              if (
+                isWebm(image) &&
+                imagesSinceWebmRef
+                  .current <
+                MIN_IMAGES_BETWEEN_WEBMS
+              ) {
+
+                pendingWebmsRef
+                  .current
+                  .push(
+                    image
+                  )
+
+                continue
+              }
+
+
+              selected.push(
+                image
+              )
+
+
+              noteImageConsumed(
+                image
+              )
+            }
+
+
+            if (
+              selected.length ===
+              DESKTOP_WALL_COUNT
+            ) {
+
+              wall =
+                buildDesktopWall(
+
+                  selected,
+
+                  stageSize.width,
+
+                  stageSize.height
+                )
+
+
+              poolRef.current.push(
+                ...leftovers
+              )
+            }
+          }
+
+
+          if (
+            cancelled
+          ) {
+
+            return
+          }
+
+
+          if (!wall) {
 
             poolRef.current.push(
-              ...leftovers
+              ...firstBatch
             )
 
 
@@ -3113,12 +3799,6 @@ export default function FadeGallery() {
 
             return
           }
-
-
-          const wall =
-            buildWallFromImages(
-              selected
-            )
 
 
           setWallA(
@@ -3126,9 +3806,17 @@ export default function FadeGallery() {
           )
 
 
+          wallARef.current =
+            wall
+
+
           setWallB(
             null
           )
+
+
+          wallBRef.current =
+            null
 
 
           setFrontBuffer(
@@ -3147,30 +3835,6 @@ export default function FadeGallery() {
 
           initInProgressRef.current =
             false
-
-
-          poolRef.current.push(
-            ...leftovers
-          )
-
-
-          requestAnimationFrame(
-            () => {
-
-              if (
-                cancelled
-              ) {
-                return
-              }
-
-
-              setSlides(
-                firstBatch.map(
-                  makeSlide
-                )
-              )
-            }
-          )
 
         } catch (error) {
 
@@ -3229,22 +3893,9 @@ export default function FadeGallery() {
       : wallB
 
 
-  /* =========================================================
-     BREAKPOINT MODE SWAP
-
-     THIS IS THE IMPORTANT CHANGE.
-
-     We do NOT preserve the wrong wall count.
-
-     9 -> 6 immediately on entering mobile.
-     6 -> 9 immediately on entering desktop.
-
-     No breakpoint fade.
-  ========================================================= */
-
-  const viewportModeRef =
-    useRef(null)
-
+  /* =======================================================
+     BREAKPOINT REBUILD
+  ======================================================= */
 
   const breakpointSwapRef =
     useRef(0)
@@ -3252,290 +3903,73 @@ export default function FadeGallery() {
 
   useEffect(() => {
 
-    if (
-      !stageSize.width ||
-      !stageSize.height ||
-      !currentWall
-    ) {
-
-      return
-    }
-
-
-    const nowMobile =
-      stageSize.width <
-      MOBILE_BREAKPOINT
-
-
-    /*
-      First measurement only establishes the current mode.
-    */
-
-    if (
-      viewportModeRef.current ===
-      null
-    ) {
-
-      viewportModeRef.current =
-        nowMobile
-
-      return
-    }
-
-
-    /*
-      Width changed but breakpoint did not.
-    */
-
-    if (
-      viewportModeRef.current ===
-      nowMobile
-    ) {
-
-      return
-    }
-
-
-    viewportModeRef.current =
-      nowMobile
-
-
-    const swapId =
-      ++breakpointSwapRef.current
-
-
-    /*
-      Kill any whole-wall transition currently underway.
-
-      Breakpoint changes are authoritative.
-    */
-
-    clearTimeout(
-      wallFadeTimerRef.current
-    )
-
-
-    wallFrameCleanupRef
-      .current?.()
-
-
-    wallFrameCleanupRef.current =
-      null
-
-
-    setWallFadeTarget(
-      null
-    )
-
-
-    wallTransitioningRef.current =
-      true
-
-
-    const activeWall =
-      frontBufferRef.current ===
-      'A'
-        ? wallA
-        : wallB
-
-
-    if (
-      !activeWall
-    ) {
-
-      wallTransitioningRef.current =
-        false
-
-      return
-    }
-
-
-    const activeImages =
-      activeWall.slots.map(
-        slot =>
-          slot.image
+    const mediaQuery =
+      window.matchMedia(
+        `(max-width: ${
+          MOBILE_BREAKPOINT -
+          1
+        }px)`
       )
 
 
-    /* -----------------------------------------------------
-       DESKTOP -> MOBILE
-
-       This path is genuinely immediate because we already
-       have 9 images. Keep six and put the remaining three
-       back into the future pool.
-    ----------------------------------------------------- */
-
-    if (
-      nowMobile
-    ) {
-
-      const mobileImages =
-        activeImages.slice(
-          0,
-          MOBILE_WALL_COUNT
-        )
+    let currentMode =
+      mediaQuery.matches
 
 
-      const returnedImages =
-        activeImages.slice(
-          MOBILE_WALL_COUNT
-        )
+    const handleChange =
+      async event => {
 
-
-      /*
-        Put dropped desktop frames back near the front of
-        the pool rather than losing them.
-      */
-
-      if (
-        returnedImages.length
-      ) {
-
-        poolRef.current.unshift(
-          ...returnedImages
-        )
-      }
-
-
-      const mobileWall =
-        buildMobileWall(
-          mobileImages
-        )
-
-
-      /*
-        Direct install.
-        No crossfade.
-      */
-
-      setWallA(
-        mobileWall
-      )
-
-
-      setWallB(
-        null
-      )
-
-
-      setFrontBuffer(
-        'A'
-      )
-
-
-      frontBufferRef.current =
-        'A'
-
-
-      lastSlotRef.current =
-        -1
-
-
-      lastUpdatedRef.current =
-        Array(
-          DESKTOP_WALL_COUNT
-        ).fill(0)
-
-
-      wallTransitioningRef.current =
-        false
-
-
-      return
-    }
-
-
-    /* -----------------------------------------------------
-       MOBILE -> DESKTOP
-
-       Keep the six current images and obtain three more.
-
-       Usually these are already in the pool and the swap
-       completes effectively immediately.
-
-       If the pool must fetch, we wait only for those three.
-    ----------------------------------------------------- */
-
-    let cancelled =
-      false
-
-
-    const switchToDesktop =
-      async () => {
-
-        const desktopImages = [
-          ...activeImages.slice(
-            0,
-            MOBILE_WALL_COUNT
-          )
-        ]
-
-
-        while (
-          desktopImages.length <
-          DESKTOP_WALL_COUNT
-        ) {
-
-          const image =
-            pullNextImage()
-
-
-          if (
-            image
-          ) {
-
-            desktopImages.push(
-              image
-            )
-
-            continue
-          }
-
-
-          const fetched =
-            await fetchImages()
-
-
-          if (
-            cancelled ||
-            swapId !==
-            breakpointSwapRef.current
-          ) {
-
-            return
-          }
-
-
-          if (
-            !fetched.length &&
-            poolRef.current.length ===
-              0
-          ) {
-
-            break
-          }
-        }
+        const nowMobile =
+          event.matches
 
 
         if (
-          cancelled ||
-          swapId !==
-          breakpointSwapRef.current
+          nowMobile ===
+          currentMode
         ) {
 
           return
         }
 
 
-        if (
-          desktopImages.length <
-          DESKTOP_WALL_COUNT
-        ) {
+        currentMode =
+          nowMobile
 
-          console.warn(
-            'Fade2 could not complete desktop breakpoint rebuild'
-          )
 
+        const swapId =
+          ++breakpointSwapRef.current
+
+
+        clearTimeout(
+          wallFadeTimerRef.current
+        )
+
+
+        wallFrameCleanupRef
+          .current?.()
+
+
+        wallFrameCleanupRef.current =
+          null
+
+
+        setWallFadeTarget(
+          null
+        )
+
+
+        wallTransitioningRef.current =
+          true
+
+
+        const activeWall =
+          frontBufferRef.current ===
+          'A'
+            ? wallARef.current
+            : wallBRef.current
+
+
+        if (!activeWall) {
 
           wallTransitioningRef.current =
             false
@@ -3545,18 +3979,240 @@ export default function FadeGallery() {
 
 
         /*
-          stageSize already reflects the new desktop
-          16:9 stage at this point.
+          Wait for the CSS stage to switch from 16:9 to
+          9:19.5 or vice versa before calculating the new
+          composition.
         */
+
+        await new Promise(
+          resolve => {
+
+            requestAnimationFrame(
+              () => {
+
+                requestAnimationFrame(
+                  resolve
+                )
+              }
+            )
+          }
+        )
+
+
+        if (
+          swapId !==
+          breakpointSwapRef.current
+        ) {
+
+          return
+        }
+
+
+        const {
+          width,
+          height
+        } =
+          stageSizeRef.current
+
+
+        /* -----------------------------------------------
+           DESKTOP -> MOBILE
+        ----------------------------------------------- */
+
+        if (
+          nowMobile
+        ) {
+
+          const activeImages =
+            activeWall.slots.map(
+              slot =>
+                slot.image
+            )
+
+
+          const candidates = [
+
+            ...activeImages,
+
+            ...poolRef.current
+          ]
+
+
+          const result =
+            buildMobileWallFromCandidates(
+
+              candidates,
+
+              width,
+
+              height
+            )
+
+
+          if (!result) {
+
+            wallTransitioningRef.current =
+              false
+
+            return
+          }
+
+
+          const selectedKeys =
+            new Set(
+              result.images.map(
+                getMediaKey
+              )
+            )
+
+
+          poolRef.current =
+            candidates.filter(
+              image =>
+                !selectedKeys.has(
+                  getMediaKey(image)
+                )
+            )
+
+
+          noteImagesConsumed(
+            result.images
+          )
+
+
+          const mobileWall =
+            result.wall
+
+
+          setWallA(
+            mobileWall
+          )
+
+
+          wallARef.current =
+            mobileWall
+
+
+          setWallB(
+            null
+          )
+
+
+          wallBRef.current =
+            null
+
+
+          setFrontBuffer(
+            'A'
+          )
+
+
+          frontBufferRef.current =
+            'A'
+
+
+          lastSlotRef.current =
+            -1
+
+
+          lastUpdatedRef.current =
+            Array(
+              DESKTOP_WALL_COUNT
+            ).fill(0)
+
+
+          wallTransitioningRef.current =
+            false
+
+
+          return
+        }
+
+
+        /* -----------------------------------------------
+           MOBILE -> DESKTOP
+        ----------------------------------------------- */
+
+        const desktopImages =
+          activeWall.slots
+            .map(
+              slot =>
+                slot.image
+            )
+            .slice(
+              0,
+              MOBILE_WALL_COUNT
+            )
+
+
+        while (
+          desktopImages.length <
+          DESKTOP_WALL_COUNT
+        ) {
+
+          let next =
+            pullNextImage()
+
+
+          if (!next) {
+
+            const fetched =
+              await fetchImages()
+
+
+            if (
+              swapId !==
+              breakpointSwapRef.current
+            ) {
+
+              return
+            }
+
+
+            if (
+              !fetched.length
+            ) {
+
+              break
+            }
+
+
+            next =
+              pullNextImage()
+          }
+
+
+          if (
+            next
+          ) {
+
+            desktopImages.push(
+              next
+            )
+          }
+        }
+
+
+        if (
+          desktopImages.length <
+          DESKTOP_WALL_COUNT
+        ) {
+
+          wallTransitioningRef.current =
+            false
+
+          return
+        }
+
 
         const desktopWall =
           buildDesktopWall(
 
             desktopImages,
 
-            stageSize.width,
+            width,
 
-            stageSize.height
+            height
           )
 
 
@@ -3565,9 +4221,17 @@ export default function FadeGallery() {
         )
 
 
+        wallARef.current =
+          desktopWall
+
+
         setWallB(
           null
         )
+
+
+        wallBRef.current =
+          null
 
 
         setFrontBuffer(
@@ -3594,19 +4258,21 @@ export default function FadeGallery() {
       }
 
 
-    switchToDesktop()
+    mediaQuery.addEventListener(
+      'change',
+      handleChange
+    )
 
 
     return () => {
 
-      cancelled =
-        true
+      mediaQuery.removeEventListener(
+        'change',
+        handleChange
+      )
     }
 
-  }, [
-    stageSize.width,
-    stageSize.height
-  ])
+  }, [])
 
 
   /* =======================================================
@@ -3724,13 +4390,11 @@ export default function FadeGallery() {
 
           const wall =
             activeBuffer === 'A'
-              ? wallA
-              : wallB
+              ? wallARef.current
+              : wallBRef.current
 
 
-          if (
-            !wall
-          ) {
+          if (!wall) {
 
             return
           }
@@ -3748,17 +4412,32 @@ export default function FadeGallery() {
             ]
 
 
-          if (
-            !slot
-          ) {
+          if (!slot) {
+
             return
           }
 
 
-          const replacement =
-            await pullMatchingImage(
-              slot.ratioKey
-            )
+          let replacement
+
+
+          if (
+            wall.mode ===
+            'mobile'
+          ) {
+
+            replacement =
+              await pullBestMobileMatch(
+                slot.targetRatio
+              )
+
+          } else {
+
+            replacement =
+              await pullExactDesktopMatch(
+                slot.ratioKey
+              )
+          }
 
 
           if (
@@ -3779,11 +4458,12 @@ export default function FadeGallery() {
                 if (
                   !previous
                 ) {
+
                   return previous
                 }
 
 
-                return {
+                const next = {
 
                   ...previous,
 
@@ -3796,6 +4476,7 @@ export default function FadeGallery() {
                         index ===
                         slotIndex
                           ? {
+
                               ...existing,
 
                               image:
@@ -3804,6 +4485,13 @@ export default function FadeGallery() {
                           : existing
                     )
                 }
+
+
+                wallARef.current =
+                  next
+
+
+                return next
               }
             )
 
@@ -3815,11 +4503,12 @@ export default function FadeGallery() {
                 if (
                   !previous
                 ) {
+
                   return previous
                 }
 
 
-                return {
+                const next = {
 
                   ...previous,
 
@@ -3832,6 +4521,7 @@ export default function FadeGallery() {
                         index ===
                         slotIndex
                           ? {
+
                               ...existing,
 
                               image:
@@ -3840,6 +4530,13 @@ export default function FadeGallery() {
                           : existing
                     )
                 }
+
+
+                wallBRef.current =
+                  next
+
+
+                return next
               }
             )
           }
@@ -3858,9 +4555,7 @@ export default function FadeGallery() {
 
   }, [
     currentWall?.id,
-    frontBuffer,
-    wallA,
-    wallB
+    frontBuffer
   ])
 
 
@@ -3891,9 +4586,19 @@ export default function FadeGallery() {
           }
 
 
-          wallTransitioningRef
-            .current =
+          wallTransitioningRef.current =
             true
+
+
+          const mobile =
+            window
+              .matchMedia(
+                `(max-width: ${
+                  MOBILE_BREAKPOINT -
+                  1
+                }px)`
+              )
+              .matches
 
 
           const activeBuffer =
@@ -3907,18 +4612,20 @@ export default function FadeGallery() {
 
 
           const newWall =
-            await createNewWall({
-              preload:
-                true
-            })
+            mobile
+              ? await createMobileWall({
+                  preload: true
+                })
+              : await createDesktopWall({
+                  preload: true
+                })
 
 
           if (
             !newWall
           ) {
 
-            wallTransitioningRef
-              .current =
+            wallTransitioningRef.current =
               false
 
             return
@@ -3933,11 +4640,19 @@ export default function FadeGallery() {
               newWall
             )
 
+
+            wallARef.current =
+              newWall
+
           } else {
 
             setWallB(
               newWall
             )
+
+
+            wallBRef.current =
+              newWall
           }
 
 
@@ -3973,8 +4688,7 @@ export default function FadeGallery() {
                       )
 
 
-                      wallTransitioningRef
-                        .current =
+                      wallTransitioningRef.current =
                         false
 
                     },
@@ -3998,9 +4712,7 @@ export default function FadeGallery() {
     }
 
   }, [
-    currentWall?.id,
-    stageSize.width,
-    stageSize.height
+    currentWall?.id
   ])
 
 
@@ -4400,20 +5112,16 @@ export default function FadeGallery() {
             toggleBlackMode
           }
           initial={{
-            opacity:
-              0.2
+            opacity: 0.2
           }}
           animate={{
-            opacity:
-              0.2
+            opacity: 0.2
           }}
           whileHover={{
-            opacity:
-              1
+            opacity: 1
           }}
           transition={{
-            duration:
-              2
+            duration: 2
           }}
           className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
           aria-label="Enter Blackmode"
@@ -4433,11 +5141,8 @@ export default function FadeGallery() {
             toggleBlackMode
           }
           initial={{
-            opacity:
-              0,
-
-            scale:
-              0.95
+            opacity: 0,
+            scale: 0.95
           }}
           animate={{
 
@@ -4452,15 +5157,11 @@ export default function FadeGallery() {
                 : 0.95
           }}
           whileHover={{
-            opacity:
-              1
+            opacity: 1
           }}
           transition={{
-            duration:
-              2,
-
-            ease:
-              'easeInOut'
+            duration: 2,
+            ease: 'easeInOut'
           }}
           className="fixed top-4 right-4 text-2xl z-[9999] cursor-pointer text-white"
           aria-label="Exit Blackmode"
@@ -4472,6 +5173,21 @@ export default function FadeGallery() {
 
       )}
 
+
+      {/*
+        NORMAL PAGE:
+
+        Mobile outer gutters deliberately match /wall:
+          16px left
+          16px right
+
+        Desktop keeps the existing 64px lg gutters.
+
+        BLACK MODE:
+
+        No page gutters at all.
+        The mobile Fade2 canvas becomes full viewport width.
+      */}
 
       <div
         className={
@@ -4551,17 +5267,28 @@ export default function FadeGallery() {
         >
 
           {/*
-            MOBILE:
-              6 images
-              9:19.5 portrait
-              full width
+            NORMAL MOBILE:
+
+              available width =
+                viewport width - 32px
+
+              stage =
+                9:19.5 inside that width
+
+            BLACK MODE MOBILE:
+
+              available width =
+                full viewport width
+
+              stage =
+                9:19.5 at full width
+
+              any excess vertical extent is deliberately
+              cropped by the fullscreen wrapper.
 
             DESKTOP:
-              9 images
-              16:9
 
-            Crossing md changes the actual wall count
-            immediately. There is no temporary fallback.
+              16:9
           */}
 
           <div
