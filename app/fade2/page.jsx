@@ -68,6 +68,9 @@ const MIN_IMAGES_BETWEEN_WEBMS =
 const MAX_MOBILE_RATIO_DISTANCE =
   Math.log(1.32)
 
+const MAX_DESKTOP_RATIO_DISTANCE =
+  Math.log(1.35)
+
 
 /* =========================================================
    MEDIA
@@ -1365,6 +1368,10 @@ function buildDesktopLayout(
 
   let score = 0
 
+  let worstDistance = 0
+
+  let invalid = false
+
 
   finalRects.forEach(
     (
@@ -1376,6 +1383,8 @@ function buildDesktopLayout(
 
         score +=
           1000
+
+        invalid = true
 
         return
       }
@@ -1394,12 +1403,40 @@ function buildDesktopLayout(
         rect.height
 
 
+      const distance =
+        ratioDistance(
+          imageRatio,
+          cellRatio
+        )
+
+
+      worstDistance =
+        Math.max(
+          worstDistance,
+          distance
+        )
+
+
+      /*
+        DESKTOP SANITY VETO
+
+        A strong overall Tetris is not allowed to hide one
+        completely deranged crop.
+      */
+
+      if (
+        distance >
+        MAX_DESKTOP_RATIO_DISTANCE
+      ) {
+
+        invalid = true
+      }
+
+
       score +=
-        Math.abs(
-          Math.log(
-            cellRatio /
-            imageRatio
-          )
+        ratioPenalty(
+          imageRatio,
+          cellRatio
         )
     }
   )
@@ -1410,7 +1447,11 @@ function buildDesktopLayout(
     rects:
       finalRects,
 
-    score
+    score,
+
+    worstDistance,
+
+    invalid
   }
 }
 
@@ -1449,13 +1490,40 @@ function chooseBestDesktopConfiguration(
 
 
           /*
-            Average distortion per image lets 8, 9, 10
-            and 11 remain conceptually comparable.
+            HARD SANITY RULE.
+
+            If even one cell exceeds our maximum allowable
+            AR mismatch, this entire configuration is dead.
+          */
+
+          if (
+            layout.invalid ||
+            layout.worstDistance >
+              MAX_DESKTOP_RATIO_DISTANCE
+          ) {
+
+            return null
+          }
+
+
+          /*
+            Compare average distortion per slot so the
+            different desktop densities remain comparable.
           */
 
           let score =
             layout.score /
             count
+
+
+          /*
+            When two configurations have similar averages,
+            gently favor the one with the better worst slot.
+          */
+
+          score +=
+            layout.worstDistance *
+            0.12
 
 
           if (
@@ -1477,10 +1545,14 @@ function chooseBestDesktopConfiguration(
 
             ...candidate,
 
-            score
+            score,
+
+            worstDistance:
+              layout.worstDistance
           }
         }
       )
+      .filter(Boolean)
 
 
   candidates.sort(
@@ -4249,7 +4321,7 @@ export default function FadeGallery() {
       }
 
 
-      const count =
+      const firstCount =
         preferredCount ||
         chooseDesktopCount(
           lastDesktopCountRef
@@ -4257,51 +4329,215 @@ export default function FadeGallery() {
         )
 
 
-      const images =
-        await getImagesForWall(
-          count
+      const alternateCounts =
+        [8, 9, 10, 11]
+          .filter(
+            count =>
+              count !==
+              firstCount
+          )
+          .sort(
+            () =>
+              Math.random() -
+              0.5
+          )
+
+
+      const countsToTry = [
+
+        firstCount,
+
+        ...alternateCounts
+      ]
+
+
+      /*
+        New desktop grids are tested before they consume the
+        pool. If a count/configuration would create even one
+        insane crop, try another subset or another density.
+      */
+
+      for (
+        let fetchRound = 0;
+        fetchRound < 5;
+        fetchRound++
+      ) {
+
+        await ensurePoolSize(
+          DESKTOP_SELECTION_POOL,
+          1
         )
 
 
-      if (
-        images.length <
-        count
-      ) {
+        for (
+          const count of
+          countsToTry
+        ) {
+
+          const candidateWindow =
+            poolRef.current.slice(
+              0,
+              Math.min(
+                poolRef.current.length,
+                DESKTOP_SELECTION_POOL
+              )
+            )
+
+
+          if (
+            candidateWindow.length <
+            count
+          ) {
+
+            continue
+          }
+
+
+          const subsets = [
+            candidateWindow.slice(
+              0,
+              count
+            )
+          ]
+
+
+          /*
+            Give the same candidate universe several chances
+            to find a sane Tetris assignment without relaxing
+            the hard crop ceiling.
+          */
+
+          for (
+            let attempt = 0;
+            attempt < 10;
+            attempt++
+          ) {
+
+            const shuffled =
+              [
+                ...candidateWindow
+              ].sort(
+                () =>
+                  Math.random() -
+                  0.5
+              )
+
+
+            subsets.push(
+              shuffled.slice(
+                0,
+                count
+              )
+            )
+          }
+
+
+          for (
+            const images of
+            subsets
+          ) {
+
+            const template =
+              chooseBestDesktopConfiguration(
+
+                images,
+
+                width,
+
+                height,
+
+                lastDesktopTemplateRef
+                  .current
+              )
+
+
+            if (!template) {
+
+              continue
+            }
+
+
+            const selectedKeys =
+              new Set(
+                images.map(
+                  getMediaKey
+                )
+              )
+
+
+            poolRef.current =
+              poolRef.current.filter(
+                image =>
+                  !selectedKeys.has(
+                    getMediaKey(
+                      image
+                    )
+                  )
+              )
+
+
+            noteImagesConsumed(
+              images
+            )
+
+
+            if (
+              preload
+            ) {
+
+              await Promise.all(
+                images.map(
+                  preloadMedia
+                )
+              )
+            }
+
+
+            lastDesktopTemplateRef.current =
+              template.id
+
+
+            lastDesktopCountRef.current =
+              count
+
+
+            return makeDesktopWall(
+
+              images,
+
+              template,
+
+              Date.now() +
+              Math.random()
+            )
+          }
+        }
+
 
         /*
-          Put partial selection back rather than silently
-          losing it.
+          Current candidates cannot make a sane desktop wall.
+          Grow the pool instead of accepting a bad crop.
         */
 
-        poolRef.current.unshift(
-          ...images
-        )
+        const fetched =
+          await fetchImages()
 
 
-        return null
+        if (
+          !fetched.length
+        ) {
+
+          break
+        }
       }
 
 
-      if (
-        preload
-      ) {
-
-        await Promise.all(
-          images.map(
-            preloadMedia
-          )
-        )
-      }
-
-
-      return buildDesktopWall(
-
-        images,
-
-        width,
-
-        height
+      console.warn(
+        'Fade2 could not build a sane desktop wall from the available AR mix'
       )
+
+
+      return null
     }
 
 
@@ -5923,7 +6159,7 @@ export default function FadeGallery() {
           same 16px outer gutters as /wall
 
         MOBILE STAGE:
-          fixed 9:19.5
+          fixed 9:19
           variable 6–9 image composition
 
         DESKTOP STAGE:
@@ -6016,7 +6252,7 @@ export default function FadeGallery() {
             ref={
               stageRef
             }
-            className="relative w-full overflow-hidden aspect-[9/19.5] md:aspect-[16/9]"
+            className="relative w-full overflow-hidden aspect-[9/19] md:aspect-[16/9]"
           >
 
             {loader && (
