@@ -40,24 +40,33 @@ const GAP = 10
 
 const MOBILE_BREAKPOINT = 768
 
-const DESKTOP_WALL_COUNT = 9
+const MOBILE_SELECTION_POOL = 15
+const DESKTOP_SELECTION_POOL = 14
 
-/*
-  We no longer have one fixed mobile image count.
-
-  The template decides:
-    6
-    7
-    8
-    or 9
-*/
-
-const MOBILE_SELECTION_POOL = 13
+const MAX_WALL_COUNT = 11
 
 const WEBM_INTERVAL = 20
 
 const MIN_IMAGES_BETWEEN_WEBMS =
   WEBM_INTERVAL - 1
+
+
+/*
+  This is the important new mobile sanity ceiling.
+
+  A 1.32 ratio means:
+
+    target 1.50
+    candidate up to about 1.98
+
+  or equivalently in the other direction.
+
+  That's enough room for visible crop without allowing a
+  frame to be shoved into a fundamentally alien shape.
+*/
+
+const MAX_MOBILE_RATIO_DISTANCE =
+  Math.log(1.32)
 
 
 /* =========================================================
@@ -116,6 +125,23 @@ function afterTwoFrames(callback) {
 }
 
 
+function waitTwoFrames() {
+  return new Promise(
+    resolve => {
+
+      requestAnimationFrame(
+        () => {
+
+          requestAnimationFrame(
+            resolve
+          )
+        }
+      )
+    }
+  )
+}
+
+
 function preloadMedia(photo) {
   return new Promise(resolve => {
 
@@ -129,8 +155,7 @@ function preloadMedia(photo) {
     }
 
 
-    let finished =
-      false
+    let finished = false
 
 
     const finish =
@@ -141,8 +166,7 @@ function preloadMedia(photo) {
         }
 
 
-        finished =
-          true
+        finished = true
 
 
         clearTimeout(
@@ -321,7 +345,7 @@ function ratioDistance(
     !targetRatio
   ) {
 
-    return 100
+    return Infinity
   }
 
 
@@ -345,28 +369,45 @@ function ratioPenalty(
     )
 
 
+  if (
+    !Number.isFinite(
+      distance
+    )
+  ) {
+
+    return Infinity
+  }
+
+
   let penalty =
     distance *
     distance *
     8
 
 
-  /*
-    Once the mismatch gets large, make it increasingly
-    unattractive.
-
-    Still not forbidden.
-  */
-
   if (
     distance >
-    Math.log(1.35)
+    Math.log(1.20)
   ) {
 
     penalty +=
       (
         distance -
-        Math.log(1.35)
+        Math.log(1.20)
+      ) *
+      2
+  }
+
+
+  if (
+    distance >
+    Math.log(1.28)
+  ) {
+
+    penalty +=
+      (
+        distance -
+        Math.log(1.28)
       ) *
       8
   }
@@ -433,7 +474,6 @@ function makeSlide(photo) {
 
       sources: [
         {
-
           src,
 
           type:
@@ -487,52 +527,288 @@ function makeSlide(photo) {
 
 
 /* =========================================================
-   DESKTOP TETRIS
+   DESKTOP VARIABLE-DENSITY TETRIS
+
+   Same solver philosophy as the desktop version we liked.
+
+   The difference is that each configuration declares a
+   different total image count.
+
+   8 and 11:
+     occasional
+
+   9 and 10:
+     center of gravity
 ========================================================= */
 
-const WALL_CONFIGURATIONS = [
+const DESKTOP_CONFIGURATIONS = [
 
-  [
-    [1, 2, 1],
-    [2, 1, 2]
-  ],
+  /* -------------------------
+     8-UP
+  ------------------------- */
 
-  [
-    [2, 1, 1],
-    [1, 2, 2]
-  ],
+  {
+    id: '8-a',
+    count: 8,
+    configuration: [
+      [1, 2, 1],
+      [1, 2, 1]
+    ]
+  },
 
-  [
-    [1, 1, 2],
-    [2, 2, 1]
-  ],
+  {
+    id: '8-b',
+    count: 8,
+    configuration: [
+      [2, 1, 1],
+      [1, 1, 2]
+    ]
+  },
 
-  [
-    [2, 2],
-    [1, 2, 2]
-  ],
+  {
+    id: '8-c',
+    count: 8,
+    configuration: [
+      [2, 2],
+      [2, 2]
+    ]
+  },
 
-  [
-    [1, 2, 2],
-    [2, 2]
-  ],
+  {
+    id: '8-d',
+    count: 8,
+    configuration: [
+      [1, 1, 2],
+      [2, 1, 1]
+    ]
+  },
 
-  [
-    [1, 1, 1],
-    [2, 2, 2]
-  ],
 
-  [
-    [2, 2, 1],
-    [1, 1, 2]
-  ],
+  /* -------------------------
+     9-UP
+  ------------------------- */
 
-  [
-    [2, 1, 2],
-    [1, 2, 1]
-  ]
+  {
+    id: '9-a',
+    count: 9,
+    configuration: [
+      [1, 2, 1],
+      [2, 1, 2]
+    ]
+  },
+
+  {
+    id: '9-b',
+    count: 9,
+    configuration: [
+      [2, 1, 1],
+      [1, 2, 2]
+    ]
+  },
+
+  {
+    id: '9-c',
+    count: 9,
+    configuration: [
+      [1, 1, 2],
+      [2, 2, 1]
+    ]
+  },
+
+  {
+    id: '9-d',
+    count: 9,
+    configuration: [
+      [2, 2],
+      [1, 2, 2]
+    ]
+  },
+
+  {
+    id: '9-e',
+    count: 9,
+    configuration: [
+      [1, 2, 2],
+      [2, 2]
+    ]
+  },
+
+  {
+    id: '9-f',
+    count: 9,
+    configuration: [
+      [1, 1, 1],
+      [2, 2, 2]
+    ]
+  },
+
+
+  /* -------------------------
+     10-UP
+  ------------------------- */
+
+  {
+    id: '10-a',
+    count: 10,
+    configuration: [
+      [2, 2, 1],
+      [1, 2, 2]
+    ]
+  },
+
+  {
+    id: '10-b',
+    count: 10,
+    configuration: [
+      [1, 2, 2],
+      [2, 1, 2]
+    ]
+  },
+
+  {
+    id: '10-c',
+    count: 10,
+    configuration: [
+      [2, 1, 2],
+      [2, 2, 1]
+    ]
+  },
+
+  {
+    id: '10-d',
+    count: 10,
+    configuration: [
+      [1, 1, 1, 1],
+      [2, 2, 2]
+    ]
+  },
+
+
+  /* -------------------------
+     11-UP
+  ------------------------- */
+
+  {
+    id: '11-a',
+    count: 11,
+    configuration: [
+      [2, 2, 2],
+      [2, 1, 2]
+    ]
+  },
+
+  {
+    id: '11-b',
+    count: 11,
+    configuration: [
+      [2, 1, 2],
+      [2, 2, 2]
+    ]
+  },
+
+  {
+    id: '11-c',
+    count: 11,
+    configuration: [
+      [1, 2, 2, 1],
+      [2, 1, 2]
+    ]
+  }
 ]
 
+
+function getDesktopDensityWeight(
+  count
+) {
+  if (
+    count === 9 ||
+    count === 10
+  ) {
+
+    return 3
+  }
+
+
+  return 1.3
+}
+
+
+function chooseDesktopCount(
+  previousCount = null
+) {
+  const options =
+    [8, 9, 10, 11]
+
+
+  const weighted =
+    options.map(
+      count => {
+
+        let weight =
+          getDesktopDensityWeight(
+            count
+          )
+
+
+        if (
+          count ===
+          previousCount
+        ) {
+
+          weight *=
+            0.45
+        }
+
+
+        return {
+          count,
+          weight
+        }
+      }
+    )
+
+
+  const total =
+    weighted.reduce(
+      (
+        sum,
+        item
+      ) =>
+        sum +
+        item.weight,
+      0
+    )
+
+
+  let roll =
+    Math.random() *
+    total
+
+
+  for (
+    const item of weighted
+  ) {
+
+    roll -=
+      item.weight
+
+
+    if (
+      roll <= 0
+    ) {
+
+      return item.count
+    }
+  }
+
+
+  return 9
+}
+
+
+/* =========================================================
+   DESKTOP TETRIS SOLVER
+========================================================= */
 
 function getPreferredBand(
   items,
@@ -857,16 +1133,45 @@ function solveFixedBand(
 }
 
 
+function getConfigurationCount(
+  configuration
+) {
+  return configuration.reduce(
+    (
+      total,
+      band
+    ) =>
+      total +
+      band.reduce(
+        (
+          bandTotal,
+          value
+        ) =>
+          bandTotal +
+          value,
+        0
+      ),
+    0
+  )
+}
+
+
 function buildDesktopLayout(
   images,
   configuration,
   stageWidth,
   stageHeight
 ) {
+  const requiredCount =
+    getConfigurationCount(
+      configuration
+    )
+
+
   if (
     !images ||
     images.length !==
-      DESKTOP_WALL_COUNT ||
+      requiredCount ||
     !stageWidth ||
     !stageHeight
   ) {
@@ -985,7 +1290,7 @@ function buildDesktopLayout(
 
   const finalRects =
     Array(
-      DESKTOP_WALL_COUNT
+      images.length
     ).fill(
       null
     )
@@ -1110,57 +1415,72 @@ function buildDesktopLayout(
 }
 
 
-function chooseBestConfiguration(
+function chooseBestDesktopConfiguration(
   images,
   stageWidth,
   stageHeight,
-  previousIndex = -1
+  previousTemplateId = null
 ) {
+  const count =
+    images.length
+
+
   const candidates =
-    WALL_CONFIGURATIONS.map(
-      (
-        configuration,
-        index
-      ) => {
+    DESKTOP_CONFIGURATIONS
+      .filter(
+        candidate =>
+          candidate.count ===
+          count
+      )
+      .map(
+        candidate => {
 
-        const layout =
-          buildDesktopLayout(
-            images,
-            configuration,
-            stageWidth,
-            stageHeight
-          )
+          const layout =
+            buildDesktopLayout(
+
+              images,
+
+              candidate.configuration,
+
+              stageWidth,
+
+              stageHeight
+            )
 
 
-        let score =
-          layout.score
+          /*
+            Average distortion per image lets 8, 9, 10
+            and 11 remain conceptually comparable.
+          */
+
+          let score =
+            layout.score /
+            count
 
 
-        if (
-          index ===
-          previousIndex
-        ) {
+          if (
+            candidate.id ===
+            previousTemplateId
+          ) {
+
+            score +=
+              0.035
+          }
+
 
           score +=
-            0.06
+            Math.random() *
+            0.01
+
+
+          return {
+
+            ...candidate,
+
+            score
+          }
         }
-
-
-        score +=
-          Math.random() *
-          0.015
-
-
-        return {
-
-          index,
-
-          configuration,
-
-          score
-        }
-      }
-    )
+      )
 
 
   candidates.sort(
@@ -1173,23 +1493,19 @@ function chooseBestConfiguration(
   )
 
 
-  return candidates[0]
+  return (
+    candidates[0] ||
+    null
+  )
 }
 
 
 /* =========================================================
-   MOBILE TEMPLATE LIBRARY
+   MOBILE VARIABLE-DENSITY TEMPLATE LIBRARY
 
-   Different templates now have different image counts.
+   6 / 7 / 8 / 9 images.
 
-   All of them fill the same permanent 9:19.5 canvas.
-
-   row.count:
-     1 = full-width
-     2 = paired
-
-   row.weight:
-     relative vertical share of the stage
+   Unlike the old mobile system, the grid owns the geometry.
 ========================================================= */
 
 const MOBILE_TEMPLATES = [
@@ -1199,12 +1515,8 @@ const MOBILE_TEMPLATES = [
   ------------------------- */
 
   {
-
     id:
       '6-balanced-a',
-
-    density:
-      6,
 
     rows: [
 
@@ -1231,12 +1543,8 @@ const MOBILE_TEMPLATES = [
   },
 
   {
-
     id:
       '6-balanced-b',
-
-    density:
-      6,
 
     rows: [
 
@@ -1268,102 +1576,85 @@ const MOBILE_TEMPLATES = [
   ------------------------- */
 
   {
-
     id:
       '7-a',
 
-    density:
-      7,
-
     rows: [
 
       {
         count: 2,
-        weight: 0.19
+        weight: 0.20
       },
 
       {
         count: 1,
-        weight: 0.24
+        weight: 0.25
       },
 
       {
         count: 2,
-        weight: 0.19
+        weight: 0.20
       },
 
       {
         count: 2,
-        weight: 0.19
-      },
-
-      {
-        count: 0,
-        weight: 0
+        weight: 0.35
       }
     ]
   },
 
   {
-
     id:
       '7-b',
 
-    density:
-      7,
-
     rows: [
 
       {
         count: 1,
-        weight: 0.24
+        weight: 0.25
       },
 
       {
         count: 2,
-        weight: 0.19
+        weight: 0.20
       },
 
       {
         count: 2,
-        weight: 0.19
+        weight: 0.35
       },
 
       {
         count: 2,
-        weight: 0.19
+        weight: 0.20
       }
     ]
   },
 
   {
-
     id:
       '7-c',
-
-    density:
-      7,
 
     rows: [
 
       {
         count: 2,
-        weight: 0.19
+        weight: 0.21
       },
 
       {
         count: 2,
-        weight: 0.19
+        weight: 0.21
       },
 
       {
         count: 1,
-        weight: 0.24
+        weight: 0.27
       },
 
       {
         count: 2,
-        weight: 0.19
+        weight: 0.31
       }
     ]
   },
@@ -1374,13 +1665,9 @@ const MOBILE_TEMPLATES = [
   ------------------------- */
 
   {
-
     id:
       '8-a',
 
-    density:
-      8,
-
     rows: [
 
       {
@@ -1411,13 +1698,9 @@ const MOBILE_TEMPLATES = [
   },
 
   {
-
     id:
       '8-b',
 
-    density:
-      8,
-
     rows: [
 
       {
@@ -1448,12 +1731,36 @@ const MOBILE_TEMPLATES = [
   },
 
   {
+    id:
+      '8-c',
 
+    rows: [
+
+      {
+        count: 2,
+        weight: 0.22
+      },
+
+      {
+        count: 2,
+        weight: 0.22
+      },
+
+      {
+        count: 1,
+        weight: 0.28
+      },
+
+      {
+        count: 1,
+        weight: 0.28
+      }
+    ]
+  },
+
+  {
     id:
       '8-pairs',
-
-    density:
-      8,
 
     rows: [
 
@@ -1485,12 +1792,8 @@ const MOBILE_TEMPLATES = [
   ------------------------- */
 
   {
-
     id:
       '9-a',
-
-    density:
-      9,
 
     rows: [
 
@@ -1522,12 +1825,8 @@ const MOBILE_TEMPLATES = [
   },
 
   {
-
     id:
       '9-b',
-
-    density:
-      9,
 
     rows: [
 
@@ -1559,12 +1858,8 @@ const MOBILE_TEMPLATES = [
   },
 
   {
-
     id:
       '9-c',
-
-    density:
-      9,
 
     rows: [
 
@@ -1596,13 +1891,6 @@ const MOBILE_TEMPLATES = [
   }
 ]
 
-
-/*
-  Remove any accidental empty rows before using a template.
-
-  Keeps the template declaration readable while making the
-  geometry code defensive.
-*/
 
 function normalizeMobileTemplate(
   template
@@ -1639,8 +1927,14 @@ function getMobileTemplate(
 
 
 function getMobileTemplateCount(
-  template
+  rawTemplate
 ) {
+  const template =
+    normalizeMobileTemplate(
+      rawTemplate
+    )
+
+
   return template.rows.reduce(
     (
       total,
@@ -1838,17 +2132,18 @@ function buildMobileTemplateLayout(
 
 
 /* =========================================================
-   MOBILE ASSIGNMENT
+   STRICT MOBILE WHOLE-GRID ASSIGNMENT
 
-   IMPORTANT:
+   THIS IS THE CROP FIX.
 
-   targetRatios.length is variable now.
+   For a NEW wall, a candidate is simply illegal for a
+   slot if its AR exceeds our sanity ceiling.
 
-   A 6-up solves six assignments.
-   A 9-up solves nine.
+   Therefore five excellent matches can no longer subsidize
+   one psychotic crop.
 
-   We compare layouts later using AVERAGE penalty per slot,
-   not raw total penalty.
+   A template either receives a sane image in EVERY slot,
+   or the whole template is rejected.
 ========================================================= */
 
 function solveMobileAssignment(
@@ -1869,6 +2164,11 @@ function solveMobileAssignment(
   }
 
 
+  /*
+    Rank by potential usefulness so the exact assignment
+    search doesn't need the entire global pool.
+  */
+
   const ranked =
     candidates
       .map(
@@ -1883,16 +2183,28 @@ function solveMobileAssignment(
             ).ratio
 
 
-          const bestPossibleFit =
-            Math.min(
-              ...targetRatios.map(
+          const legalDistances =
+            targetRatios
+              .map(
                 targetRatio =>
-                  ratioPenalty(
+                  ratioDistance(
                     ratio,
                     targetRatio
                   )
               )
-            )
+              .filter(
+                distance =>
+                  distance <=
+                  MAX_MOBILE_RATIO_DISTANCE
+              )
+
+
+          const bestPossibleDistance =
+            legalDistances.length
+              ? Math.min(
+                  ...legalDistances
+                )
+              : Infinity
 
 
           return {
@@ -1901,9 +2213,15 @@ function solveMobileAssignment(
 
             originalIndex,
 
-            bestPossibleFit
+            bestPossibleDistance
           }
         }
+      )
+      .filter(
+        candidate =>
+          Number.isFinite(
+            candidate.bestPossibleDistance
+          )
       )
       .sort(
         (
@@ -1912,13 +2230,13 @@ function solveMobileAssignment(
         ) => {
 
           if (
-            a.bestPossibleFit !==
-            b.bestPossibleFit
+            a.bestPossibleDistance !==
+            b.bestPossibleDistance
           ) {
 
             return (
-              a.bestPossibleFit -
-              b.bestPossibleFit
+              a.bestPossibleDistance -
+              b.bestPossibleDistance
             )
           }
 
@@ -1963,7 +2281,9 @@ function solveMobileAssignment(
 
           score: 0,
 
-          picks: []
+          picks: [],
+
+          worstDistance: 0
         }
       }
 
@@ -2021,6 +2341,33 @@ function solveMobileAssignment(
           ).ratio
 
 
+        const distance =
+          ratioDistance(
+
+            imageRatio,
+
+            targetRatios[
+              slotIndex
+            ]
+          )
+
+
+        /*
+          HARD VETO.
+
+          No amount of excellence elsewhere in the grid can
+          compensate for this slot exceeding the ceiling.
+        */
+
+        if (
+          distance >
+          MAX_MOBILE_RATIO_DISTANCE
+        ) {
+
+          continue
+        }
+
+
         const localScore =
           ratioPenalty(
 
@@ -2032,7 +2379,7 @@ function solveMobileAssignment(
           ) +
 
           candidate.originalIndex *
-          0.00025
+          0.0002
 
 
         const remainder =
@@ -2046,6 +2393,7 @@ function solveMobileAssignment(
 
 
         if (!remainder) {
+
           continue
         }
 
@@ -2053,6 +2401,15 @@ function solveMobileAssignment(
         const totalScore =
           localScore +
           remainder.score
+
+
+        const worstDistance =
+          Math.max(
+
+            distance,
+
+            remainder.worstDistance
+          )
 
 
         if (
@@ -2065,6 +2422,8 @@ function solveMobileAssignment(
 
             score:
               totalScore,
+
+            worstDistance,
 
             picks: [
 
@@ -2096,28 +2455,18 @@ function solveMobileAssignment(
 
 /* =========================================================
    MOBILE COMPOSITION CHOICE
-
-   This is where different image counts become fair.
-
-   BAD:
-     compare raw total crop penalties
-
-   because:
-     6 slots naturally accumulate fewer penalties than 9.
-
-   GOOD:
-     compare average crop penalty PER SLOT.
-
-   Then:
-     - modest density preference toward 7/8
-     - repeat penalty
-     - keep all layouts reasonably close to the best
-     - choose somewhat randomly among that acceptable set
 ========================================================= */
 
 function getMobileDensityPenalty(
   count
 ) {
+  /*
+    7/8 remain the neutral middle.
+
+    6/9 are absolutely allowed; they simply need to be
+    slightly more compelling.
+  */
+
   if (
     count === 7 ||
     count === 8
@@ -2131,7 +2480,7 @@ function getMobileDensityPenalty(
     count === 9
   ) {
 
-    return 0.015
+    return 0.012
   }
 
 
@@ -2139,7 +2488,7 @@ function getMobileDensityPenalty(
     count === 6
   ) {
 
-    return 0.025
+    return 0.018
   }
 
 
@@ -2198,7 +2547,22 @@ function chooseBestMobileComposition(
         )
 
 
+      /*
+        Any template with even one impossible slot never
+        reaches the lottery.
+      */
+
       if (!assignment) {
+
+        return
+      }
+
+
+      if (
+        assignment.worstDistance >
+        MAX_MOBILE_RATIO_DISTANCE
+      ) {
+
         return
       }
 
@@ -2217,7 +2581,7 @@ function chooseBestMobileComposition(
       const repeatPenalty =
         template.id ===
         previousTemplateId
-          ? 0.08
+          ? 0.075
           : 0
 
 
@@ -2232,6 +2596,9 @@ function chooseBestMobileComposition(
         score,
 
         averageCropPenalty,
+
+        worstDistance:
+          assignment.worstDistance,
 
         slotCount,
 
@@ -2270,16 +2637,11 @@ function chooseBestMobileComposition(
 
 
   /*
-    Don't insist on the mathematical winner.
-
-    Anything this close to the best result is visually
-    acceptable enough to participate.
-
-    This is what restores real compositional variation.
+    Variety remains, but only among already-sane walls.
   */
 
   const ACCEPTABLE_SCORE_WINDOW =
-    0.11
+    0.085
 
 
   const acceptable =
@@ -2291,11 +2653,6 @@ function chooseBestMobileComposition(
     )
 
 
-  /*
-    Mild bias toward better-fitting members of the
-    acceptable group while preserving randomness.
-  */
-
   const weighted =
     acceptable.map(
       evaluation => {
@@ -2305,11 +2662,32 @@ function chooseBestMobileComposition(
           bestScore
 
 
+        /*
+          Also mildly favor the wall with the better
+          worst-case slot.
+        */
+
+        const worstSlotBonus =
+          Math.max(
+            0.015,
+
+            MAX_MOBILE_RATIO_DISTANCE -
+            evaluation.worstDistance
+          )
+
+
         const weight =
-          1 /
           (
-            0.06 +
-            distanceFromBest
+            1 /
+            (
+              0.05 +
+              distanceFromBest
+            )
+          ) *
+          (
+            1 +
+            worstSlotBonus *
+            2
           )
 
 
@@ -2370,8 +2748,7 @@ function chooseBestMobileComposition(
 
 function makeDesktopWall(
   images,
-  configuration,
-  configurationIndex,
+  desktopTemplate,
   id
 ) {
   return {
@@ -2381,9 +2758,11 @@ function makeDesktopWall(
     mode:
       'desktop',
 
-    configuration,
+    desktopTemplateId:
+      desktopTemplate.id,
 
-    configurationIndex,
+    configuration:
+      desktopTemplate.configuration,
 
     slots:
       images.map(
@@ -2616,8 +2995,7 @@ function PersistentFadeSlot({
     }
 
 
-    let cancelled =
-      false
+    let cancelled = false
 
 
     const prepare =
@@ -2711,8 +3089,7 @@ function PersistentFadeSlot({
 
     return () => {
 
-      cancelled =
-        true
+      cancelled = true
     }
 
   }, [
@@ -2911,6 +3288,7 @@ function WallBuffer({
 
 
             if (!rect) {
+
               return null
             }
 
@@ -3042,8 +3420,12 @@ export default function FadeGallery() {
     useRef(null)
 
 
-  const lastConfigurationRef =
-    useRef(-1)
+  const lastDesktopTemplateRef =
+    useRef(null)
+
+
+  const lastDesktopCountRef =
+    useRef(9)
 
 
   const lastMobileTemplateRef =
@@ -3112,15 +3494,10 @@ export default function FadeGallery() {
     useRef(-1)
 
 
-  /*
-    Maximum possible wall size remains nine,
-    so this works for every mobile density.
-  */
-
   const lastUpdatedRef =
     useRef(
       Array(
-        DESKTOP_WALL_COUNT
+        MAX_WALL_COUNT
       ).fill(0)
     )
 
@@ -3143,7 +3520,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      STAGE
-========================================================= */
+  ======================================================= */
 
   const stageRef =
     useRef(null)
@@ -3186,6 +3563,7 @@ export default function FadeGallery() {
 
 
     if (!element) {
+
       return
     }
 
@@ -3248,7 +3626,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      FETCH
-========================================================= */
+  ======================================================= */
 
   const fetchImageBatch =
     async () => {
@@ -3387,7 +3765,7 @@ export default function FadeGallery() {
   const ensurePoolSize =
     async (
       minimum,
-      maxFetches = 3
+      maxFetches = 4
     ) => {
 
       let fetchCount = 0
@@ -3419,7 +3797,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      WEBM ACCOUNTING
-========================================================= */
+  ======================================================= */
 
   const noteImageConsumed =
     image => {
@@ -3458,7 +3836,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      NORMAL STREAM
-========================================================= */
+  ======================================================= */
 
   const pullNextImage =
     () => {
@@ -3552,12 +3930,12 @@ export default function FadeGallery() {
 
       for (
         let attempt = 0;
-        attempt < 30 &&
+        attempt < 40 &&
         result.length < count;
         attempt++
       ) {
 
-        let image =
+        const image =
           pullNextImage()
 
 
@@ -3594,7 +3972,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      DESKTOP EXACT-AR SLOT REPLACEMENT
-========================================================= */
+  ======================================================= */
 
   const pullExactDesktopMatch =
     async ratioKey => {
@@ -3666,29 +4044,35 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     MOBILE SOFT-AR SLOT REPLACEMENT
-========================================================= */
+     MOBILE STRICT SLOT REPLACEMENT
+
+     Slot swaps already looked sane.
+
+     This formalizes that behavior:
+     if we can't find something inside the same crop ceiling,
+     DO NOTHING rather than putting garbage in the slot.
+  ======================================================= */
 
   const pullBestMobileMatch =
     async targetRatio => {
 
-      let bestCandidate =
-        null
-
-
-      let bestIndex =
-        -1
-
-
-      let bestDistance =
-        Infinity
-
-
       for (
         let attempt = 0;
-        attempt < 4;
+        attempt < 5;
         attempt++
       ) {
+
+        let bestCandidate =
+          null
+
+
+        let bestIndex =
+          -1
+
+
+        let bestDistance =
+          Infinity
+
 
         for (
           let i = 0;
@@ -3730,6 +4114,15 @@ export default function FadeGallery() {
 
 
           if (
+            distance >
+            MAX_MOBILE_RATIO_DISTANCE
+          ) {
+
+            continue
+          }
+
+
+          if (
             distance <
             bestDistance
           ) {
@@ -3748,11 +4141,21 @@ export default function FadeGallery() {
 
         if (
           bestCandidate &&
-          bestDistance <=
-          Math.log(1.25)
+          bestIndex >= 0
         ) {
 
-          break
+          poolRef.current.splice(
+            bestIndex,
+            1
+          )
+
+
+          noteImageConsumed(
+            bestCandidate
+          )
+
+
+          return bestCandidate
         }
 
 
@@ -3760,33 +4163,18 @@ export default function FadeGallery() {
       }
 
 
-      if (
-        !bestCandidate ||
-        bestIndex < 0
-      ) {
+      /*
+        No sane candidate yet.
+        Leave the current frame alone.
+      */
 
-        return null
-      }
-
-
-      poolRef.current.splice(
-        bestIndex,
-        1
-      )
-
-
-      noteImageConsumed(
-        bestCandidate
-      )
-
-
-      return bestCandidate
+      return null
     }
 
 
   /* =======================================================
-     DESKTOP BUILDER
-========================================================= */
+     DESKTOP WALL BUILDER
+  ======================================================= */
 
   const buildDesktopWall =
     (
@@ -3795,8 +4183,8 @@ export default function FadeGallery() {
       height
     ) => {
 
-      const best =
-        chooseBestConfiguration(
+      const template =
+        chooseBestDesktopConfiguration(
 
           images,
 
@@ -3804,22 +4192,30 @@ export default function FadeGallery() {
 
           height,
 
-          lastConfigurationRef
+          lastDesktopTemplateRef
             .current
         )
 
 
-      lastConfigurationRef.current =
-        best.index
+      if (!template) {
+
+        return null
+      }
+
+
+      lastDesktopTemplateRef.current =
+        template.id
+
+
+      lastDesktopCountRef.current =
+        images.length
 
 
       return makeDesktopWall(
 
         images,
 
-        best.configuration,
-
-        best.index,
+        template,
 
         Date.now() +
         Math.random()
@@ -3828,8 +4224,92 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     MOBILE CANDIDATES
-========================================================= */
+     CREATE VARIABLE-COUNT DESKTOP WALL
+  ======================================================= */
+
+  const createDesktopWall =
+    async ({
+      preload = true,
+      preferredCount = null
+    } = {}) => {
+
+      const {
+        width,
+        height
+      } =
+        stageSizeRef.current
+
+
+      if (
+        !width ||
+        !height
+      ) {
+
+        return null
+      }
+
+
+      const count =
+        preferredCount ||
+        chooseDesktopCount(
+          lastDesktopCountRef
+            .current
+        )
+
+
+      const images =
+        await getImagesForWall(
+          count
+        )
+
+
+      if (
+        images.length <
+        count
+      ) {
+
+        /*
+          Put partial selection back rather than silently
+          losing it.
+        */
+
+        poolRef.current.unshift(
+          ...images
+        )
+
+
+        return null
+      }
+
+
+      if (
+        preload
+      ) {
+
+        await Promise.all(
+          images.map(
+            preloadMedia
+          )
+        )
+      }
+
+
+      return buildDesktopWall(
+
+        images,
+
+        width,
+
+        height
+      )
+    }
+
+
+  /* =======================================================
+     MOBILE ELIGIBLE CANDIDATES
+
+     One WebM maximum per initial mobile wall.
+  ======================================================= */
 
   const getMobileEligibleCandidates =
     images => {
@@ -3890,7 +4370,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      MOBILE WALL FROM CANDIDATES
-========================================================= */
+  ======================================================= */
 
   const buildMobileWallFromCandidates =
     (
@@ -3914,7 +4394,8 @@ export default function FadeGallery() {
 
           height,
 
-          lastMobileTemplateRef.current
+          lastMobileTemplateRef
+            .current
         )
 
 
@@ -3948,9 +4429,14 @@ export default function FadeGallery() {
   /* =======================================================
      CREATE MOBILE WALL
 
-     Need enough candidates to permit the 9-up templates,
-     but the winner may use anywhere from 6–9.
-========================================================= */
+     STRICT MODE:
+
+     If the current pool cannot populate ANY 6–9 template
+     without violating the crop ceiling, fetch more media
+     and try again.
+
+     We never "give up" by relaxing into psychotic crop.
+  ======================================================= */
 
   const createMobileWall =
     async ({
@@ -3973,132 +4459,103 @@ export default function FadeGallery() {
       }
 
 
-      await ensurePoolSize(
-        MOBILE_SELECTION_POOL
-      )
+      for (
+        let attempt = 0;
+        attempt < 5;
+        attempt++
+      ) {
 
-
-      const result =
-        buildMobileWallFromCandidates(
-
-          poolRef.current,
-
-          width,
-
-          height
+        await ensurePoolSize(
+          MOBILE_SELECTION_POOL,
+          1
         )
 
 
-      if (!result) {
+        const result =
+          buildMobileWallFromCandidates(
 
-        return null
-      }
+            poolRef.current,
 
+            width,
 
-      const selectedKeys =
-        new Set(
-          result.images.map(
-            getMediaKey
+            height
           )
-        )
 
 
-      poolRef.current =
-        poolRef.current.filter(
-          image =>
-            !selectedKeys.has(
-              getMediaKey(image)
+        if (
+          result
+        ) {
+
+          const selectedKeys =
+            new Set(
+              result.images.map(
+                getMediaKey
+              )
             )
-        )
 
 
-      noteImagesConsumed(
-        result.images
+          poolRef.current =
+            poolRef.current.filter(
+              image =>
+                !selectedKeys.has(
+                  getMediaKey(
+                    image
+                  )
+                )
+            )
+
+
+          noteImagesConsumed(
+            result.images
+          )
+
+
+          if (
+            preload
+          ) {
+
+            await Promise.all(
+              result.images.map(
+                preloadMedia
+              )
+            )
+          }
+
+
+          return result.wall
+        }
+
+
+        /*
+          No sane template can be populated yet.
+          Expand the candidate universe.
+        */
+
+        const fetched =
+          await fetchImages()
+
+
+        if (
+          !fetched.length
+        ) {
+
+          break
+        }
+      }
+
+
+      console.warn(
+        'Fade2 could not build a sane mobile wall from the available AR mix'
       )
 
 
-      if (
-        preload
-      ) {
-
-        await Promise.all(
-          result.images.map(
-            preloadMedia
-          )
-        )
-      }
-
-
-      return result.wall
-    }
-
-
-  /* =======================================================
-     CREATE DESKTOP WALL
-========================================================= */
-
-  const createDesktopWall =
-    async ({
-      preload = true
-    } = {}) => {
-
-      const {
-        width,
-        height
-      } =
-        stageSizeRef.current
-
-
-      if (
-        !width ||
-        !height
-      ) {
-
-        return null
-      }
-
-
-      const images =
-        await getImagesForWall(
-          DESKTOP_WALL_COUNT
-        )
-
-
-      if (
-        images.length <
-        DESKTOP_WALL_COUNT
-      ) {
-
-        return null
-      }
-
-
-      if (
-        preload
-      ) {
-
-        await Promise.all(
-          images.map(
-            preloadMedia
-          )
-        )
-      }
-
-
-      return buildDesktopWall(
-
-        images,
-
-        width,
-
-        height
-      )
+      return null
     }
 
 
   /* =======================================================
      INITIALIZATION
-========================================================= */
+  ======================================================= */
 
   const initInProgressRef =
     useRef(false)
@@ -4134,6 +4591,13 @@ export default function FadeGallery() {
 
         try {
 
+          /*
+            One normal batch first.
+
+            Put it into the common pool, then let the correct
+            layout engine consume from there.
+          */
+
           const firstBatch =
             await fetchImageBatch()
 
@@ -4165,6 +4629,11 @@ export default function FadeGallery() {
           }
 
 
+          poolRef.current.push(
+            ...firstBatch
+          )
+
+
           addSlides(
             firstBatch
           )
@@ -4181,138 +4650,14 @@ export default function FadeGallery() {
               .matches
 
 
-          let wall =
-            null
-
-
-          if (
+          const wall =
             mobile
-          ) {
-
-            /*
-              Mobile first load:
-              evaluate the whole batch and let the winning
-              template decide whether this wall is 6/7/8/9.
-            */
-
-            const result =
-              buildMobileWallFromCandidates(
-
-                firstBatch,
-
-                stageSize.width,
-
-                stageSize.height
-              )
-
-
-            if (
-              result
-            ) {
-
-              wall =
-                result.wall
-
-
-              const selectedKeys =
-                new Set(
-                  result.images.map(
-                    getMediaKey
-                  )
-                )
-
-
-              poolRef.current.push(
-
-                ...firstBatch.filter(
-                  image =>
-                    !selectedKeys.has(
-                      getMediaKey(
-                        image
-                      )
-                    )
-                )
-              )
-
-
-              noteImagesConsumed(
-                result.images
-              )
-            }
-
-          } else {
-
-            const selected = []
-
-            const leftovers = []
-
-
-            for (
-              const image of firstBatch
-            ) {
-
-              if (
-                selected.length >=
-                DESKTOP_WALL_COUNT
-              ) {
-
-                leftovers.push(
-                  image
-                )
-
-                continue
-              }
-
-
-              if (
-                isWebm(image) &&
-                imagesSinceWebmRef
-                  .current <
-                MIN_IMAGES_BETWEEN_WEBMS
-              ) {
-
-                pendingWebmsRef
-                  .current
-                  .push(
-                    image
-                  )
-
-                continue
-              }
-
-
-              selected.push(
-                image
-              )
-
-
-              noteImageConsumed(
-                image
-              )
-            }
-
-
-            if (
-              selected.length ===
-              DESKTOP_WALL_COUNT
-            ) {
-
-              wall =
-                buildDesktopWall(
-
-                  selected,
-
-                  stageSize.width,
-
-                  stageSize.height
-                )
-
-
-              poolRef.current.push(
-                ...leftovers
-              )
-            }
-          }
+              ? await createMobileWall({
+                  preload: false
+                })
+              : await createDesktopWall({
+                  preload: false
+                })
 
 
           if (
@@ -4324,11 +4669,6 @@ export default function FadeGallery() {
 
 
           if (!wall) {
-
-            poolRef.current.push(
-              ...firstBatch
-            )
-
 
             initInProgressRef.current =
               false
@@ -4411,8 +4751,7 @@ export default function FadeGallery() {
 
     return () => {
 
-      cancelled =
-        true
+      cancelled = true
 
 
       clearTimeout(
@@ -4441,13 +4780,16 @@ export default function FadeGallery() {
      BREAKPOINT REBUILD
 
      Desktop -> mobile:
-       existing 9 + pool become candidate set
-       mobile solver chooses 6/7/8/9 immediately
+       instant mode switch
+       mobile may choose 6 / 7 / 8 / 9
 
      Mobile -> desktop:
-       retain however many mobile images are currently
-       showing, up to 9, and pull enough extras to make 9
-========================================================= */
+       instant mode switch
+       desktop may choose 8 / 9 / 10 / 11
+
+     Existing current images are recycled into the candidate
+     pool first so breakpoint changes do not throw them away.
+  ======================================================= */
 
   const breakpointSwapRef =
     useRef(0)
@@ -4530,23 +4872,24 @@ export default function FadeGallery() {
         }
 
 
+        const activeImages =
+          activeWall.slots.map(
+            slot =>
+              slot.image
+          )
+
+
         /*
-          Allow CSS aspect ratio + ResizeObserver to settle.
+          Return current frames to the front of the pool so
+          the new mode can reuse them if appropriate.
         */
 
-        await new Promise(
-          resolve => {
-
-            requestAnimationFrame(
-              () => {
-
-                requestAnimationFrame(
-                  resolve
-                )
-              }
-            )
-          }
+        poolRef.current.unshift(
+          ...activeImages
         )
+
+
+        await waitTwoFrames()
 
 
         if (
@@ -4558,204 +4901,37 @@ export default function FadeGallery() {
         }
 
 
-        const {
-          width,
-          height
-        } =
-          stageSizeRef.current
+        let newWall
 
-
-        /* -----------------------------------------------
-           DESKTOP -> MOBILE
-        ----------------------------------------------- */
 
         if (
           nowMobile
         ) {
 
-          const activeImages =
-            activeWall.slots.map(
-              slot =>
-                slot.image
-            )
+          newWall =
+            await createMobileWall({
+              preload: false
+            })
 
+        } else {
 
-          const candidates = [
-
-            ...activeImages,
-
-            ...poolRef.current
-          ]
-
-
-          const result =
-            buildMobileWallFromCandidates(
-
-              candidates,
-
-              width,
-
-              height
-            )
-
-
-          if (!result) {
-
-            wallTransitioningRef.current =
-              false
-
-            return
-          }
-
-
-          const selectedKeys =
-            new Set(
-              result.images.map(
-                getMediaKey
-              )
-            )
-
-
-          poolRef.current =
-            candidates.filter(
-              image =>
-                !selectedKeys.has(
-                  getMediaKey(image)
-                )
-            )
-
-
-          noteImagesConsumed(
-            result.images
-          )
-
-
-          const mobileWall =
-            result.wall
-
-
-          setWallA(
-            mobileWall
-          )
-
-
-          wallARef.current =
-            mobileWall
-
-
-          setWallB(
-            null
-          )
-
-
-          wallBRef.current =
-            null
-
-
-          setFrontBuffer(
-            'A'
-          )
-
-
-          frontBufferRef.current =
-            'A'
-
-
-          lastSlotRef.current =
-            -1
-
-
-          lastUpdatedRef.current =
-            Array(
-              DESKTOP_WALL_COUNT
-            ).fill(0)
-
-
-          wallTransitioningRef.current =
-            false
-
-
-          return
-        }
-
-
-        /* -----------------------------------------------
-           MOBILE -> DESKTOP
-
-           A mobile wall may currently contain:
-             6
-             7
-             8
-             or 9
-
-           Keep all currently visible images up to nine,
-           then fill any missing slots.
-        ----------------------------------------------- */
-
-        const desktopImages =
-          activeWall.slots
-            .map(
-              slot =>
-                slot.image
-            )
-            .slice(
-              0,
-              DESKTOP_WALL_COUNT
-            )
-
-
-        while (
-          desktopImages.length <
-          DESKTOP_WALL_COUNT
-        ) {
-
-          let next =
-            pullNextImage()
-
-
-          if (!next) {
-
-            const fetched =
-              await fetchImages()
-
-
-            if (
-              swapId !==
-              breakpointSwapRef.current
-            ) {
-
-              return
-            }
-
-
-            if (
-              !fetched.length
-            ) {
-
-              break
-            }
-
-
-            next =
-              pullNextImage()
-          }
-
-
-          if (
-            next
-          ) {
-
-            desktopImages.push(
-              next
-            )
-          }
+          newWall =
+            await createDesktopWall({
+              preload: false
+            })
         }
 
 
         if (
-          desktopImages.length <
-          DESKTOP_WALL_COUNT
+          swapId !==
+          breakpointSwapRef.current
         ) {
+
+          return
+        }
+
+
+        if (!newWall) {
 
           wallTransitioningRef.current =
             false
@@ -4764,24 +4940,17 @@ export default function FadeGallery() {
         }
 
 
-        const desktopWall =
-          buildDesktopWall(
-
-            desktopImages,
-
-            width,
-
-            height
-          )
-
+        /*
+          Breakpoint mode switch is intentionally immediate.
+        */
 
         setWallA(
-          desktopWall
+          newWall
         )
 
 
         wallARef.current =
-          desktopWall
+          newWall
 
 
         setWallB(
@@ -4808,7 +4977,7 @@ export default function FadeGallery() {
 
         lastUpdatedRef.current =
           Array(
-            DESKTOP_WALL_COUNT
+            MAX_WALL_COUNT
           ).fill(0)
 
 
@@ -4836,7 +5005,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      SLOT PICK
-========================================================= */
+  ======================================================= */
 
   const pickSlot =
     count => {
@@ -4918,12 +5087,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      SLOT CHANGES
-
-     Variable mobile count requires no special timing logic.
-
-     wall.slots.length tells us whether the current wall
-     contains 6/7/8/9 images.
-========================================================= */
+  ======================================================= */
 
   useEffect(() => {
 
@@ -4996,6 +5160,14 @@ export default function FadeGallery() {
               )
 
           } else {
+
+            /*
+              Desktop retains the established exact-AR slot
+              replacement behavior.
+
+              So variable count changes the WHOLE wall,
+              not the stability of its individual cells.
+            */
 
             replacement =
               await pullExactDesktopMatch(
@@ -5126,19 +5298,14 @@ export default function FadeGallery() {
   /* =======================================================
      WHOLE WALL CHANGES
 
-     Every mobile minute is now free to change BOTH:
-       geometry
-       image count
+     Mobile may change:
+       6 / 7 / 8 / 9
 
-     e.g.
+     Desktop may change:
+       8 / 9 / 10 / 11
 
-       6 -> 8
-       8 -> 7
-       7 -> 9
-       9 -> 6
-
-     Outer stage never changes.
-========================================================= */
+     Outer stage remains invariant.
+  ======================================================= */
 
   useEffect(() => {
 
@@ -5295,7 +5462,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      WALL OPACITY
-========================================================= */
+  ======================================================= */
 
   let opacityA =
     frontBuffer === 'A'
@@ -5329,7 +5496,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      BLACK MODE
-========================================================= */
+  ======================================================= */
 
   const toggleBlackMode =
     async () => {
@@ -5558,7 +5725,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      LIGHTBOX
-========================================================= */
+  ======================================================= */
 
   const handleImageClick =
     imageSrc => {
@@ -5642,7 +5809,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      CLEANUP
-========================================================= */
+  ======================================================= */
 
   useEffect(() => {
 
@@ -5677,7 +5844,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      RENDER
-========================================================= */
+  ======================================================= */
 
   return (
     <RootLayout>
@@ -5755,12 +5922,17 @@ export default function FadeGallery() {
         NORMAL MOBILE:
           same 16px outer gutters as /wall
 
-        BLACK MODE:
-          no outer gutters
-          full-width mobile canvas
+        MOBILE STAGE:
+          fixed 9:19.5
+          variable 6–9 image composition
 
-        The stage itself stays 9:19.5 regardless of whether
-        the current mobile wall contains 6, 7, 8 or 9 images.
+        DESKTOP STAGE:
+          fixed 16:9
+          variable 8–11 image composition
+
+        BLACK MODE:
+          full width
+          no outer gutters
       */}
 
       <div
