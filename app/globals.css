@@ -118,9 +118,7 @@ body {
 
 @media (min-width: 768px) {
   .yarl__slide video {
-    width: auto !important;
     max-width: 96% !important;
-    height: auto !important;
     max-height: calc(100vh - 10rem) !important;
     object-fit: contain !important;
     display: block !important;
