@@ -1533,6 +1533,25 @@ export default function Tetris() {
               ''
 
 
+            const meta =
+              parseImageMeta(
+                photo.dimensions
+              )
+
+
+            const width =
+              meta.width ||
+              1920
+
+
+            const height =
+              meta.height ||
+              Math.round(
+                width /
+                meta.ratio
+              )
+
+
             if (
               isWebm(photo)
             ) {
@@ -1541,11 +1560,9 @@ export default function Tetris() {
                 type:
                   'tndr-webm',
 
-                width:
-                  1080 * 4,
+                width,
 
-                height:
-                  1620 * 4,
+                height,
 
                 title:
                   `${photo.caption}`,
