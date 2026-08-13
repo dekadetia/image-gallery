@@ -424,6 +424,121 @@ function ratioPenalty(
    LIGHTBOX
 ========================================================= */
 
+/*
+  Fixed-geometry WebM lightbox renderer.
+
+  YARL gets a fully sized box immediately from the stored
+  slide dimensions. The real <video> fills that box after
+  mount, so the footer does not reflow while the WebM
+  initializes.
+*/
+
+function LightboxWebm({
+  slide,
+  rect
+}) {
+  const ratio =
+    slide.width &&
+    slide.height
+      ? slide.width /
+        slide.height
+      : 16 / 9
+
+
+  const isDesktop =
+    rect.width >= 768
+
+
+  const maxWidth =
+    rect.width *
+    (
+      isDesktop
+        ? 0.96
+        : 1
+    )
+
+
+  const maxHeight =
+    isDesktop
+      ? Math.max(
+          1,
+          window.innerHeight -
+            160
+        )
+      : Math.max(
+          1,
+          rect.height
+        )
+
+
+  let width =
+    maxWidth
+
+
+  let height =
+    width /
+    ratio
+
+
+  if (
+    height >
+    maxHeight
+  ) {
+
+    height =
+      maxHeight
+
+
+    width =
+      height *
+      ratio
+  }
+
+
+  return (
+    <div
+      className="tndr-lightbox-webm-box"
+      style={{
+
+        width:
+          `${width}px`,
+
+        height:
+          `${height}px`,
+
+        flex:
+          '0 0 auto',
+
+        position:
+          'relative',
+
+        margin:
+          isDesktop
+            ? '26px auto 0'
+            : '0 auto'
+      }}
+    >
+
+      <video
+        className="tndr-lightbox-webm"
+        src={
+          slide.sources?.[0]?.src
+        }
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        poster={
+          slide.poster
+        }
+      />
+
+    </div>
+  )
+}
+
+
 function makeSlide(photo) {
   const src =
     photo.src ??
@@ -456,7 +571,7 @@ function makeSlide(photo) {
     return {
 
       type:
-        'video',
+        'tndr-webm',
 
       width,
 
@@ -6348,7 +6463,28 @@ export default function FadeGallery() {
 
       {slides && (
 
-        <Lightbox
+        <>
+
+          <style jsx global>{`
+            .yarl__slide .tndr-lightbox-webm-box {
+              box-sizing: border-box;
+            }
+
+            .yarl__slide video.tndr-lightbox-webm {
+              position: absolute !important;
+              inset: 0 !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              height: 100% !important;
+              max-height: 100% !important;
+              object-fit: contain !important;
+              display: block !important;
+              margin: 0 !important;
+            }
+          `}</style>
+
+
+          <Lightbox
           index={
             index
           }
@@ -6365,6 +6501,25 @@ export default function FadeGallery() {
             Video
           ]}
           render={{
+
+            slide:
+              ({
+                slide,
+                rect
+              }) =>
+                slide.type ===
+                'tndr-webm'
+                  ? (
+                      <LightboxWebm
+                        slide={
+                          slide
+                        }
+                        rect={
+                          rect
+                        }
+                      />
+                    )
+                  : undefined,
 
             slideFooter:
               ({
@@ -6429,7 +6584,9 @@ export default function FadeGallery() {
 
               )
           }}
-        />
+          />
+
+        </>
 
       )}
 
