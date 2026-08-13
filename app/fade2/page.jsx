@@ -41,9 +41,18 @@ const GAP = 10
 const MOBILE_BREAKPOINT = 768
 
 const DESKTOP_WALL_COUNT = 9
-const MOBILE_WALL_COUNT = 6
 
-const MOBILE_SELECTION_POOL = 14
+/*
+  We no longer have one fixed mobile image count.
+
+  The template decides:
+    6
+    7
+    8
+    or 9
+*/
+
+const MOBILE_SELECTION_POOL = 13
 
 const WEBM_INTERVAL = 20
 
@@ -341,6 +350,13 @@ function ratioPenalty(
     distance *
     8
 
+
+  /*
+    Once the mismatch gets large, make it increasingly
+    unattractive.
+
+    Still not forbidden.
+  */
 
   if (
     distance >
@@ -1162,41 +1178,54 @@ function chooseBestConfiguration(
 
 
 /* =========================================================
-   MOBILE TEMPLATES
+   MOBILE TEMPLATE LIBRARY
 
-   These fill the entire fixed Fade2 mobile stage.
+   Different templates now have different image counts.
 
-   The OUTER page gutters are separate and handled by the
-   page wrapper below.
+   All of them fill the same permanent 9:19.5 canvas.
+
+   row.count:
+     1 = full-width
+     2 = paired
+
+   row.weight:
+     relative vertical share of the stage
 ========================================================= */
 
 const MOBILE_TEMPLATES = [
 
+  /* -------------------------
+     SIX
+  ------------------------- */
+
   {
 
     id:
-      'balanced-a',
+      '6-balanced-a',
+
+    density:
+      6,
 
     rows: [
 
       {
         count: 2,
-        weight: 0.22
+        weight: 0.21
       },
 
       {
         count: 1,
-        weight: 0.28
+        weight: 0.29
       },
 
       {
         count: 2,
-        weight: 0.22
+        weight: 0.21
       },
 
       {
         count: 1,
-        weight: 0.28
+        weight: 0.29
       }
     ]
   },
@@ -1204,57 +1233,105 @@ const MOBILE_TEMPLATES = [
   {
 
     id:
-      'balanced-b',
+      '6-balanced-b',
+
+    density:
+      6,
 
     rows: [
 
       {
         count: 1,
-        weight: 0.28
+        weight: 0.29
       },
 
       {
         count: 2,
-        weight: 0.22
+        weight: 0.21
       },
 
       {
         count: 1,
-        weight: 0.28
+        weight: 0.29
       },
 
       {
         count: 2,
-        weight: 0.22
+        weight: 0.21
       }
     ]
   },
 
+
+  /* -------------------------
+     SEVEN
+  ------------------------- */
+
   {
 
     id:
-      'mixed-a',
+      '7-a',
+
+    density:
+      7,
 
     rows: [
 
       {
-        count: 1,
-        weight: 0.26
+        count: 2,
+        weight: 0.19
       },
 
       {
-        count: 2,
+        count: 1,
         weight: 0.24
       },
 
       {
         count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 0,
+        weight: 0
+      }
+    ]
+  },
+
+  {
+
+    id:
+      '7-b',
+
+    density:
+      7,
+
+    rows: [
+
+      {
+        count: 1,
         weight: 0.24
       },
 
       {
-        count: 1,
-        weight: 0.26
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.19
       }
     ]
   },
@@ -1262,7 +1339,121 @@ const MOBILE_TEMPLATES = [
   {
 
     id:
-      'portrait',
+      '7-c',
+
+    density:
+      7,
+
+    rows: [
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 1,
+        weight: 0.24
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      }
+    ]
+  },
+
+
+  /* -------------------------
+     EIGHT
+  ------------------------- */
+
+  {
+
+    id:
+      '8-a',
+
+    density:
+      8,
+
+    rows: [
+
+      {
+        count: 2,
+        weight: 0.18
+      },
+
+      {
+        count: 1,
+        weight: 0.23
+      },
+
+      {
+        count: 2,
+        weight: 0.18
+      },
+
+      {
+        count: 1,
+        weight: 0.23
+      },
+
+      {
+        count: 2,
+        weight: 0.18
+      }
+    ]
+  },
+
+  {
+
+    id:
+      '8-b',
+
+    density:
+      8,
+
+    rows: [
+
+      {
+        count: 1,
+        weight: 0.23
+      },
+
+      {
+        count: 2,
+        weight: 0.18
+      },
+
+      {
+        count: 2,
+        weight: 0.18
+      },
+
+      {
+        count: 2,
+        weight: 0.18
+      },
+
+      {
+        count: 1,
+        weight: 0.23
+      }
+    ]
+  },
+
+  {
+
+    id:
+      '8-pairs',
+
+    density:
+      8,
 
     rows: [
 
@@ -1279,6 +1470,53 @@ const MOBILE_TEMPLATES = [
       {
         count: 2,
         weight: 1
+      },
+
+      {
+        count: 2,
+        weight: 1
+      }
+    ]
+  },
+
+
+  /* -------------------------
+     NINE
+  ------------------------- */
+
+  {
+
+    id:
+      '9-a',
+
+    density:
+      9,
+
+    rows: [
+
+      {
+        count: 2,
+        weight: 0.18
+      },
+
+      {
+        count: 1,
+        weight: 0.24
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.20
       }
     ]
   },
@@ -1286,48 +1524,131 @@ const MOBILE_TEMPLATES = [
   {
 
     id:
-      'wide',
+      '9-b',
+
+    density:
+      9,
+
+    rows: [
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 1,
+        weight: 0.24
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.19
+      }
+    ]
+  },
+
+  {
+
+    id:
+      '9-c',
+
+    density:
+      9,
 
     rows: [
 
       {
         count: 1,
-        weight: 0.21
-      },
-
-      {
-        count: 1,
-        weight: 0.21
+        weight: 0.24
       },
 
       {
         count: 2,
-        weight: 0.16
+        weight: 0.19
       },
 
       {
-        count: 1,
-        weight: 0.21
+        count: 2,
+        weight: 0.19
       },
 
       {
-        count: 1,
-        weight: 0.21
+        count: 2,
+        weight: 0.19
+      },
+
+      {
+        count: 2,
+        weight: 0.19
       }
     ]
   }
 ]
 
 
+/*
+  Remove any accidental empty rows before using a template.
+
+  Keeps the template declaration readable while making the
+  geometry code defensive.
+*/
+
+function normalizeMobileTemplate(
+  template
+) {
+  return {
+
+    ...template,
+
+    rows:
+      template.rows.filter(
+        row =>
+          row.count > 0 &&
+          row.weight > 0
+      )
+  }
+}
+
+
 function getMobileTemplate(
   id
 ) {
-  return (
+  const template =
     MOBILE_TEMPLATES.find(
-      template =>
-        template.id === id
+      candidate =>
+        candidate.id === id
     ) ||
     MOBILE_TEMPLATES[0]
+
+
+  return normalizeMobileTemplate(
+    template
+  )
+}
+
+
+function getMobileTemplateCount(
+  template
+) {
+  return template.rows.reduce(
+    (
+      total,
+      row
+    ) =>
+      total +
+      row.count,
+    0
   )
 }
 
@@ -1337,10 +1658,16 @@ function getMobileTemplate(
 ========================================================= */
 
 function buildMobileTemplateLayout(
-  template,
+  rawTemplate,
   stageWidth,
   stageHeight
 ) {
+  const template =
+    normalizeMobileTemplate(
+      rawTemplate
+    )
+
+
   if (
     !template ||
     !stageWidth ||
@@ -1494,7 +1821,8 @@ function buildMobileTemplateLayout(
           1
       ) {
 
-        currentY += GAP
+        currentY +=
+          GAP
       }
     }
   )
@@ -1511,17 +1839,30 @@ function buildMobileTemplateLayout(
 
 /* =========================================================
    MOBILE ASSIGNMENT
+
+   IMPORTANT:
+
+   targetRatios.length is variable now.
+
+   A 6-up solves six assignments.
+   A 9-up solves nine.
+
+   We compare layouts later using AVERAGE penalty per slot,
+   not raw total penalty.
 ========================================================= */
 
 function solveMobileAssignment(
   candidates,
   targetRatios
 ) {
+  const slotCount =
+    targetRatios.length
+
+
   if (
+    !slotCount ||
     candidates.length <
-    MOBILE_WALL_COUNT ||
-    targetRatios.length !==
-    MOBILE_WALL_COUNT
+    slotCount
   ) {
 
     return null
@@ -1596,7 +1937,7 @@ function solveMobileAssignment(
 
   if (
     ranked.length <
-    MOBILE_WALL_COUNT
+    slotCount
   ) {
 
     return null
@@ -1615,7 +1956,7 @@ function solveMobileAssignment(
 
       if (
         slotIndex ===
-        MOBILE_WALL_COUNT
+        slotCount
       ) {
 
         return {
@@ -1753,26 +2094,76 @@ function solveMobileAssignment(
 }
 
 
-function chooseBestMobileComposition(
-  candidates,
-  stageWidth,
-  stageHeight
+/* =========================================================
+   MOBILE COMPOSITION CHOICE
+
+   This is where different image counts become fair.
+
+   BAD:
+     compare raw total crop penalties
+
+   because:
+     6 slots naturally accumulate fewer penalties than 9.
+
+   GOOD:
+     compare average crop penalty PER SLOT.
+
+   Then:
+     - modest density preference toward 7/8
+     - repeat penalty
+     - keep all layouts reasonably close to the best
+     - choose somewhat randomly among that acceptable set
+========================================================= */
+
+function getMobileDensityPenalty(
+  count
 ) {
   if (
-    candidates.length <
-    MOBILE_WALL_COUNT
+    count === 7 ||
+    count === 8
   ) {
 
-    return null
+    return 0
   }
 
 
-  let best =
-    null
+  if (
+    count === 9
+  ) {
+
+    return 0.015
+  }
+
+
+  if (
+    count === 6
+  ) {
+
+    return 0.025
+  }
+
+
+  return 0.04
+}
+
+
+function chooseBestMobileComposition(
+  candidates,
+  stageWidth,
+  stageHeight,
+  previousTemplateId = null
+) {
+  const evaluations = []
 
 
   MOBILE_TEMPLATES.forEach(
-    template => {
+    rawTemplate => {
+
+      const template =
+        normalizeMobileTemplate(
+          rawTemplate
+        )
+
 
       const geometry =
         buildMobileTemplateLayout(
@@ -1783,6 +2174,19 @@ function chooseBestMobileComposition(
 
           stageHeight
         )
+
+
+      const slotCount =
+        geometry.targetRatios.length
+
+
+      if (
+        candidates.length <
+        slotCount
+      ) {
+
+        return
+      }
 
 
       const assignment =
@@ -1799,37 +2203,164 @@ function chooseBestMobileComposition(
       }
 
 
-      const totalScore =
-        assignment.score +
-        Math.random() *
-          0.01
+      const averageCropPenalty =
+        assignment.score /
+        slotCount
 
 
-      if (
-        !best ||
-        totalScore <
-        best.score
-      ) {
+      const densityPenalty =
+        getMobileDensityPenalty(
+          slotCount
+        )
 
-        best = {
 
-          score:
-            totalScore,
+      const repeatPenalty =
+        template.id ===
+        previousTemplateId
+          ? 0.08
+          : 0
 
-          template,
 
-          images:
-            assignment.picks,
+      const score =
+        averageCropPenalty +
+        densityPenalty +
+        repeatPenalty
 
-          targetRatios:
-            geometry.targetRatios
-        }
-      }
+
+      evaluations.push({
+
+        score,
+
+        averageCropPenalty,
+
+        slotCount,
+
+        template,
+
+        images:
+          assignment.picks,
+
+        targetRatios:
+          geometry.targetRatios
+      })
     }
   )
 
 
-  return best
+  if (
+    !evaluations.length
+  ) {
+
+    return null
+  }
+
+
+  evaluations.sort(
+    (
+      a,
+      b
+    ) =>
+      a.score -
+      b.score
+  )
+
+
+  const bestScore =
+    evaluations[0].score
+
+
+  /*
+    Don't insist on the mathematical winner.
+
+    Anything this close to the best result is visually
+    acceptable enough to participate.
+
+    This is what restores real compositional variation.
+  */
+
+  const ACCEPTABLE_SCORE_WINDOW =
+    0.11
+
+
+  const acceptable =
+    evaluations.filter(
+      evaluation =>
+        evaluation.score <=
+        bestScore +
+        ACCEPTABLE_SCORE_WINDOW
+    )
+
+
+  /*
+    Mild bias toward better-fitting members of the
+    acceptable group while preserving randomness.
+  */
+
+  const weighted =
+    acceptable.map(
+      evaluation => {
+
+        const distanceFromBest =
+          evaluation.score -
+          bestScore
+
+
+        const weight =
+          1 /
+          (
+            0.06 +
+            distanceFromBest
+          )
+
+
+        return {
+
+          evaluation,
+
+          weight
+        }
+      }
+    )
+
+
+  const totalWeight =
+    weighted.reduce(
+      (
+        total,
+        item
+      ) =>
+        total +
+        item.weight,
+      0
+    )
+
+
+  let roll =
+    Math.random() *
+    totalWeight
+
+
+  for (
+    const item of weighted
+  ) {
+
+    roll -=
+      item.weight
+
+
+    if (
+      roll <= 0
+    ) {
+
+      return item.evaluation
+    }
+  }
+
+
+  return weighted[
+    weighted.length -
+      1
+  ].evaluation
 }
 
 
@@ -1886,6 +2417,9 @@ function makeMobileWall(
 
     mobileTemplateId:
       composition.template.id,
+
+    mobileCount:
+      composition.images.length,
 
     slots:
       composition.images.map(
@@ -2512,6 +3046,10 @@ export default function FadeGallery() {
     useRef(-1)
 
 
+  const lastMobileTemplateRef =
+    useRef(null)
+
+
   const poolRef =
     useRef([])
 
@@ -2574,6 +3112,11 @@ export default function FadeGallery() {
     useRef(-1)
 
 
+  /*
+    Maximum possible wall size remains nine,
+    so this works for every mobile density.
+  */
+
   const lastUpdatedRef =
     useRef(
       Array(
@@ -2600,21 +3143,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      STAGE
-
-     NORMAL MOBILE PAGE:
-       /wall-style outer gutter = 16px each side
-       stage width = viewport minus those gutters
-       stage AR = 9:19.5
-
-     BLACK MODE:
-       no outer page gutter
-       stage = full width
-       stage AR = 9:19.5
-       vertical overflow/crop is allowed
-
-     DESKTOP:
-       existing 16:9 stage
-  ======================================================= */
+========================================================= */
 
   const stageRef =
     useRef(null)
@@ -2719,7 +3248,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      FETCH
-  ======================================================= */
+========================================================= */
 
   const fetchImageBatch =
     async () => {
@@ -2890,7 +3419,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      WEBM ACCOUNTING
-  ======================================================= */
+========================================================= */
 
   const noteImageConsumed =
     image => {
@@ -2929,7 +3458,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      NORMAL STREAM
-  ======================================================= */
+========================================================= */
 
   const pullNextImage =
     () => {
@@ -3064,8 +3593,8 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     DESKTOP EXACT-AR REPLACEMENT
-  ======================================================= */
+     DESKTOP EXACT-AR SLOT REPLACEMENT
+========================================================= */
 
   const pullExactDesktopMatch =
     async ratioKey => {
@@ -3137,8 +3666,8 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     MOBILE SOFT-AR REPLACEMENT
-  ======================================================= */
+     MOBILE SOFT-AR SLOT REPLACEMENT
+========================================================= */
 
   const pullBestMobileMatch =
     async targetRatio => {
@@ -3256,8 +3785,8 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     DESKTOP WALL BUILDER
-  ======================================================= */
+     DESKTOP BUILDER
+========================================================= */
 
   const buildDesktopWall =
     (
@@ -3299,8 +3828,8 @@ export default function FadeGallery() {
 
 
   /* =======================================================
-     MOBILE CANDIDATE FILTER
-  ======================================================= */
+     MOBILE CANDIDATES
+========================================================= */
 
   const getMobileEligibleCandidates =
     images => {
@@ -3361,7 +3890,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      MOBILE WALL FROM CANDIDATES
-  ======================================================= */
+========================================================= */
 
   const buildMobileWallFromCandidates =
     (
@@ -3383,7 +3912,9 @@ export default function FadeGallery() {
 
           width,
 
-          height
+          height,
+
+          lastMobileTemplateRef.current
         )
 
 
@@ -3391,6 +3922,10 @@ export default function FadeGallery() {
 
         return null
       }
+
+
+      lastMobileTemplateRef.current =
+        composition.template.id
 
 
       return {
@@ -3412,7 +3947,10 @@ export default function FadeGallery() {
 
   /* =======================================================
      CREATE MOBILE WALL
-  ======================================================= */
+
+     Need enough candidates to permit the 9-up templates,
+     but the winner may use anywhere from 6–9.
+========================================================= */
 
   const createMobileWall =
     async ({
@@ -3497,7 +4035,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      CREATE DESKTOP WALL
-  ======================================================= */
+========================================================= */
 
   const createDesktopWall =
     async ({
@@ -3560,7 +4098,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      INITIALIZATION
-  ======================================================= */
+========================================================= */
 
   const initInProgressRef =
     useRef(false)
@@ -3650,6 +4188,12 @@ export default function FadeGallery() {
           if (
             mobile
           ) {
+
+            /*
+              Mobile first load:
+              evaluate the whole batch and let the winning
+              template decide whether this wall is 6/7/8/9.
+            */
 
             const result =
               buildMobileWallFromCandidates(
@@ -3895,7 +4439,15 @@ export default function FadeGallery() {
 
   /* =======================================================
      BREAKPOINT REBUILD
-  ======================================================= */
+
+     Desktop -> mobile:
+       existing 9 + pool become candidate set
+       mobile solver chooses 6/7/8/9 immediately
+
+     Mobile -> desktop:
+       retain however many mobile images are currently
+       showing, up to 9, and pull enough extras to make 9
+========================================================= */
 
   const breakpointSwapRef =
     useRef(0)
@@ -3979,9 +4531,7 @@ export default function FadeGallery() {
 
 
         /*
-          Wait for the CSS stage to switch from 16:9 to
-          9:19.5 or vice versa before calculating the new
-          composition.
+          Allow CSS aspect ratio + ResizeObserver to settle.
         */
 
         await new Promise(
@@ -4131,6 +4681,15 @@ export default function FadeGallery() {
 
         /* -----------------------------------------------
            MOBILE -> DESKTOP
+
+           A mobile wall may currently contain:
+             6
+             7
+             8
+             or 9
+
+           Keep all currently visible images up to nine,
+           then fill any missing slots.
         ----------------------------------------------- */
 
         const desktopImages =
@@ -4141,7 +4700,7 @@ export default function FadeGallery() {
             )
             .slice(
               0,
-              MOBILE_WALL_COUNT
+              DESKTOP_WALL_COUNT
             )
 
 
@@ -4277,7 +4836,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      SLOT PICK
-  ======================================================= */
+========================================================= */
 
   const pickSlot =
     count => {
@@ -4359,7 +4918,12 @@ export default function FadeGallery() {
 
   /* =======================================================
      SLOT CHANGES
-  ======================================================= */
+
+     Variable mobile count requires no special timing logic.
+
+     wall.slots.length tells us whether the current wall
+     contains 6/7/8/9 images.
+========================================================= */
 
   useEffect(() => {
 
@@ -4561,7 +5125,20 @@ export default function FadeGallery() {
 
   /* =======================================================
      WHOLE WALL CHANGES
-  ======================================================= */
+
+     Every mobile minute is now free to change BOTH:
+       geometry
+       image count
+
+     e.g.
+
+       6 -> 8
+       8 -> 7
+       7 -> 9
+       9 -> 6
+
+     Outer stage never changes.
+========================================================= */
 
   useEffect(() => {
 
@@ -4718,7 +5295,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      WALL OPACITY
-  ======================================================= */
+========================================================= */
 
   let opacityA =
     frontBuffer === 'A'
@@ -4752,7 +5329,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      BLACK MODE
-  ======================================================= */
+========================================================= */
 
   const toggleBlackMode =
     async () => {
@@ -4981,7 +5558,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      LIGHTBOX
-  ======================================================= */
+========================================================= */
 
   const handleImageClick =
     imageSrc => {
@@ -5065,7 +5642,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      CLEANUP
-  ======================================================= */
+========================================================= */
 
   useEffect(() => {
 
@@ -5100,7 +5677,7 @@ export default function FadeGallery() {
 
   /* =======================================================
      RENDER
-  ======================================================= */
+========================================================= */
 
   return (
     <RootLayout>
@@ -5175,18 +5752,15 @@ export default function FadeGallery() {
 
 
       {/*
-        NORMAL PAGE:
-
-        Mobile outer gutters deliberately match /wall:
-          16px left
-          16px right
-
-        Desktop keeps the existing 64px lg gutters.
+        NORMAL MOBILE:
+          same 16px outer gutters as /wall
 
         BLACK MODE:
+          no outer gutters
+          full-width mobile canvas
 
-        No page gutters at all.
-        The mobile Fade2 canvas becomes full viewport width.
+        The stage itself stays 9:19.5 regardless of whether
+        the current mobile wall contains 6, 7, 8 or 9 images.
       */}
 
       <div
@@ -5265,31 +5839,6 @@ export default function FadeGallery() {
               : 'w-full'
           }
         >
-
-          {/*
-            NORMAL MOBILE:
-
-              available width =
-                viewport width - 32px
-
-              stage =
-                9:19.5 inside that width
-
-            BLACK MODE MOBILE:
-
-              available width =
-                full viewport width
-
-              stage =
-                9:19.5 at full width
-
-              any excess vertical extent is deliberately
-              cropped by the fullscreen wrapper.
-
-            DESKTOP:
-
-              16:9
-          */}
 
           <div
             ref={
