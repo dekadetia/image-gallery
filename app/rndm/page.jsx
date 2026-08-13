@@ -1431,25 +1431,6 @@ export default function Tetris() {
               ''
 
 
-            const meta =
-              parseImageMeta(
-                photo.dimensions
-              )
-
-
-            const width =
-              meta.width ||
-              1920
-
-
-            const height =
-              meta.height ||
-              Math.round(
-                width /
-                meta.ratio
-              )
-
-
             if (
               isWebm(photo)
             ) {
@@ -1458,8 +1439,11 @@ export default function Tetris() {
                 type:
                   'video',
 
-                width,
-                height,
+                width:
+                  1080 * 4,
+
+                height:
+                  1620 * 4,
 
                 title:
                   `${photo.caption}`,
@@ -1507,8 +1491,11 @@ export default function Tetris() {
 
               src,
 
-              width,
-              height,
+              width:
+                1080 * 4,
+
+              height:
+                1620 * 4,
 
               title:
                 `${photo.caption}`,
