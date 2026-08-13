@@ -119,7 +119,6 @@ function LazyWebm({
           loop
           playsInline
           preload="metadata"
-          poster="/assets/transparent.png"
           className={className}
         />
 
