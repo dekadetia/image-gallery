@@ -129,8 +129,6 @@ const WEBM_INTERVAL = 20
 const MIN_IMAGES_BETWEEN_WEBMS =
   WEBM_INTERVAL - 1
 
-const INITIAL_BATCH_REQUESTS = 3
-
 
 /* ---------------------------------------------------------
    MEDIA TYPE
@@ -1641,50 +1639,8 @@ export default function Tetris() {
      GET IMAGES
   ------------------------------------------------------- */
 
-  const fetchRandomBatch =
-    async () => {
-
-      const response =
-        await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
-          {
-            method:
-              'GET',
-
-            headers: {
-              'Content-Type':
-                'application/json'
-            }
-          }
-        )
-
-
-      if (
-        !response.ok
-      ) {
-
-        throw new Error(
-          `Failed to get random images: ${response.status}`
-        )
-      }
-
-
-      const data =
-        await response.json()
-
-
-      return (
-        data.images ||
-        []
-      )
-    }
-
-
   const getImages =
-    async (
-      load,
-      batchCount = 1
-    ) => {
+    async load => {
 
       if (
         load !==
@@ -1698,76 +1654,78 @@ export default function Tetris() {
 
       try {
 
-        /*
-          INITIAL LOAD OPTIMIZATION
+        const response =
+          await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
+            {
+              method:
+                'GET',
 
-          The page often needs more than one random batch before
-          the wall is tall enough for InfiniteScroll to settle.
-
-          Fetch those first batches concurrently instead of
-          paying the API round-trip cost serially.
-        */
-
-        const batches =
-          await Promise.all(
-            Array.from(
-              {
-                length:
-                  batchCount
-              },
-              () =>
-                fetchRandomBatch()
-            )
+              headers: {
+                'Content-Type':
+                  'application/json'
+              }
+            }
           )
 
 
-        const images =
-          batches.flat()
+        if (
+          response.ok
+        ) {
+
+          const data =
+            await response.json()
 
 
-        const uniqueImages =
-          images.filter(
-            img => {
+          const images =
+            data.images
 
-              if (
-                seenImageIds
+
+          const uniqueImages =
+            images.filter(
+              img =>
+                !seenImageIds
                   .current
                   .has(
                     img.id
                   )
-              ) {
-                return false
-              }
+            )
 
 
+          uniqueImages.forEach(
+            img =>
               seenImageIds
                 .current
                 .add(
                   img.id
                 )
-
-
-              return true
-            }
           )
 
 
-        const spacedImages =
-          applyWebmSpacing(
-            uniqueImages
+          const spacedImages =
+            applyWebmSpacing(
+              uniqueImages
+            )
+
+
+          if (
+            spacedImages.length
+          ) {
+
+            setImages(
+              prev => [
+                ...prev,
+                ...spacedImages
+              ]
+            )
+          }
+
+        } else {
+
+          console.error(
+            'Failed to get files'
           )
 
-
-        if (
-          spacedImages.length
-        ) {
-
-          setImages(
-            prev => [
-              ...prev,
-              ...spacedImages
-            ]
-          )
         }
 
       } catch (error) {
@@ -1784,7 +1742,6 @@ export default function Tetris() {
 
       }
     }
-
 
 
   /* -------------------------------------------------------
@@ -1937,10 +1894,7 @@ export default function Tetris() {
         true
 
 
-      getImages(
-        'initial',
-        INITIAL_BATCH_REQUESTS
-      )
+      getImages()
 
     },
     []
