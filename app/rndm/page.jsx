@@ -129,6 +129,8 @@ const WEBM_INTERVAL = 20
 const MIN_IMAGES_BETWEEN_WEBMS =
   WEBM_INTERVAL - 1
 
+const INITIAL_BATCH_REQUESTS = 3
+
 
 /* ---------------------------------------------------------
    MEDIA TYPE
@@ -1639,8 +1641,50 @@ export default function Tetris() {
      GET IMAGES
   ------------------------------------------------------- */
 
+  const fetchRandomBatch =
+    async () => {
+
+      const response =
+        await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
+          {
+            method:
+              'GET',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            }
+          }
+        )
+
+
+      if (
+        !response.ok
+      ) {
+
+        throw new Error(
+          `Failed to get random images: ${response.status}`
+        )
+      }
+
+
+      const data =
+        await response.json()
+
+
+      return (
+        data.images ||
+        []
+      )
+    }
+
+
   const getImages =
-    async load => {
+    async (
+      load,
+      batchCount = 1
+    ) => {
 
       if (
         load !==
@@ -1654,78 +1698,76 @@ export default function Tetris() {
 
       try {
 
-        const response =
-          await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-random-images`,
-            {
-              method:
-                'GET',
+        /*
+          INITIAL LOAD OPTIMIZATION
 
-              headers: {
-                'Content-Type':
-                  'application/json'
-              }
-            }
+          The page often needs more than one random batch before
+          the wall is tall enough for InfiniteScroll to settle.
+
+          Fetch those first batches concurrently instead of
+          paying the API round-trip cost serially.
+        */
+
+        const batches =
+          await Promise.all(
+            Array.from(
+              {
+                length:
+                  batchCount
+              },
+              () =>
+                fetchRandomBatch()
+            )
           )
 
 
-        if (
-          response.ok
-        ) {
-
-          const data =
-            await response.json()
+        const images =
+          batches.flat()
 
 
-          const images =
-            data.images
+        const uniqueImages =
+          images.filter(
+            img => {
 
-
-          const uniqueImages =
-            images.filter(
-              img =>
-                !seenImageIds
+              if (
+                seenImageIds
                   .current
                   .has(
                     img.id
                   )
-            )
+              ) {
+                return false
+              }
 
 
-          uniqueImages.forEach(
-            img =>
               seenImageIds
                 .current
                 .add(
                   img.id
                 )
+
+
+              return true
+            }
           )
 
 
-          const spacedImages =
-            applyWebmSpacing(
-              uniqueImages
-            )
-
-
-          if (
-            spacedImages.length
-          ) {
-
-            setImages(
-              prev => [
-                ...prev,
-                ...spacedImages
-              ]
-            )
-          }
-
-        } else {
-
-          console.error(
-            'Failed to get files'
+        const spacedImages =
+          applyWebmSpacing(
+            uniqueImages
           )
 
+
+        if (
+          spacedImages.length
+        ) {
+
+          setImages(
+            prev => [
+              ...prev,
+              ...spacedImages
+            ]
+          )
         }
 
       } catch (error) {
@@ -1742,6 +1784,7 @@ export default function Tetris() {
 
       }
     }
+
 
 
   /* -------------------------------------------------------
@@ -1894,7 +1937,10 @@ export default function Tetris() {
         true
 
 
-      getImages()
+      getImages(
+        'initial',
+        INITIAL_BATCH_REQUESTS
+      )
 
     },
     []
