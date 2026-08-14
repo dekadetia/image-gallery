@@ -33,65 +33,7 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-function LightboxImage({
-  slide,
-  rect,
-  onClose
-}) {
-  const ratio =
-    slide.width && slide.height
-      ? slide.width / slide.height
-      : 16 / 9
-
-  const maxWidth =
-    Math.max(1, rect.width)
-
-  const maxHeight =
-    Math.max(1, rect.height)
-
-  let width = maxWidth
-  let height = width / ratio
-
-  if (height > maxHeight) {
-    height = maxHeight
-    width = height * ratio
-  }
-
-  return (
-    <div
-      className="tndr-lightbox-slide-backdrop"
-      onClick={onClose}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <img
-        src={slide.src}
-        alt={slide.title || ''}
-        draggable={false}
-        style={{
-          display: 'block',
-          width: `${width}px`,
-          height: `${height}px`,
-          objectFit: 'contain',
-          maxWidth: '100%',
-          maxHeight: '100%',
-        }}
-      />
-    </div>
-  )
-}
-
-
-function LightboxWebm({
-  slide,
-  rect,
-  onClose
-}) {
+function LightboxWebm({ slide, rect }) {
   const ratio =
     slide.width && slide.height
       ? slide.width / slide.height
@@ -113,39 +55,25 @@ function LightboxWebm({
 
   return (
     <div
-      className="tndr-lightbox-slide-backdrop"
-      onClick={onClose}
+      className="tndr-lightbox-webm-box"
       style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: isDesktop
-          ? 'flex-start'
-          : 'center',
-        justifyContent: 'center',
+        width: `${width}px`,
+        height: `${height}px`,
+        flex: '0 0 auto',
+        position: 'relative',
+        margin: isDesktop ? '26px auto 0' : '0 auto',
       }}
     >
-      <div
-        className="tndr-lightbox-webm-box"
-        style={{
-          width: `${width}px`,
-          height: `${height}px`,
-          flex: '0 0 auto',
-          position: 'relative',
-          margin: isDesktop ? '26px auto 0' : '0 auto',
-        }}
-      >
-        <video
-          className="tndr-lightbox-webm"
-          src={slide.sources?.[0]?.src}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          poster={slide.poster}
-        />
-      </div>
+      <video
+        className="tndr-lightbox-webm"
+        src={slide.sources?.[0]?.src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        poster={slide.poster}
+      />
     </div>
   )
 }
@@ -2236,6 +2164,60 @@ useEffect(() => {
     return () => observer.disconnect()
   }, [slides])
 
+  /*
+    Preserve YARL's native slide rendering and add only the
+    "left-click almost anywhere closes" behavior.
+
+    Because this listens for ordinary click events:
+      - right-click/contextmenu still targets the real image/video
+      - footer text stays selectable
+      - buttons/links/controls remain interactive
+  */
+  useEffect(() => {
+    if (index < 0) return
+
+    const handleLightboxClick = event => {
+      if (event.button !== 0) return
+
+      const target = event.target
+
+      if (!(target instanceof Element)) return
+
+      const lightbox =
+        target.closest('.yarl__root')
+
+      if (!lightbox) return
+
+      if (
+        target.closest(
+          '.yarl-slide-content, ' +
+          '.yarl__slide_title, ' +
+          '.yarl__slide_description, ' +
+          'button, a, input, textarea, select, ' +
+          '[role="button"], [contenteditable="true"]'
+        )
+      ) {
+        return
+      }
+
+      setIndex(-1)
+    }
+
+    document.addEventListener(
+      'click',
+      handleLightboxClick,
+      true
+    )
+
+    return () => {
+      document.removeEventListener(
+        'click',
+        handleLightboxClick,
+        true
+      )
+    }
+  }, [index])
+
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => searchInputRef.current.focus(), 0)
@@ -2533,37 +2515,11 @@ useEffect(() => {
                 open={index >= 0}
                 close={() => setIndex(-1)}
                 plugins={[Video]}
-                controller={{
-                  closeOnBackdropClick: true,
-                }}
                 render={{
-                  slide: ({ slide, rect }) => {
-                    if (slide.type === 'tndr-webm') {
-                      return (
-                        <LightboxWebm
-                          slide={slide}
-                          rect={rect}
-                          onClose={() =>
-                            setIndex(-1)
-                          }
-                        />
-                      )
-                    }
-
-                    if (slide.type === 'image') {
-                      return (
-                        <LightboxImage
-                          slide={slide}
-                          rect={rect}
-                          onClose={() =>
-                            setIndex(-1)
-                          }
-                        />
-                      )
-                    }
-
-                    return undefined
-                  },
+                  slide: ({ slide, rect }) =>
+                    slide.type === 'tndr-webm' ? (
+                      <LightboxWebm slide={slide} rect={rect} />
+                    ) : undefined,
 
                   slideFooter: ({ slide }) => (
                     <div
