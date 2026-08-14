@@ -33,7 +33,65 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-function LightboxWebm({ slide, rect }) {
+function LightboxImage({
+  slide,
+  rect,
+  onClose
+}) {
+  const ratio =
+    slide.width && slide.height
+      ? slide.width / slide.height
+      : 16 / 9
+
+  const maxWidth =
+    Math.max(1, rect.width)
+
+  const maxHeight =
+    Math.max(1, rect.height)
+
+  let width = maxWidth
+  let height = width / ratio
+
+  if (height > maxHeight) {
+    height = maxHeight
+    width = height * ratio
+  }
+
+  return (
+    <div
+      className="tndr-lightbox-slide-backdrop"
+      onClick={onClose}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <img
+        src={slide.src}
+        alt={slide.title || ''}
+        draggable={false}
+        style={{
+          display: 'block',
+          width: `${width}px`,
+          height: `${height}px`,
+          objectFit: 'contain',
+          maxWidth: '100%',
+          maxHeight: '100%',
+        }}
+      />
+    </div>
+  )
+}
+
+
+function LightboxWebm({
+  slide,
+  rect,
+  onClose
+}) {
   const ratio =
     slide.width && slide.height
       ? slide.width / slide.height
@@ -55,25 +113,39 @@ function LightboxWebm({ slide, rect }) {
 
   return (
     <div
-      className="tndr-lightbox-webm-box"
+      className="tndr-lightbox-slide-backdrop"
+      onClick={onClose}
       style={{
-        width: `${width}px`,
-        height: `${height}px`,
-        flex: '0 0 auto',
-        position: 'relative',
-        margin: isDesktop ? '26px auto 0' : '0 auto',
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: isDesktop
+          ? 'flex-start'
+          : 'center',
+        justifyContent: 'center',
       }}
     >
-      <video
-        className="tndr-lightbox-webm"
-        src={slide.sources?.[0]?.src}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        poster={slide.poster}
-      />
+      <div
+        className="tndr-lightbox-webm-box"
+        style={{
+          width: `${width}px`,
+          height: `${height}px`,
+          flex: '0 0 auto',
+          position: 'relative',
+          margin: isDesktop ? '26px auto 0' : '0 auto',
+        }}
+      >
+        <video
+          className="tndr-lightbox-webm"
+          src={slide.sources?.[0]?.src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster={slide.poster}
+        />
+      </div>
     </div>
   )
 }
@@ -2464,14 +2536,34 @@ useEffect(() => {
                 controller={{
                   closeOnBackdropClick: true,
                 }}
-                on={{
-                  click: () => setIndex(-1),
-                }}
                 render={{
-                  slide: ({ slide, rect }) =>
-                    slide.type === 'tndr-webm' ? (
-                      <LightboxWebm slide={slide} rect={rect} />
-                    ) : undefined,
+                  slide: ({ slide, rect }) => {
+                    if (slide.type === 'tndr-webm') {
+                      return (
+                        <LightboxWebm
+                          slide={slide}
+                          rect={rect}
+                          onClose={() =>
+                            setIndex(-1)
+                          }
+                        />
+                      )
+                    }
+
+                    if (slide.type === 'image') {
+                      return (
+                        <LightboxImage
+                          slide={slide}
+                          rect={rect}
+                          onClose={() =>
+                            setIndex(-1)
+                          }
+                        />
+                      )
+                    }
+
+                    return undefined
+                  },
 
                   slideFooter: ({ slide }) => (
                     <div
@@ -2479,12 +2571,6 @@ useEffect(() => {
                         'lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content select-text',
                         slide.type === 'tndr-webm' && 'relative top-auto bottom-unset'
                       )}
-                      onClick={event =>
-                        event.stopPropagation()
-                      }
-                      onPointerDown={event =>
-                        event.stopPropagation()
-                      }
                     >
                       {slide.title && (
                         <div className="yarl__slide_title">{slide.title}</div>
