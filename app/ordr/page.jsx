@@ -1769,6 +1769,13 @@ function TetrisWall({
 
 
 
+function normalizeSearchQuotes(value = '') {
+  return String(value)
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+}
+
+
 export default function Order() {
   const PAGE_SIZE = 99
 
@@ -1782,11 +1789,18 @@ export default function Order() {
   const [FullImages, setFullImages] = useState([])
 
 const fuse = useMemo(() => {
-  return new Fuse(FullImages, {
+  const normalizedImages = FullImages.map(photo => ({
+    ...photo,
+    _searchCaption: normalizeSearchQuotes(photo.caption),
+    _searchAlphaname: normalizeSearchQuotes(photo.alphaname),
+    _searchDirector: normalizeSearchQuotes(photo.director),
+  }))
+
+  return new Fuse(normalizedImages, {
     keys: [
-      { name: 'caption', weight: 0.7 },
-      { name: 'alphaname', weight: 0.2 },
-      { name: 'director', weight: 0.1 },
+      { name: '_searchCaption', weight: 0.7 },
+      { name: '_searchAlphaname', weight: 0.2 },
+      { name: '_searchDirector', weight: 0.1 },
     ],
     threshold: 0.3,
     distance: 100,
@@ -2145,7 +2159,7 @@ useEffect(() => {
   if (debounceRef.current) clearTimeout(debounceRef.current)
 
   debounceRef.current = setTimeout(async () => {
-    const rawQuery = searchQuery.trim().toLowerCase()
+    const rawQuery = normalizeSearchQuotes(searchQuery.trim().toLowerCase())
 
     if (!rawQuery) {
       clearValues().then(() => {
