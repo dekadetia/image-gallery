@@ -1769,10 +1769,23 @@ function TetrisWall({
 
 
 
-function normalizeSearchQuotes(value = '') {
-  return String(value)
-    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
-    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+function getQuoteEquivalentQueries(value = '') {
+  const original = String(value)
+  const variants = new Set([original])
+
+  variants.add(
+    original
+      .replace(/'/g, '\u2019')
+      .replace(/"/g, '\u201C')
+  )
+
+  variants.add(
+    original
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+  )
+
+  return [...variants]
 }
 
 
@@ -1789,18 +1802,11 @@ export default function Order() {
   const [FullImages, setFullImages] = useState([])
 
 const fuse = useMemo(() => {
-  const normalizedImages = FullImages.map(photo => ({
-    ...photo,
-    _searchCaption: normalizeSearchQuotes(photo.caption),
-    _searchAlphaname: normalizeSearchQuotes(photo.alphaname),
-    _searchDirector: normalizeSearchQuotes(photo.director),
-  }))
-
-  return new Fuse(normalizedImages, {
+  return new Fuse(FullImages, {
     keys: [
-      { name: '_searchCaption', weight: 0.7 },
-      { name: '_searchAlphaname', weight: 0.2 },
-      { name: '_searchDirector', weight: 0.1 },
+      { name: 'caption', weight: 0.7 },
+      { name: 'alphaname', weight: 0.2 },
+      { name: 'director', weight: 0.1 },
     ],
     threshold: 0.3,
     distance: 100,
@@ -2159,7 +2165,7 @@ useEffect(() => {
   if (debounceRef.current) clearTimeout(debounceRef.current)
 
   debounceRef.current = setTimeout(async () => {
-    const rawQuery = normalizeSearchQuotes(searchQuery.trim().toLowerCase())
+    const rawQuery = searchQuery.trim().toLowerCase()
 
     if (!rawQuery) {
       clearValues().then(() => {
@@ -2178,14 +2184,35 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      const results = fuse.search(rawQuery).map(r => r.item)
+      const quoteQueries =
+        getQuoteEquivalentQueries(rawQuery)
 
-      if (results.length === 0) {
+      const mergedResults = []
+      const seenResults = new Set()
+
+      quoteQueries.forEach(query => {
+        fuse.search(query).forEach(result => {
+          const item = result.item
+          const key =
+            item?.id ||
+            item?.src ||
+            item?.name
+
+          if (!key || seenResults.has(key)) {
+            return
+          }
+
+          seenResults.add(key)
+          mergedResults.push(item)
+        })
+      })
+
+      if (mergedResults.length === 0) {
         fetchBackendSearch(rawQuery)
         return
       }
 
-      applySearchResults(results)
+      applySearchResults(mergedResults)
     }, 300)
 
   return () => {
