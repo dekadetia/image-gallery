@@ -78,6 +78,10 @@ body {
   margin-left: 20px;
 }
 
+.yarl__toolbar {
+  display: none !important;
+}
+
 @media (max-width: 991px) {
   .yarl__slide_description,
   .yarl__slide_title {
