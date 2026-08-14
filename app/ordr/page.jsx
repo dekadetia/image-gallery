@@ -2182,6 +2182,32 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
+      /*
+        First do a punctuation-insensitive literal substring pass.
+        This makes straight quotes, curly quotes, and omitted quotes
+        genuinely interchangeable for normal title/director searches.
+
+        Fuse remains the fallback for fuzzy matching.
+      */
+      const directResults = FullImages.filter(photo => {
+        const searchable = [
+          photo.caption,
+          photo.alphaname,
+          photo.director,
+        ]
+          .map(normalizeSearchText)
+          .filter(Boolean)
+
+        return searchable.some(value =>
+          value.includes(rawQuery)
+        )
+      })
+
+      if (directResults.length > 0) {
+        applySearchResults(directResults)
+        return
+      }
+
       const results = fuse.search(rawQuery).map(r => r.item)
 
       if (results.length === 0) {
