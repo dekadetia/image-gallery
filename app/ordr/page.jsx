@@ -862,8 +862,8 @@ function chooseRemainderBand(
   /*
     If there is no exact normal pattern for this remainder,
     consume the largest sane normal pattern that leaves a
-    1–4-image tail. The next loop iteration will solve that tail
-    through SMALL_EXACT_PATTERNS.
+    2–4-image tail. A one-image tail is intentionally forbidden
+    unless the entire result set itself contains only one image.
   */
 
   const partialCandidates =
@@ -878,12 +878,18 @@ function chooseRemainderBand(
         })
       )
       .filter(
-        candidate =>
-          candidate.count <
-            remainingCount &&
-          remainingCount -
-            candidate.count <=
-            4
+        candidate => {
+          const tailCount =
+            remainingCount -
+            candidate.count
+
+          return (
+            candidate.count <
+              remainingCount &&
+            tailCount >= 2 &&
+            tailCount <= 4
+          )
+        }
       )
       .sort(
         (a, b) =>
@@ -1006,9 +1012,17 @@ function buildWall(
       )
 
 
+    const wouldLeaveLoneTail =
+      remaining > 1 &&
+      remaining -
+        requiredImages ===
+        1
+
+
     if (
       remaining >=
-      requiredImages
+        requiredImages &&
+      !wouldLeaveLoneTail
     ) {
       const bandImages =
         remainingImages.slice(
@@ -1668,11 +1682,19 @@ function TetrisWall({
     }
 
 
+    const element =
+      wallRef.current
+
+
     const measure =
       () => {
+        if (!element) {
+          return
+        }
+
 
         const width =
-          wallRef.current
+          element
             .getBoundingClientRect()
             .width
 
@@ -1693,7 +1715,7 @@ function TetrisWall({
 
 
     resizeObserver.observe(
-      wallRef.current
+      element
     )
 
 
@@ -1769,9 +1791,19 @@ function TetrisWall({
 
 
 
-function normalizeApostrophe(value = '') {
-  return String(value)
-    .replace(/\u2019/g, "'")
+function getApostropheBackendQueries(value = '') {
+  const text = String(value)
+
+  if (!/['\u2019]/.test(text)) {
+    return [text]
+  }
+
+  return Array.from(
+    new Set([
+      text.replace(/\u2019/g, "'"),
+      text.replace(/'/g, '\u2019'),
+    ])
+  )
 }
 
 
@@ -2064,24 +2096,6 @@ const images = data.images || []
     const deduped = dedupeById(results)
     const firstPage = deduped.slice(0, PAGE_SIZE)
 
-    console.log(
-      '[ORDR SEARCH] applySearchResults input',
-      results?.length ?? 0,
-      results?.slice?.(0, 20)
-    )
-
-    console.log(
-      '[ORDR SEARCH] applySearchResults deduped',
-      deduped.length,
-      deduped.slice(0, 20)
-    )
-
-    console.log(
-      '[ORDR SEARCH] firstPage',
-      firstPage.length,
-      firstPage.slice(0, 20)
-    )
-
     setIndex(-1)
     setSearchResults(deduped)
     setImages(firstPage)
@@ -2188,79 +2202,12 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      console.log(
-        '[ORDR SEARCH] query',
-        rawQuery
-      )
-
-      console.log(
-        '[ORDR SEARCH] FullImages count',
-        FullImages.length
-      )
-
-      const literalMatches =
-        FullImages.filter(photo => {
-          const query =
-            normalizeApostrophe(
-              rawQuery
-            )
-
-          const caption =
-            normalizeApostrophe(
-              photo?.caption
-            ).toLowerCase()
-
-          const director =
-            normalizeApostrophe(
-              photo?.director
-            ).toLowerCase()
-
-          return (
-            caption.includes(query) ||
-            director.includes(query)
-          )
-        })
-
-      console.log(
-        '[ORDR SEARCH] apostrophe-literal matches',
-        literalMatches.length,
-        literalMatches.slice(0, 20)
-      )
-
-      const fuseMatches =
-        fuse.search(rawQuery)
-
-      console.log(
-        '[ORDR SEARCH] Fuse matches',
-        fuseMatches.length,
-        fuseMatches.slice(0, 20)
-      )
-
-      const results =
-        fuseMatches.map(
-          r => r.item
-        )
-
-      console.log(
-        '[ORDR SEARCH] results before fallback',
-        results.length,
-        results.slice(0, 20)
-      )
+      const results = fuse.search(rawQuery).map(r => r.item)
 
       if (results.length === 0) {
-        console.log(
-          '[ORDR SEARCH] falling back to backend',
-          rawQuery
-        )
-
         fetchBackendSearch(rawQuery)
         return
       }
-
-      console.log(
-        '[ORDR SEARCH] sending results to applySearchResults',
-        results.length
-      )
 
       applySearchResults(results)
     }, 300)
@@ -2271,45 +2218,105 @@ useEffect(() => {
   }, [searchQuery, FullImages])
 
   async function fetchBackendSearch(queryText) {
-    const searchRequestId = ++searchRequestIdRef.current
+    const searchRequestId =
+      ++searchRequestIdRef.current
 
     try {
       __loader(true)
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ queryText }),
-        }
-      )
+      const queryVariants =
+        getApostropheBackendQueries(
+          queryText
+        )
 
-      if (searchRequestId !== searchRequestIdRef.current) return
+      const responses =
+        await Promise.all(
+          queryVariants.map(
+            variant =>
+              fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type':
+                      'application/json'
+                  },
+                  body:
+                    JSON.stringify({
+                      queryText:
+                        variant
+                    })
+                }
+              )
+          )
+        )
 
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '')
-        console.error('Backend search non-OK:', res.status, txt)
+      if (
+        searchRequestId !==
+        searchRequestIdRef.current
+      ) {
         return
       }
 
-      const data = await res.json()
+      const payloads =
+        await Promise.all(
+          responses.map(
+            async response => {
+              if (!response.ok) {
+                const txt =
+                  await response
+                    .text()
+                    .catch(() => '')
 
-      if (searchRequestId !== searchRequestIdRef.current) return
+                console.error(
+                  'Backend search non-OK:',
+                  response.status,
+                  txt
+                )
 
-      console.log(
-        '[ORDR SEARCH] backend results',
-        data.results?.length ?? 0,
-        data.results?.slice?.(0, 20)
+                return {
+                  results: []
+                }
+              }
+
+              return response.json()
+            }
+          )
+        )
+
+      if (
+        searchRequestId !==
+        searchRequestIdRef.current
+      ) {
+        return
+      }
+
+      const mergedResults =
+        dedupeById(
+          payloads.flatMap(
+            payload =>
+              payload.results || []
+          )
+        )
+
+      applySearchResults(
+        mergedResults
       )
-
-      applySearchResults(data.results || [])
     } catch (err) {
-      if (searchRequestId === searchRequestIdRef.current) {
-        console.error('Backend search failed:', err)
+      if (
+        searchRequestId ===
+        searchRequestIdRef.current
+      ) {
+        console.error(
+          'Backend search failed:',
+          err
+        )
       }
     } finally {
-      if (searchRequestId === searchRequestIdRef.current) {
+      if (
+        searchRequestId ===
+        searchRequestIdRef.current
+      ) {
         __loader(false)
       }
     }
