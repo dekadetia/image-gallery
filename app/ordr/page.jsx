@@ -1773,10 +1773,7 @@ function normalizeSearchText(value = '') {
   return String(value)
     .normalize('NFKD')
     .toLowerCase()
-    .replace(/['\u2018\u2019\u201A\u201B\u2032\u2035]/g, '')
-    .replace(/["\u201C\u201D\u201E\u201F\u2033\u2036]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+    .replace(/[^a-z0-9]/g, '')
 }
 
 
@@ -2182,32 +2179,6 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      /*
-        First do a punctuation-insensitive literal substring pass.
-        This makes straight quotes, curly quotes, and omitted quotes
-        genuinely interchangeable for normal title/director searches.
-
-        Fuse remains the fallback for fuzzy matching.
-      */
-      const directResults = FullImages.filter(photo => {
-        const searchable = [
-          photo.caption,
-          photo.alphaname,
-          photo.director,
-        ]
-          .map(normalizeSearchText)
-          .filter(Boolean)
-
-        return searchable.some(value =>
-          value.includes(rawQuery)
-        )
-      })
-
-      if (directResults.length > 0) {
-        applySearchResults(directResults)
-        return
-      }
-
       const results = fuse.search(rawQuery).map(r => r.item)
 
       if (results.length === 0) {
