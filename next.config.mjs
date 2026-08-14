@@ -7,6 +7,7 @@ const nextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
+
   images: {
     remotePatterns: [
       {
@@ -15,6 +16,16 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: "/images/:filename",
+        destination:
+          "https://firebasestorage.googleapis.com/v0/b/tndrbtns.appspot.com/o/images%2F:filename?alt=media",
+      },
+    ];
   },
 };
 
