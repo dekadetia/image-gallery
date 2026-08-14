@@ -21,19 +21,161 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+
+/* ---------- LIGHTBOX GEOMETRY ---------- */
+
+function parseImageMeta(dimensions) {
+  const parts =
+    dimensions
+      ?.split("|")
+      .map((part) => part.trim()) ?? [];
+
+  const declaredRatio =
+    parseFloat(parts[0]);
+
+  const dimensionMatch =
+    parts[1]?.match(
+      /(\d+)\s*[×x]\s*(\d+)/i
+    );
+
+  const width =
+    dimensionMatch
+      ? Number(dimensionMatch[1])
+      : null;
+
+  const height =
+    dimensionMatch
+      ? Number(dimensionMatch[2])
+      : null;
+
+  const intrinsicRatio =
+    width && height
+      ? width / height
+      : null;
+
+  return {
+    width,
+    height,
+    ratio:
+      Number.isFinite(declaredRatio)
+        ? declaredRatio
+        : intrinsicRatio || 16 / 9,
+  };
+}
+
+
+function LightboxWebm({
+  slide,
+  rect,
+}) {
+  const ratio =
+    slide.width && slide.height
+      ? slide.width / slide.height
+      : 16 / 9;
+
+  const isDesktop =
+    rect.width >= 768;
+
+  const maxWidth =
+    rect.width *
+    (isDesktop ? 0.96 : 1);
+
+  const maxHeight =
+    isDesktop
+      ? Math.max(
+          1,
+          window.innerHeight - 160
+        )
+      : Math.max(
+          1,
+          rect.height
+        );
+
+  let width =
+    maxWidth;
+
+  let height =
+    width / ratio;
+
+  if (height > maxHeight) {
+    height =
+      maxHeight;
+
+    width =
+      height * ratio;
+  }
+
+  return (
+    <div
+      className="tndr-lightbox-webm-box"
+      style={{
+        width: `${width}px`,
+        height: `${height}px`,
+        flex: "0 0 auto",
+        position: "relative",
+        margin:
+          isDesktop
+            ? "26px auto 0"
+            : "0 auto",
+      }}
+    >
+      <video
+        className="tndr-lightbox-webm"
+        src={
+          slide.sources?.[0]?.src
+        }
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        poster={
+          slide.poster
+        }
+      />
+    </div>
+  );
+}
+
+
 /* ---------- 🔥 CENTRALIZED SLIDE CREATOR ---------- */
 
 function createSlide(photo) {
-  const isWebm = photo.src.toLowerCase().endsWith(".webm");
+  const isWebm =
+    photo.src
+      .toLowerCase()
+      .endsWith(".webm");
+
+  const meta =
+    parseImageMeta(
+      photo.dimensions
+    );
+
+  const width =
+    meta.width ||
+    1920;
+
+  const height =
+    meta.height ||
+    Math.round(
+      width / meta.ratio
+    );
 
   if (isWebm) {
     return {
-      type: "video",
+      type: "tndr-webm",
+      width,
+      height,
       title: photo.caption,
       description: photo.dimensions,
       director: photo.director || null,
       year: photo.year,
-      sources: [{ src: photo.src, type: "video/webm" }],
+      sources: [
+        {
+          src: photo.src,
+          type: "video/webm",
+        },
+      ],
       poster: "/assets/transparent.png",
       autoPlay: true,
       muted: true,
@@ -45,8 +187,8 @@ function createSlide(photo) {
   return {
     type: "image",
     src: photo.src,
-    width: 1080 * 4,
-    height: 1620 * 4,
+    width,
+    height,
     title: photo.caption,
     description: photo.dimensions,
     director: photo.director || null,
@@ -147,7 +289,7 @@ export default function Index() {
 
   const openLightboxByImage = (photo) => {
     const matchedIndex = slides.findIndex((slide) => {
-      if (slide.type === "video") {
+      if (slide.type === "tndr-webm") {
         return slide.sources[0].src === photo.src;
       }
       return slide.src === photo.src;
@@ -227,6 +369,59 @@ export default function Index() {
     obs.observe(document.body, { childList: true, subtree: true });
     return () => obs.disconnect();
   }, []);
+
+  /* ---------- LIGHTBOX INTERACTION ---------- */
+
+  useEffect(() => {
+    if (index < 0) return;
+
+    const handleLightboxClick = (event) => {
+      if (event.button !== 0) return;
+
+      const target =
+        event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const lightbox =
+        target.closest(
+          ".yarl__root"
+        );
+
+      if (!lightbox) return;
+
+      if (
+        target.closest(
+          ".yarl-slide-content, " +
+          ".yarl__slide_title, " +
+          ".yarl__slide_description, " +
+          "button, a, input, textarea, select, " +
+          '[role="button"], [contenteditable="true"]'
+        )
+      ) {
+        return;
+      }
+
+      setIndex(-1);
+    };
+
+    document.addEventListener(
+      "click",
+      handleLightboxClick,
+      true
+    );
+
+    return () => {
+      document.removeEventListener(
+        "click",
+        handleLightboxClick,
+        true
+      );
+    };
+  }, [index]);
+
 
   /* ---------- SEARCH AUTOFOCUS ---------- */
 
@@ -319,21 +514,48 @@ export default function Index() {
         )}
 
         {slides && (
-          <Lightbox
-            index={index}
-            slides={slides}
-            open={index >= 0}
-            close={() => setIndex(-1)}
-            plugins={[Video]}
-            render={{
-              slideFooter: ({ slide }) => (
-                <div
-                  className={cn(
-                    "lg:w-[96%] text-left text-sm space-y-1 pb-[1rem] text-white lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
-                    slide.type === "video" &&
-                      "relative top-auto bottom-unset"
-                  )}
-                >
+          <>
+            <style jsx global>{`
+              .yarl__slide .tndr-lightbox-webm-box {
+                box-sizing: border-box;
+              }
+
+              .yarl__slide video.tndr-lightbox-webm {
+                position: absolute !important;
+                inset: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: 100% !important;
+                max-height: 100% !important;
+                object-fit: contain !important;
+                display: block !important;
+                margin: 0 !important;
+              }
+            `}</style>
+
+            <Lightbox
+              index={index}
+              slides={slides}
+              open={index >= 0}
+              close={() => setIndex(-1)}
+              plugins={[Video]}
+              render={{
+                slide: ({ slide, rect }) =>
+                  slide.type === "tndr-webm" ? (
+                    <LightboxWebm
+                      slide={slide}
+                      rect={rect}
+                    />
+                  ) : undefined,
+
+                slideFooter: ({ slide }) => (
+                  <div
+                    className={cn(
+                      "lg:w-[96%] text-left text-sm space-y-1 pb-[1rem] text-white lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content select-text",
+                      slide.type === "tndr-webm" &&
+                        "relative top-auto bottom-unset"
+                    )}
+                  >
                   {slide.title && (
                     <div className="yarl__slide_title">{slide.title}</div>
                   )}
@@ -353,8 +575,9 @@ export default function Index() {
                   </div>
                 </div>
               ),
-            }}
-          />
+              }}
+            />
+          </>
         )}
       </div>
 
