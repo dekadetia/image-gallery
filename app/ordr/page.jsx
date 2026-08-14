@@ -1769,23 +1769,21 @@ function TetrisWall({
 
 
 
-function getQuoteEquivalentQueries(value = '') {
-  const original = String(value)
-  const variants = new Set([original])
+function swapSearchQuoteStyle(value = '') {
+  const text = String(value)
 
-  variants.add(
-    original
-      .replace(/'/g, '\u2019')
-      .replace(/"/g, '\u201C')
-  )
+  const hasCurlyQuotes =
+    /[\u2018\u2019\u201C\u201D]/.test(text)
 
-  variants.add(
-    original
+  if (hasCurlyQuotes) {
+    return text
       .replace(/[\u2018\u2019]/g, "'")
       .replace(/[\u201C\u201D]/g, '"')
-  )
+  }
 
-  return [...variants]
+  return text
+    .replace(/'/g, '\u2019')
+    .replace(/"/g, '\u201C')
 }
 
 
@@ -2184,35 +2182,30 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      const quoteQueries =
-        getQuoteEquivalentQueries(rawQuery)
+      let results =
+        fuse.search(rawQuery).map(r => r.item)
 
-      const mergedResults = []
-      const seenResults = new Set()
+      /*
+        Preserve the original Fuse behavior completely.
+        Only if the untouched search returns nothing do we
+        retry once with straight/curly quote style swapped.
+      */
+      if (results.length === 0) {
+        const quoteAlternate =
+          swapSearchQuoteStyle(rawQuery)
 
-      quoteQueries.forEach(query => {
-        fuse.search(query).forEach(result => {
-          const item = result.item
-          const key =
-            item?.id ||
-            item?.src ||
-            item?.name
+        if (quoteAlternate !== rawQuery) {
+          results =
+            fuse.search(quoteAlternate).map(r => r.item)
+        }
+      }
 
-          if (!key || seenResults.has(key)) {
-            return
-          }
-
-          seenResults.add(key)
-          mergedResults.push(item)
-        })
-      })
-
-      if (mergedResults.length === 0) {
+      if (results.length === 0) {
         fetchBackendSearch(rawQuery)
         return
       }
 
-      applySearchResults(mergedResults)
+      applySearchResults(results)
     }, 300)
 
   return () => {
