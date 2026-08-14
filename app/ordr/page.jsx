@@ -718,7 +718,212 @@ function buildOrderedBand(
 
 /* ---------------------------------------------------------
    BUILD DESKTOP / TABLET WALL
+
+   The normal wall follows the rotating Tetris sequence. When
+   the final batch is smaller than the next scheduled pattern,
+   choose a compact exact-fit pattern instead of dropping the
+   remainder. This same path handles searches with only 1–4
+   results; there is no separate tiny-results renderer.
 --------------------------------------------------------- */
+
+const SMALL_EXACT_PATTERNS = {
+  1: [
+    [1]
+  ],
+
+  2: [
+    [1, 1]
+  ],
+
+  3: [
+    [1, 2],
+    [2, 1],
+    [1, 1, 1]
+  ],
+
+  4: [
+    [2, 2],
+    [1, 2, 1],
+    [2, 1, 1],
+    [1, 1, 2]
+  ]
+}
+
+
+function patternImageCount(
+  pattern
+) {
+  return pattern.reduce(
+    (sum, count) =>
+      sum + count,
+    0
+  )
+}
+
+
+function chooseBestExactPattern(
+  images,
+  candidatePatterns,
+  containerWidth
+) {
+  let best = null
+
+
+  candidatePatterns.forEach(
+    pattern => {
+      const band =
+        buildOrderedBand(
+          images,
+          pattern,
+          containerWidth
+        )
+
+
+      if (!band) {
+        return
+      }
+
+
+      const score =
+        bandGeometryScore(
+          band
+        )
+
+
+      if (
+        !best ||
+        score < best.score
+      ) {
+        best = {
+          pattern,
+          band,
+          score
+        }
+      }
+    }
+  )
+
+
+  return best
+}
+
+
+function chooseRemainderBand(
+  remainingImages,
+  patterns,
+  containerWidth
+) {
+  const remainingCount =
+    remainingImages.length
+
+
+  const exactPatterns = [
+    ...(
+      SMALL_EXACT_PATTERNS[
+        remainingCount
+      ] ||
+      []
+    ),
+
+    ...patterns.filter(
+      pattern =>
+        patternImageCount(
+          pattern
+        ) ===
+        remainingCount
+    )
+  ]
+
+
+  const uniqueExactPatterns =
+    Array.from(
+      new Map(
+        exactPatterns.map(
+          pattern => [
+            pattern.join(','),
+            pattern
+          ]
+        )
+      ).values()
+    )
+
+
+  if (
+    uniqueExactPatterns.length
+  ) {
+    return chooseBestExactPattern(
+      remainingImages,
+      uniqueExactPatterns,
+      containerWidth
+    )
+  }
+
+
+  /*
+    If there is no exact normal pattern for this remainder,
+    consume the largest sane normal pattern that leaves a
+    1–4-image tail. The next loop iteration will solve that tail
+    through SMALL_EXACT_PATTERNS.
+  */
+
+  const partialCandidates =
+    patterns
+      .map(
+        pattern => ({
+          pattern,
+          count:
+            patternImageCount(
+              pattern
+            )
+        })
+      )
+      .filter(
+        candidate =>
+          candidate.count <
+            remainingCount &&
+          remainingCount -
+            candidate.count <=
+            4
+      )
+      .sort(
+        (a, b) =>
+          b.count -
+          a.count
+      )
+
+
+  for (
+    const candidate of
+    partialCandidates
+  ) {
+    const images =
+      remainingImages.slice(
+        0,
+        candidate.count
+      )
+
+
+    const solved =
+      chooseBestExactPattern(
+        images,
+        [candidate.pattern],
+        containerWidth
+      )
+
+
+    if (solved) {
+      return {
+        ...solved,
+        consumeCount:
+          candidate.count
+      }
+    }
+  }
+
+
+  return null
+}
+
 
 function buildWall(
   preparedImages,
@@ -752,6 +957,15 @@ function buildWall(
     imageCursor <
     preparedImages.length
   ) {
+    const remainingImages =
+      preparedImages.slice(
+        imageCursor
+      )
+
+
+    const remaining =
+      remainingImages.length
+
 
     let pattern =
       patterns[
@@ -765,11 +979,8 @@ function buildWall(
       pattern.length === 1 &&
       pattern[0] === 1
     ) {
-
       const candidate =
-        preparedImages[
-          imageCursor
-        ]
+        remainingImages[0]
 
 
       const candidateRatio =
@@ -780,7 +991,6 @@ function buildWall(
       if (
         candidateRatio < 1.85
       ) {
-
         pattern = [
           1,
           2,
@@ -791,51 +1001,67 @@ function buildWall(
 
 
     const requiredImages =
-      pattern.reduce(
-        (sum, count) =>
-          sum + count,
-        0
+      patternImageCount(
+        pattern
       )
-
-
-    const remaining =
-      preparedImages.length -
-      imageCursor
 
 
     if (
-      remaining <
+      remaining >=
       requiredImages
     ) {
-      break
+      const bandImages =
+        remainingImages.slice(
+          0,
+          requiredImages
+        )
+
+
+      const band =
+        buildOrderedBand(
+          bandImages,
+          pattern,
+          containerWidth
+        )
+
+
+      if (band) {
+        bands.push(
+          band
+        )
+      }
+
+
+      imageCursor +=
+        requiredImages
+
+      bandIndex += 1
+      continue
     }
 
 
-    const bandImages =
-      preparedImages.slice(
-        imageCursor,
-        imageCursor +
-          requiredImages
-      )
-
-
-    const band =
-      buildOrderedBand(
-        bandImages,
-        pattern,
+    const remainder =
+      chooseRemainderBand(
+        remainingImages,
+        patterns,
         containerWidth
       )
 
 
-    if (band) {
-      bands.push(
-        band
-      )
+    if (!remainder) {
+      break
     }
 
 
+    bands.push(
+      remainder.band
+    )
+
+
     imageCursor +=
-      requiredImages
+      remainder.consumeCount ||
+      remaining
+
 
     bandIndex += 1
   }
@@ -1940,7 +2166,7 @@ useEffect(() => {
       }
       const results = fuse.search(rawQuery).map(r => r.item)
 
-      if (results.length < 5) {
+      if (results.length === 0) {
         fetchBackendSearch(rawQuery)
         return
       }
@@ -1951,7 +2177,7 @@ useEffect(() => {
   return () => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
   }
-  }, [searchQuery])
+  }, [searchQuery, FullImages])
 
   async function fetchBackendSearch(queryText) {
     const searchRequestId = ++searchRequestIdRef.current
