@@ -1376,7 +1376,6 @@ function WallMedia({
       src={
         photo.src
       }
-      loading="lazy"
       decoding="async"
       className="block w-full h-full object-cover"
     />
@@ -2462,6 +2461,12 @@ useEffect(() => {
                 open={index >= 0}
                 close={() => setIndex(-1)}
                 plugins={[Video]}
+                controller={{
+                  closeOnBackdropClick: true,
+                }}
+                on={{
+                  click: () => setIndex(-1),
+                }}
                 render={{
                   slide: ({ slide, rect }) =>
                     slide.type === 'tndr-webm' ? (
@@ -2471,9 +2476,15 @@ useEffect(() => {
                   slideFooter: ({ slide }) => (
                     <div
                       className={cn(
-                        'lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content',
+                        'lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content select-text',
                         slide.type === 'tndr-webm' && 'relative top-auto bottom-unset'
                       )}
+                      onClick={event =>
+                        event.stopPropagation()
+                      }
+                      onPointerDown={event =>
+                        event.stopPropagation()
+                      }
                     >
                       {slide.title && (
                         <div className="yarl__slide_title">{slide.title}</div>
