@@ -862,8 +862,8 @@ function chooseRemainderBand(
   /*
     If there is no exact normal pattern for this remainder,
     consume the largest sane normal pattern that leaves a
-    2–4-image tail. A one-image tail is intentionally forbidden
-    unless the entire result set itself contains only one image.
+    1–4-image tail. The next loop iteration will solve that tail
+    through SMALL_EXACT_PATTERNS.
   */
 
   const partialCandidates =
@@ -878,18 +878,12 @@ function chooseRemainderBand(
         })
       )
       .filter(
-        candidate => {
-          const tailCount =
-            remainingCount -
-            candidate.count
-
-          return (
-            candidate.count <
-              remainingCount &&
-            tailCount >= 2 &&
-            tailCount <= 4
-          )
-        }
+        candidate =>
+          candidate.count <
+            remainingCount &&
+          remainingCount -
+            candidate.count <=
+            4
       )
       .sort(
         (a, b) =>
@@ -1012,17 +1006,9 @@ function buildWall(
       )
 
 
-    const wouldLeaveLoneTail =
-      remaining > 1 &&
-      remaining -
-        requiredImages ===
-        1
-
-
     if (
       remaining >=
-        requiredImages &&
-      !wouldLeaveLoneTail
+      requiredImages
     ) {
       const bandImages =
         remainingImages.slice(
@@ -2078,6 +2064,24 @@ const images = data.images || []
     const deduped = dedupeById(results)
     const firstPage = deduped.slice(0, PAGE_SIZE)
 
+    console.log(
+      '[ORDR SEARCH] applySearchResults input',
+      results?.length ?? 0,
+      results?.slice?.(0, 20)
+    )
+
+    console.log(
+      '[ORDR SEARCH] applySearchResults deduped',
+      deduped.length,
+      deduped.slice(0, 20)
+    )
+
+    console.log(
+      '[ORDR SEARCH] firstPage',
+      firstPage.length,
+      firstPage.slice(0, 20)
+    )
+
     setIndex(-1)
     setSearchResults(deduped)
     setImages(firstPage)
@@ -2184,21 +2188,23 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      let results = []
+      console.log(
+        '[ORDR SEARCH] query',
+        rawQuery
+      )
 
-      /*
-        Apostrophes are a deterministic equivalence problem, not a
-        fuzzy-search problem. Only quote-bearing queries take this path.
+      console.log(
+        '[ORDR SEARCH] FullImages count',
+        FullImages.length
+      )
 
-        U+2019 RIGHT SINGLE QUOTATION MARK and U+0027 APOSTROPHE are
-        canonicalized to U+0027 on both sides, while every other
-        character — including spaces — is preserved.
-      */
-      if (/['\u2019]/.test(rawQuery)) {
-        const apostropheQuery =
-          normalizeApostrophe(rawQuery)
+      const literalMatches =
+        FullImages.filter(photo => {
+          const query =
+            normalizeApostrophe(
+              rawQuery
+            )
 
-        results = FullImages.filter(photo => {
           const caption =
             normalizeApostrophe(
               photo?.caption
@@ -2210,31 +2216,51 @@ useEffect(() => {
             ).toLowerCase()
 
           return (
-            caption.includes(
-              apostropheQuery
-            ) ||
-            director.includes(
-              apostropheQuery
-            )
+            caption.includes(query) ||
+            director.includes(query)
           )
         })
-      }
 
-      /*
-        Everything else — and quote-bearing searches that did not get
-        a literal hit — uses /ordr's original Fuse behavior unchanged.
-      */
-      if (results.length === 0) {
-        results =
-          fuse.search(rawQuery).map(
-            r => r.item
-          )
-      }
+      console.log(
+        '[ORDR SEARCH] apostrophe-literal matches',
+        literalMatches.length,
+        literalMatches.slice(0, 20)
+      )
+
+      const fuseMatches =
+        fuse.search(rawQuery)
+
+      console.log(
+        '[ORDR SEARCH] Fuse matches',
+        fuseMatches.length,
+        fuseMatches.slice(0, 20)
+      )
+
+      const results =
+        fuseMatches.map(
+          r => r.item
+        )
+
+      console.log(
+        '[ORDR SEARCH] results before fallback',
+        results.length,
+        results.slice(0, 20)
+      )
 
       if (results.length === 0) {
+        console.log(
+          '[ORDR SEARCH] falling back to backend',
+          rawQuery
+        )
+
         fetchBackendSearch(rawQuery)
         return
       }
+
+      console.log(
+        '[ORDR SEARCH] sending results to applySearchResults',
+        results.length
+      )
 
       applySearchResults(results)
     }, 300)
@@ -2270,6 +2296,12 @@ useEffect(() => {
       const data = await res.json()
 
       if (searchRequestId !== searchRequestIdRef.current) return
+
+      console.log(
+        '[ORDR SEARCH] backend results',
+        data.results?.length ?? 0,
+        data.results?.slice?.(0, 20)
+      )
 
       applySearchResults(data.results || [])
     } catch (err) {
