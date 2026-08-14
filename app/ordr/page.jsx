@@ -862,8 +862,8 @@ function chooseRemainderBand(
   /*
     If there is no exact normal pattern for this remainder,
     consume the largest sane normal pattern that leaves a
-    1–4-image tail. The next loop iteration will solve that tail
-    through SMALL_EXACT_PATTERNS.
+    2–4-image tail. A one-image tail is intentionally forbidden
+    unless the entire result set itself contains only one image.
   */
 
   const partialCandidates =
@@ -878,12 +878,18 @@ function chooseRemainderBand(
         })
       )
       .filter(
-        candidate =>
-          candidate.count <
-            remainingCount &&
-          remainingCount -
-            candidate.count <=
-            4
+        candidate => {
+          const tailCount =
+            remainingCount -
+            candidate.count
+
+          return (
+            candidate.count <
+              remainingCount &&
+            tailCount >= 2 &&
+            tailCount <= 4
+          )
+        }
       )
       .sort(
         (a, b) =>
@@ -1006,9 +1012,17 @@ function buildWall(
       )
 
 
+    const wouldLeaveLoneTail =
+      remaining > 1 &&
+      remaining -
+        requiredImages ===
+        1
+
+
     if (
       remaining >=
-      requiredImages
+        requiredImages &&
+      !wouldLeaveLoneTail
     ) {
       const bandImages =
         remainingImages.slice(
@@ -1769,21 +1783,9 @@ function TetrisWall({
 
 
 
-function swapSearchQuoteStyle(value = '') {
-  const text = String(value)
-
-  const hasCurlyQuotes =
-    /[\u2018\u2019\u201C\u201D]/.test(text)
-
-  if (hasCurlyQuotes) {
-    return text
-      .replace(/[\u2018\u2019]/g, "'")
-      .replace(/[\u201C\u201D]/g, '"')
-  }
-
-  return text
-    .replace(/'/g, '\u2019')
-    .replace(/"/g, '\u201C')
+function normalizeApostrophe(value = '') {
+  return String(value)
+    .replace(/\u2019/g, "'")
 }
 
 
@@ -1802,9 +1804,24 @@ export default function Order() {
 const fuse = useMemo(() => {
   return new Fuse(FullImages, {
     keys: [
-      { name: 'caption', weight: 0.7 },
-      { name: 'alphaname', weight: 0.2 },
-      { name: 'director', weight: 0.1 },
+      {
+        name: 'caption',
+        weight: 0.7,
+        getFn: photo =>
+          normalizeApostrophe(photo?.caption),
+      },
+      {
+        name: 'alphaname',
+        weight: 0.2,
+        getFn: photo =>
+          normalizeApostrophe(photo?.alphaname),
+      },
+      {
+        name: 'director',
+        weight: 0.1,
+        getFn: photo =>
+          normalizeApostrophe(photo?.director),
+      },
     ],
     threshold: 0.3,
     distance: 100,
@@ -2163,7 +2180,7 @@ useEffect(() => {
   if (debounceRef.current) clearTimeout(debounceRef.current)
 
   debounceRef.current = setTimeout(async () => {
-    const rawQuery = searchQuery.trim().toLowerCase()
+    const rawQuery = normalizeApostrophe(searchQuery.trim().toLowerCase())
 
     if (!rawQuery) {
       clearValues().then(() => {
@@ -2182,23 +2199,7 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      let results =
-        fuse.search(rawQuery).map(r => r.item)
-
-      /*
-        Preserve the original Fuse behavior completely.
-        Only if the untouched search returns nothing do we
-        retry once with straight/curly quote style swapped.
-      */
-      if (results.length === 0) {
-        const quoteAlternate =
-          swapSearchQuoteStyle(rawQuery)
-
-        if (quoteAlternate !== rawQuery) {
-          results =
-            fuse.search(quoteAlternate).map(r => r.item)
-        }
-      }
+      const results = fuse.search(rawQuery).map(r => r.item)
 
       if (results.length === 0) {
         fetchBackendSearch(rawQuery)
