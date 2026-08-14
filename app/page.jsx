@@ -1891,6 +1891,96 @@ export default function Page() {
   )
 
 
+  /*
+     LIGHTBOX INTERACTION
+
+     Keep main's existing YARL rendering intact.
+     Left-click almost anywhere closes, while right-click remains
+     native and metadata stays selectable.
+  */
+
+  useEffect(
+    () => {
+
+      if (
+        index < 0
+      ) {
+        return
+      }
+
+
+      const handleLightboxClick =
+        event => {
+
+          if (
+            event.button !== 0
+          ) {
+            return
+          }
+
+
+          const target =
+            event.target
+
+
+          if (
+            !(target instanceof Element)
+          ) {
+            return
+          }
+
+
+          const lightbox =
+            target.closest(
+              '.yarl__root'
+            )
+
+
+          if (!lightbox) {
+            return
+          }
+
+
+          if (
+            target.closest(
+              '.yarl-slide-content, ' +
+              '.yarl__slide_title, ' +
+              '.yarl__slide_description, ' +
+              'button, a, input, textarea, select, ' +
+              '[role="button"], [contenteditable="true"]'
+            )
+          ) {
+            return
+          }
+
+
+          setIndex(
+            -1
+          )
+        }
+
+
+      document.addEventListener(
+        'click',
+        handleLightboxClick,
+        true
+      )
+
+
+      return () => {
+
+        document.removeEventListener(
+          'click',
+          handleLightboxClick,
+          true
+        )
+      }
+
+    },
+    [index]
+  )
+
+
   /* -------------------------------------------------------
      RENDER
   ------------------------------------------------------- */
@@ -2028,7 +2118,7 @@ export default function Page() {
               ({ slide }) => (
                 <div
                   className={cn(
-                    "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content",
+                    "lg:!w-[96%] text-left text-sm space-y-1 lg:pt-[.5rem] lg:mb-[.75rem] pb-[1rem] text-white px-0 pt-0 lg:pl-0 lg:ml-[-35px] lg:pr-[3rem] yarl-slide-content select-text",
                     slide.type === 'tndr-webm' &&
                       'relative top-auto bottom-unset'
                   )}
