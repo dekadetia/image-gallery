@@ -1804,24 +1804,9 @@ export default function Order() {
 const fuse = useMemo(() => {
   return new Fuse(FullImages, {
     keys: [
-      {
-        name: 'caption',
-        weight: 0.7,
-        getFn: photo =>
-          normalizeApostrophe(photo?.caption),
-      },
-      {
-        name: 'alphaname',
-        weight: 0.2,
-        getFn: photo =>
-          normalizeApostrophe(photo?.alphaname),
-      },
-      {
-        name: 'director',
-        weight: 0.1,
-        getFn: photo =>
-          normalizeApostrophe(photo?.director),
-      },
+      { name: 'caption', weight: 0.7 },
+      { name: 'alphaname', weight: 0.2 },
+      { name: 'director', weight: 0.1 },
     ],
     threshold: 0.3,
     distance: 100,
@@ -2180,7 +2165,7 @@ useEffect(() => {
   if (debounceRef.current) clearTimeout(debounceRef.current)
 
   debounceRef.current = setTimeout(async () => {
-    const rawQuery = normalizeApostrophe(searchQuery.trim().toLowerCase())
+    const rawQuery = searchQuery.trim().toLowerCase()
 
     if (!rawQuery) {
       clearValues().then(() => {
@@ -2199,7 +2184,52 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      const results = fuse.search(rawQuery).map(r => r.item)
+      let results = []
+
+      /*
+        Apostrophes are a deterministic equivalence problem, not a
+        fuzzy-search problem. Only quote-bearing queries take this path.
+
+        U+2019 RIGHT SINGLE QUOTATION MARK and U+0027 APOSTROPHE are
+        canonicalized to U+0027 on both sides, while every other
+        character — including spaces — is preserved.
+      */
+      if (/['\u2019]/.test(rawQuery)) {
+        const apostropheQuery =
+          normalizeApostrophe(rawQuery)
+
+        results = FullImages.filter(photo => {
+          const caption =
+            normalizeApostrophe(
+              photo?.caption
+            ).toLowerCase()
+
+          const director =
+            normalizeApostrophe(
+              photo?.director
+            ).toLowerCase()
+
+          return (
+            caption.includes(
+              apostropheQuery
+            ) ||
+            director.includes(
+              apostropheQuery
+            )
+          )
+        })
+      }
+
+      /*
+        Everything else — and quote-bearing searches that did not get
+        a literal hit — uses /ordr's original Fuse behavior unchanged.
+      */
+      if (results.length === 0) {
+        results =
+          fuse.search(rawQuery).map(
+            r => r.item
+          )
+      }
 
       if (results.length === 0) {
         fetchBackendSearch(rawQuery)
