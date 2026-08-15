@@ -1183,14 +1183,15 @@ function mobileRoll(id) {
 --------------------------------------------------------- */
 
 function getMobileSizeClass(
-  photo
+  photo,
+  mobileSeed
 ) {
   const ratio =
     photo._meta.ratio
 
   const roll =
     mobileRoll(
-      photo.id
+      `${mobileSeed}-${photo.id || photo.src}`
     )
 
 
@@ -1227,7 +1228,8 @@ function getMobileSizeClass(
 --------------------------------------------------------- */
 
 function buildMobileRows(
-  preparedImages
+  preparedImages,
+  mobileSeed
 ) {
   const rows = []
 
@@ -1247,7 +1249,8 @@ function buildMobileRows(
 
     const currentClass =
       getMobileSizeClass(
-        current
+        current,
+        mobileSeed
       )
 
 
@@ -1296,7 +1299,8 @@ function buildMobileRows(
 
     const nextClass =
       getMobileSizeClass(
-        next
+        next,
+        mobileSeed
       )
 
 
@@ -1437,16 +1441,21 @@ function WallMedia({
 function MobileWall({
   images,
   containerWidth,
-  onImageClick
+  onImageClick,
+  mobileSeed
 }) {
 
   const rows =
     useMemo(
       () =>
         buildMobileRows(
-          images
+          images,
+          mobileSeed
         ),
-      [images]
+      [
+        images,
+        mobileSeed
+      ]
     )
 
 
@@ -1711,7 +1720,8 @@ function PackedWall({
 function TetrisWall({
   images,
   onImageClick,
-  desktopStartIndex
+  desktopStartIndex,
+  mobileSeed
 }) {
 
   const wallRef =
@@ -1814,6 +1824,9 @@ function TetrisWall({
             onImageClick={
               onImageClick
             }
+            mobileSeed={
+              mobileSeed
+            }
           />
 
         ) : (
@@ -1909,6 +1922,17 @@ const [order_value_2, __order_value_2] = useState(null)
     () => chooseDesktopStartIndex()
   )
 
+  const [
+    mobileSeed,
+    setMobileSeed
+  ] = useState(
+    () =>
+      Math.floor(
+        Math.random() *
+        1000000000
+      )
+  )
+
   const rerollDesktopStart =
     () => {
       setDesktopStartIndex(
@@ -1927,6 +1951,31 @@ const [order_value_2, __order_value_2] = useState(null)
           ) {
             next =
               chooseDesktopStartIndex()
+          }
+
+          return next
+        }
+      )
+    }
+
+  const rerollMobileSeed =
+    () => {
+      setMobileSeed(
+        previous => {
+          let next =
+            Math.floor(
+              Math.random() *
+              1000000000
+            )
+
+          while (
+            next === previous
+          ) {
+            next =
+              Math.floor(
+                Math.random() *
+                1000000000
+              )
           }
 
           return next
@@ -2170,6 +2219,7 @@ const images = data.images || []
   const clearValues = () =>
     new Promise(resolve => {
       rerollDesktopStart()
+      rerollMobileSeed()
       setImages([])
       setSearchResults([])
       setSlides([])
@@ -2183,6 +2233,7 @@ const images = data.images || []
     const firstPage = deduped.slice(0, PAGE_SIZE)
 
     rerollDesktopStart()
+    rerollMobileSeed()
     setIndex(-1)
     setSearchResults(deduped)
     setImages(firstPage)
@@ -2574,6 +2625,7 @@ useEffect(() => {
               images={Images}
               onImageClick={handleImageClick}
               desktopStartIndex={desktopStartIndex}
+              mobileSeed={mobileSeed}
             />
           </InfiniteScroll>
 
