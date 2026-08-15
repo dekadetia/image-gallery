@@ -2409,7 +2409,19 @@ useEffect(() => {
     return
   }
 
-  if (debounceRef.current) clearTimeout(debounceRef.current)
+  /*
+    Every query change gets a new generation immediately.
+
+    This matters even when the new query is satisfied locally:
+    a backend request started by an older query must never be
+    allowed to return later and overwrite the newer local result.
+  */
+  const searchRequestId =
+    ++searchRequestIdRef.current
+
+  if (debounceRef.current) {
+    clearTimeout(debounceRef.current)
+  }
 
   debounceRef.current = setTimeout(async () => {
     const rawQuery =
@@ -2417,174 +2429,269 @@ useEffect(() => {
         searchQuery.trim()
       )
 
-    if (!rawQuery) {
-      clearValues().then(() => {
-        setSorted(true)
-        sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
-      })
+    if (
+      searchRequestId !==
+      searchRequestIdRef.current
+    ) {
       return
     }
 
-      if (
-        /^\d{4}$/.test(rawQuery) ||
-        /^\d{3}$/.test(rawQuery) ||
-        /^\d{3}x$/.test(rawQuery) ||
-        /^\d{4}s$/.test(rawQuery)
-      ) {
-        fetchBackendSearch(rawQuery)
-        return
-      }
-      /*
-        GUARANTEED NORMALIZED MATCHING
+    if (!rawQuery) {
+      clearValues().then(() => {
+        if (
+          searchRequestId !==
+          searchRequestIdRef.current
+        ) {
+          return
+        }
 
-        Do not rely on Fuse to decide whether punctuation/diacritics are
-        equivalent. First make an explicit normalized substring pass over
-        the complete local catalog. This guarantees, for example:
+        setSorted(true)
 
-          Bunuel              -> Buñuel
-          Muller              -> Müller
-          mission impossible  -> Mission: Impossible
-
-        Fuse remains the fuzzy fallback for misspellings / looser matches.
-      */
-      const normalizedExactResults =
-        FullImages.filter(image => {
-          const searchableText = [
-            image.caption,
-            image.alphaname,
-            image.director,
-          ]
-            .map(normalizeSearchText)
-            .join(' ')
-
-          return searchableText.includes(rawQuery)
-        })
-
-      if (normalizedExactResults.length > 0) {
-        applySearchResults(normalizedExactResults)
-        return
-      }
-
-      const fuzzyResults =
-        fuse.search(rawQuery).map(r => r.item)
-
-      if (fuzzyResults.length > 0) {
-        applySearchResults(fuzzyResults)
-        return
-      }
-
-      fetchBackendSearch(rawQuery)
-    }, 300)
-
-  return () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-  }
-  }, [searchQuery, FullImages])
-
-  async function fetchBackendSearch(queryText) {
-    const searchRequestId =
-      ++searchRequestIdRef.current
-
-    try {
-      __loader(true)
-
-      const queryVariants =
-        getApostropheBackendQueries(
-          queryText
+        sortImages(
+          'year',
+          'desc',
+          'alphaname',
+          'asc',
+          PAGE_SIZE,
+          null
         )
+      })
 
-      const responses =
-        await Promise.all(
-          queryVariants.map(
-            variant =>
-              fetch(
-                `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type':
-                      'application/json'
-                  },
-                  body:
-                    JSON.stringify({
-                      queryText:
-                        variant
-                    })
-                }
-              )
+      return
+    }
+
+    if (
+      /^\d{4}$/.test(rawQuery) ||
+      /^\d{3}$/.test(rawQuery) ||
+      /^\d{3}x$/.test(rawQuery) ||
+      /^\d{4}s$/.test(rawQuery)
+    ) {
+      fetchBackendSearch(
+        rawQuery,
+        searchRequestId
+      )
+      return
+    }
+
+    /*
+      GUARANTEED NORMALIZED MATCHING
+
+      First compare normalized strings directly against the complete
+      local catalog. Fuse is not involved in deciding equivalence.
+
+      We also compare a compact form with spaces removed. That makes
+      punctuation-as-boundary differences harmless:
+
+        Buñuel              <-> Bunuel
+        Müller              <-> Muller
+        Almodóvar           <-> Almodovar
+        Mission: Impossible <-> mission impossible
+        Mission:Impossible  <-> mission impossible
+    */
+    const compactQuery =
+      rawQuery.replace(/\s+/g, '')
+
+    const normalizedExactResults =
+      FullImages.filter(image => {
+        const searchableText = [
+          image.caption,
+          image.alphaname,
+          image.director,
+        ]
+          .map(normalizeSearchText)
+          .join(' ')
+
+        const compactSearchableText =
+          searchableText.replace(
+            /\s+/g,
+            ''
+          )
+
+        return (
+          searchableText.includes(
+            rawQuery
+          ) ||
+          (
+            compactQuery &&
+            compactSearchableText.includes(
+              compactQuery
+            )
           )
         )
+      })
 
-      if (
-        searchRequestId !==
-        searchRequestIdRef.current
-      ) {
-        return
-      }
+    if (
+      searchRequestId !==
+      searchRequestIdRef.current
+    ) {
+      return
+    }
 
-      const payloads =
-        await Promise.all(
-          responses.map(
-            async response => {
-              if (!response.ok) {
-                const txt =
-                  await response
-                    .text()
-                    .catch(() => '')
-
-                console.error(
-                  'Backend search non-OK:',
-                  response.status,
-                  txt
-                )
-
-                return {
-                  results: []
-                }
-              }
-
-              return response.json()
-            }
-          )
-        )
-
-      if (
-        searchRequestId !==
-        searchRequestIdRef.current
-      ) {
-        return
-      }
-
-      const mergedResults =
-        dedupeById(
-          payloads.flatMap(
-            payload =>
-              payload.results || []
-          )
-        )
+    if (
+      normalizedExactResults.length > 0
+    ) {
+      __loader(false)
 
       applySearchResults(
-        mergedResults
+        normalizedExactResults
       )
-    } catch (err) {
-      if (
-        searchRequestId ===
-        searchRequestIdRef.current
-      ) {
-        console.error(
-          'Backend search failed:',
-          err
-        )
-      }
-    } finally {
-      if (
-        searchRequestId ===
-        searchRequestIdRef.current
-      ) {
-        __loader(false)
-      }
+
+      return
+    }
+
+    const fuzzyResults =
+      fuse
+        .search(rawQuery)
+        .map(result => result.item)
+
+    if (
+      searchRequestId !==
+      searchRequestIdRef.current
+    ) {
+      return
+    }
+
+    if (
+      fuzzyResults.length > 0
+    ) {
+      __loader(false)
+
+      applySearchResults(
+        fuzzyResults
+      )
+
+      return
+    }
+
+    fetchBackendSearch(
+      rawQuery,
+      searchRequestId
+    )
+  }, 300)
+
+  return () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
     }
   }
+}, [
+  searchQuery,
+  FullImages,
+  fuse
+])
+
+async function fetchBackendSearch(
+  queryText,
+  searchRequestId
+) {
+  try {
+    if (
+      searchRequestId !==
+      searchRequestIdRef.current
+    ) {
+      return
+    }
+
+    __loader(true)
+
+    const queryVariants =
+      getApostropheBackendQueries(
+        queryText
+      )
+
+    const responses =
+      await Promise.all(
+        queryVariants.map(
+          variant =>
+            fetch(
+              `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type':
+                    'application/json'
+                },
+                body:
+                  JSON.stringify({
+                    queryText:
+                      variant
+                  })
+              }
+            )
+        )
+      )
+
+    if (
+      searchRequestId !==
+      searchRequestIdRef.current
+    ) {
+      return
+    }
+
+    const payloads =
+      await Promise.all(
+        responses.map(
+          async response => {
+            if (!response.ok) {
+              const txt =
+                await response
+                  .text()
+                  .catch(() => '')
+
+              console.error(
+                'Backend search non-OK:',
+                response.status,
+                txt
+              )
+
+              return {
+                results: []
+              }
+            }
+
+            return response.json()
+          }
+        )
+      )
+
+    if (
+      searchRequestId !==
+      searchRequestIdRef.current
+    ) {
+      return
+    }
+
+    const mergedResults =
+      dedupeById(
+        payloads.flatMap(
+          payload =>
+            payload.results || []
+        )
+      )
+
+    applySearchResults(
+      mergedResults
+    )
+  } catch (err) {
+    if (
+      searchRequestId ===
+      searchRequestIdRef.current
+    ) {
+      console.error(
+        'Backend search failed:',
+        err
+      )
+    }
+  } finally {
+    if (
+      searchRequestId ===
+      searchRequestIdRef.current
+    ) {
+      __loader(false)
+    }
+  }
+}
+
 
   /* ---------------------------------------------------
                WALL CLICK -> CANONICAL LIGHTBOX INDEX
