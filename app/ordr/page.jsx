@@ -1857,26 +1857,6 @@ function TetrisWall({
 
 
 
-function normalizeSearchText(value = '') {
-  return String(value)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[’‘‛`´]/g, "'")
-    .replace(/:/g, ' ')
-    .replace(/ø/gi, match => (match === 'Ø' ? 'O' : 'o'))
-    .replace(/ł/gi, match => (match === 'Ł' ? 'L' : 'l'))
-    .replace(/đ/gi, match => (match === 'Đ' ? 'D' : 'd'))
-    .replace(/ð/gi, match => (match === 'Ð' ? 'D' : 'd'))
-    .replace(/þ/gi, match => (match === 'Þ' ? 'TH' : 'th'))
-    .replace(/æ/gi, match => (match === 'Æ' ? 'AE' : 'ae'))
-    .replace(/œ/gi, match => (match === 'Œ' ? 'OE' : 'oe'))
-    .replace(/ß/g, 'ss')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-
 function getApostropheBackendQueries(value = '') {
   const text = String(value)
 
@@ -1906,28 +1886,11 @@ export default function Order() {
   const [FullImages, setFullImages] = useState([])
 
 const fuse = useMemo(() => {
-  const normalizedImages =
-    FullImages.map(image => ({
-      ...image,
-      _searchCaption:
-        normalizeSearchText(
-          image.caption
-        ),
-      _searchAlphaname:
-        normalizeSearchText(
-          image.alphaname
-        ),
-      _searchDirector:
-        normalizeSearchText(
-          image.director
-        ),
-    }))
-
-  return new Fuse(normalizedImages, {
+  return new Fuse(FullImages, {
     keys: [
-      { name: '_searchCaption', weight: 0.7 },
-      { name: '_searchAlphaname', weight: 0.2 },
-      { name: '_searchDirector', weight: 0.1 },
+      { name: 'caption', weight: 0.7 },
+      { name: 'alphaname', weight: 0.2 },
+      { name: 'director', weight: 0.1 },
     ],
     threshold: 0.3,
     distance: 100,
@@ -2409,289 +2372,147 @@ useEffect(() => {
     return
   }
 
-  /*
-    Every query change gets a new generation immediately.
-
-    This matters even when the new query is satisfied locally:
-    a backend request started by an older query must never be
-    allowed to return later and overwrite the newer local result.
-  */
-  const searchRequestId =
-    ++searchRequestIdRef.current
-
-  if (debounceRef.current) {
-    clearTimeout(debounceRef.current)
-  }
+  if (debounceRef.current) clearTimeout(debounceRef.current)
 
   debounceRef.current = setTimeout(async () => {
-    const rawQuery =
-      normalizeSearchText(
-        searchQuery.trim()
-      )
-
-    if (
-      searchRequestId !==
-      searchRequestIdRef.current
-    ) {
-      return
-    }
+    const rawQuery = searchQuery.trim().toLowerCase()
 
     if (!rawQuery) {
       clearValues().then(() => {
-        if (
-          searchRequestId !==
-          searchRequestIdRef.current
-        ) {
-          return
-        }
-
         setSorted(true)
-
-        sortImages(
-          'year',
-          'desc',
-          'alphaname',
-          'asc',
-          PAGE_SIZE,
-          null
-        )
+        sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
       })
-
       return
     }
 
-    if (
-      /^\d{4}$/.test(rawQuery) ||
-      /^\d{3}$/.test(rawQuery) ||
-      /^\d{3}x$/.test(rawQuery) ||
-      /^\d{4}s$/.test(rawQuery)
-    ) {
-      fetchBackendSearch(
-        rawQuery,
-        searchRequestId
-      )
-      return
-    }
+      if (
+        /^\d{4}$/.test(rawQuery) ||
+        /^\d{3}$/.test(rawQuery) ||
+        /^\d{3}x$/.test(rawQuery) ||
+        /^\d{4}s$/.test(rawQuery)
+      ) {
+        fetchBackendSearch(rawQuery)
+        return
+      }
+      const results = fuse.search(rawQuery).map(r => r.item)
 
-    /*
-      GUARANTEED NORMALIZED MATCHING
+      if (results.length === 0) {
+        fetchBackendSearch(rawQuery)
+        return
+      }
 
-      First compare normalized strings directly against the complete
-      local catalog. Fuse is not involved in deciding equivalence.
-
-      We also compare a compact form with spaces removed. That makes
-      punctuation-as-boundary differences harmless:
-
-        Buñuel              <-> Bunuel
-        Müller              <-> Muller
-        Almodóvar           <-> Almodovar
-        Mission: Impossible <-> mission impossible
-        Mission:Impossible  <-> mission impossible
-    */
-    const compactQuery =
-      rawQuery.replace(/\s+/g, '')
-
-    const normalizedExactResults =
-      FullImages.filter(image => {
-        const searchableText = [
-          image.caption,
-          image.alphaname,
-          image.director,
-        ]
-          .map(normalizeSearchText)
-          .join(' ')
-
-        const compactSearchableText =
-          searchableText.replace(
-            /\s+/g,
-            ''
-          )
-
-        return (
-          searchableText.includes(
-            rawQuery
-          ) ||
-          (
-            compactQuery &&
-            compactSearchableText.includes(
-              compactQuery
-            )
-          )
-        )
-      })
-
-    if (
-      searchRequestId !==
-      searchRequestIdRef.current
-    ) {
-      return
-    }
-
-    if (
-      normalizedExactResults.length > 0
-    ) {
-      __loader(false)
-
-      applySearchResults(
-        normalizedExactResults
-      )
-
-      return
-    }
-
-    const fuzzyResults =
-      fuse
-        .search(rawQuery)
-        .map(result => result.item)
-
-    if (
-      searchRequestId !==
-      searchRequestIdRef.current
-    ) {
-      return
-    }
-
-    if (
-      fuzzyResults.length > 0
-    ) {
-      __loader(false)
-
-      applySearchResults(
-        fuzzyResults
-      )
-
-      return
-    }
-
-    fetchBackendSearch(
-      rawQuery,
-      searchRequestId
-    )
-  }, 300)
+      applySearchResults(results)
+    }, 300)
 
   return () => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
   }
-}, [
-  searchQuery,
-  FullImages,
-  fuse
-])
+  }, [searchQuery, FullImages])
 
-async function fetchBackendSearch(
-  queryText,
-  searchRequestId
-) {
-  try {
-    if (
-      searchRequestId !==
-      searchRequestIdRef.current
-    ) {
-      return
-    }
+  async function fetchBackendSearch(queryText) {
+    const searchRequestId =
+      ++searchRequestIdRef.current
 
-    __loader(true)
+    try {
+      __loader(true)
 
-    const queryVariants =
-      getApostropheBackendQueries(
-        queryText
-      )
-
-    const responses =
-      await Promise.all(
-        queryVariants.map(
-          variant =>
-            fetch(
-              `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type':
-                    'application/json'
-                },
-                body:
-                  JSON.stringify({
-                    queryText:
-                      variant
-                  })
-              }
-            )
+      const queryVariants =
+        getApostropheBackendQueries(
+          queryText
         )
-      )
 
-    if (
-      searchRequestId !==
-      searchRequestIdRef.current
-    ) {
-      return
-    }
-
-    const payloads =
-      await Promise.all(
-        responses.map(
-          async response => {
-            if (!response.ok) {
-              const txt =
-                await response
-                  .text()
-                  .catch(() => '')
-
-              console.error(
-                'Backend search non-OK:',
-                response.status,
-                txt
+      const responses =
+        await Promise.all(
+          queryVariants.map(
+            variant =>
+              fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type':
+                      'application/json'
+                  },
+                  body:
+                    JSON.stringify({
+                      queryText:
+                        variant
+                    })
+                }
               )
+          )
+        )
 
-              return {
-                results: []
+      if (
+        searchRequestId !==
+        searchRequestIdRef.current
+      ) {
+        return
+      }
+
+      const payloads =
+        await Promise.all(
+          responses.map(
+            async response => {
+              if (!response.ok) {
+                const txt =
+                  await response
+                    .text()
+                    .catch(() => '')
+
+                console.error(
+                  'Backend search non-OK:',
+                  response.status,
+                  txt
+                )
+
+                return {
+                  results: []
+                }
               }
+
+              return response.json()
             }
-
-            return response.json()
-          }
+          )
         )
-      )
 
-    if (
-      searchRequestId !==
-      searchRequestIdRef.current
-    ) {
-      return
-    }
+      if (
+        searchRequestId !==
+        searchRequestIdRef.current
+      ) {
+        return
+      }
 
-    const mergedResults =
-      dedupeById(
-        payloads.flatMap(
-          payload =>
-            payload.results || []
+      const mergedResults =
+        dedupeById(
+          payloads.flatMap(
+            payload =>
+              payload.results || []
+          )
         )
-      )
 
-    applySearchResults(
-      mergedResults
-    )
-  } catch (err) {
-    if (
-      searchRequestId ===
-      searchRequestIdRef.current
-    ) {
-      console.error(
-        'Backend search failed:',
-        err
+      applySearchResults(
+        mergedResults
       )
-    }
-  } finally {
-    if (
-      searchRequestId ===
-      searchRequestIdRef.current
-    ) {
-      __loader(false)
+    } catch (err) {
+      if (
+        searchRequestId ===
+        searchRequestIdRef.current
+      ) {
+        console.error(
+          'Backend search failed:',
+          err
+        )
+      }
+    } finally {
+      if (
+        searchRequestId ===
+        searchRequestIdRef.current
+      ) {
+        __loader(false)
+      }
     }
   }
-}
-
 
   /* ---------------------------------------------------
                WALL CLICK -> CANONICAL LIGHTBOX INDEX
