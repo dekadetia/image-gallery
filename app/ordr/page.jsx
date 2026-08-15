@@ -1857,6 +1857,24 @@ function TetrisWall({
 
 
 
+function normalizeSearchText(value = '') {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[’‘‛`´]/g, "'")
+    .replace(/:/g, '')
+    .replace(/ø/gi, match => (match === 'Ø' ? 'O' : 'o'))
+    .replace(/ł/gi, match => (match === 'Ł' ? 'L' : 'l'))
+    .replace(/đ/gi, match => (match === 'Đ' ? 'D' : 'd'))
+    .replace(/ð/gi, match => (match === 'Ð' ? 'D' : 'd'))
+    .replace(/þ/gi, match => (match === 'Þ' ? 'TH' : 'th'))
+    .replace(/æ/gi, match => (match === 'Æ' ? 'AE' : 'ae'))
+    .replace(/œ/gi, match => (match === 'Œ' ? 'OE' : 'oe'))
+    .replace(/ß/g, 'ss')
+    .toLowerCase()
+}
+
+
 function getApostropheBackendQueries(value = '') {
   const text = String(value)
 
@@ -1886,11 +1904,28 @@ export default function Order() {
   const [FullImages, setFullImages] = useState([])
 
 const fuse = useMemo(() => {
-  return new Fuse(FullImages, {
+  const normalizedImages =
+    FullImages.map(image => ({
+      ...image,
+      _searchCaption:
+        normalizeSearchText(
+          image.caption
+        ),
+      _searchAlphaname:
+        normalizeSearchText(
+          image.alphaname
+        ),
+      _searchDirector:
+        normalizeSearchText(
+          image.director
+        ),
+    }))
+
+  return new Fuse(normalizedImages, {
     keys: [
-      { name: 'caption', weight: 0.7 },
-      { name: 'alphaname', weight: 0.2 },
-      { name: 'director', weight: 0.1 },
+      { name: '_searchCaption', weight: 0.7 },
+      { name: '_searchAlphaname', weight: 0.2 },
+      { name: '_searchDirector', weight: 0.1 },
     ],
     threshold: 0.3,
     distance: 100,
@@ -2375,7 +2410,10 @@ useEffect(() => {
   if (debounceRef.current) clearTimeout(debounceRef.current)
 
   debounceRef.current = setTimeout(async () => {
-    const rawQuery = searchQuery.trim().toLowerCase()
+    const rawQuery =
+      normalizeSearchText(
+        searchQuery.trim()
+      )
 
     if (!rawQuery) {
       clearValues().then(() => {
