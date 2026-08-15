@@ -1862,7 +1862,7 @@ function normalizeSearchText(value = '') {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[’‘‛`´]/g, "'")
-    .replace(/:/g, '')
+    .replace(/:/g, ' ')
     .replace(/ø/gi, match => (match === 'Ø' ? 'O' : 'o'))
     .replace(/ł/gi, match => (match === 'Ł' ? 'L' : 'l'))
     .replace(/đ/gi, match => (match === 'Đ' ? 'D' : 'd'))
@@ -1872,6 +1872,8 @@ function normalizeSearchText(value = '') {
     .replace(/œ/gi, match => (match === 'Œ' ? 'OE' : 'oe'))
     .replace(/ß/g, 'ss')
     .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 
@@ -2432,14 +2434,46 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      const results = fuse.search(rawQuery).map(r => r.item)
+      /*
+        GUARANTEED NORMALIZED MATCHING
 
-      if (results.length === 0) {
-        fetchBackendSearch(rawQuery)
+        Do not rely on Fuse to decide whether punctuation/diacritics are
+        equivalent. First make an explicit normalized substring pass over
+        the complete local catalog. This guarantees, for example:
+
+          Bunuel              -> Buñuel
+          Muller              -> Müller
+          mission impossible  -> Mission: Impossible
+
+        Fuse remains the fuzzy fallback for misspellings / looser matches.
+      */
+      const normalizedExactResults =
+        FullImages.filter(image => {
+          const searchableText = [
+            image.caption,
+            image.alphaname,
+            image.director,
+          ]
+            .map(normalizeSearchText)
+            .join(' ')
+
+          return searchableText.includes(rawQuery)
+        })
+
+      if (normalizedExactResults.length > 0) {
+        applySearchResults(normalizedExactResults)
         return
       }
 
-      applySearchResults(results)
+      const fuzzyResults =
+        fuse.search(rawQuery).map(r => r.item)
+
+      if (fuzzyResults.length > 0) {
+        applySearchResults(fuzzyResults)
+        return
+      }
+
+      fetchBackendSearch(rawQuery)
     }, 300)
 
   return () => {
