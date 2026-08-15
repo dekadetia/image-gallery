@@ -229,7 +229,7 @@ export default function Index() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lastVisibleDocId: token }),
+          body: JSON.stringify({ lastVisibleDocId: token, indexOnly: true }),
         }
       );
 
