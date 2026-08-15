@@ -288,6 +288,43 @@ const DESKTOP_SEQUENCE = [
 ]
 
 
+/*
+  DESKTOP START VARIETY
+
+  /ordr previously always began at DESKTOP_SEQUENCE[0], which is
+  [1, 2, 2] and therefore strongly favors one large upper-left tile.
+
+  Pick one sane phase once per page load instead. The exact-fit /
+  remainder machinery below still overrides this whenever a small
+  result set or tail requires a more appropriate pattern.
+
+  The single-column [1] entry is deliberately excluded as an
+  initial composition.
+*/
+const DESKTOP_START_INDICES = [
+  0,  // [1, 2, 2]
+  1,  // [2, 1, 2]
+  2,  // [1, 2]
+  3,  // [2, 2, 1]
+  4,  // [1, 2, 1]
+  5,  // [1, 2, 2, 2]
+  6,  // [2, 1, 1]
+  8,  // [2, 1]
+  9,  // [1, 1, 2]
+  11, // [2, 2, 1, 2]
+]
+
+
+function chooseDesktopStartIndex() {
+  return DESKTOP_START_INDICES[
+    Math.floor(
+      Math.random() *
+      DESKTOP_START_INDICES.length
+    )
+  ]
+}
+
+
 const TABLET_PATTERNS = [
   [1, 2, 2],
   [2, 1, 2],
@@ -933,7 +970,8 @@ function chooseRemainderBand(
 
 function buildWall(
   preparedImages,
-  containerWidth
+  containerWidth,
+  desktopStartIndex = 0
 ) {
   if (
     !containerWidth ||
@@ -973,9 +1011,18 @@ function buildWall(
       remainingImages.length
 
 
+    const patternOffset =
+      isDesktop
+        ? desktopStartIndex
+        : 0
+
+
     let pattern =
       patterns[
-        bandIndex %
+        (
+          bandIndex +
+          patternOffset
+        ) %
         patterns.length
       ]
 
@@ -1540,7 +1587,8 @@ function MobileWall({
 function PackedWall({
   images,
   containerWidth,
-  onImageClick
+  onImageClick,
+  desktopStartIndex
 }) {
 
   const bands =
@@ -1548,11 +1596,13 @@ function PackedWall({
       () =>
         buildWall(
           images,
-          containerWidth
+          containerWidth,
+          desktopStartIndex
         ),
       [
         images,
-        containerWidth
+        containerWidth,
+        desktopStartIndex
       ]
     )
 
@@ -1660,7 +1710,8 @@ function PackedWall({
 
 function TetrisWall({
   images,
-  onImageClick
+  onImageClick,
+  desktopStartIndex
 }) {
 
   const wallRef =
@@ -1777,6 +1828,9 @@ function TetrisWall({
             onImageClick={
               onImageClick
             }
+            desktopStartIndex={
+              desktopStartIndex
+            }
           />
 
         )
@@ -1847,6 +1901,38 @@ const [order_value_2, __order_value_2] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const debounceRef = useRef(null)
   const searchRequestIdRef = useRef(0)
+
+  const [
+    desktopStartIndex,
+    setDesktopStartIndex
+  ] = useState(
+    () => chooseDesktopStartIndex()
+  )
+
+  const rerollDesktopStart =
+    () => {
+      setDesktopStartIndex(
+        previous => {
+          if (
+            DESKTOP_START_INDICES.length <= 1
+          ) {
+            return previous
+          }
+
+          let next =
+            chooseDesktopStartIndex()
+
+          while (
+            next === previous
+          ) {
+            next =
+              chooseDesktopStartIndex()
+          }
+
+          return next
+        }
+      )
+    }
 
   /* ---------------------------------------------------
       UNIVERSAL FIXED SLIDE BUILDER (for images + videos)
@@ -2083,6 +2169,7 @@ const images = data.images || []
      --------------------------------------------------- */
   const clearValues = () =>
     new Promise(resolve => {
+      rerollDesktopStart()
       setImages([])
       setSearchResults([])
       setSlides([])
@@ -2095,6 +2182,7 @@ const images = data.images || []
     const deduped = dedupeById(results)
     const firstPage = deduped.slice(0, PAGE_SIZE)
 
+    rerollDesktopStart()
     setIndex(-1)
     setSearchResults(deduped)
     setImages(firstPage)
@@ -2485,6 +2573,7 @@ useEffect(() => {
             <TetrisWall
               images={Images}
               onImageClick={handleImageClick}
+              desktopStartIndex={desktopStartIndex}
             />
           </InfiniteScroll>
 
