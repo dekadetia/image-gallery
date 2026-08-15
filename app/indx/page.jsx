@@ -211,6 +211,7 @@ export default function Index() {
   const searchInputRef = useRef(null);
   const [isSorted, setSorted] = useState(false);
   const [index, setIndex] = useState(-1);
+  const [slides, setSlides] = useState([]);
   const [Images, setImages] = useState([]);
   const [loader, __loader] = useState(true);
   const wasCalled = useRef(false);
@@ -218,7 +219,6 @@ export default function Index() {
   const [hasMore, setHasMore] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(200);
 
   /* ---------- FETCH IMAGES ---------- */
 
@@ -244,6 +244,7 @@ export default function Index() {
 
         setNextPageToken(data.nextPageToken);
         setImages(images);
+        setSlides((prev) => [...prev, ...images.map(createSlide)]);
       }
     } catch (err) {
       console.error("Error fetching files:", err);
@@ -262,6 +263,7 @@ export default function Index() {
       );
       setSorted(true);
       setImages(sorted);
+      setSlides(sorted.map(createSlide));
     } finally {
       setTimeout(() => __loader(false), 1500);
     }
@@ -275,6 +277,7 @@ export default function Index() {
       );
       setSorted(false);
       setImages(sorted);
+      setSlides(sorted.map(createSlide));
     } finally {
       setTimeout(() => __loader(false), 1500);
     }
@@ -287,6 +290,7 @@ export default function Index() {
         a.alphaname.toLowerCase().localeCompare(b.alphaname.toLowerCase())
       );
       setImages(sorted);
+      setSlides(sorted.map(createSlide));
     } finally {
       setTimeout(() => __loader(false), 1500);
     }
@@ -295,9 +299,12 @@ export default function Index() {
   /* ---------- LIGHTBOX OPEN ---------- */
 
   const openLightboxByImage = (photo) => {
-    const matchedIndex = Images.findIndex(
-      (img) => img.src === photo.src
-    );
+    const matchedIndex = slides.findIndex((slide) => {
+      if (slide.type === "tndr-webm") {
+        return slide.sources[0].src === photo.src;
+      }
+      return slide.src === photo.src;
+    });
 
     if (matchedIndex !== -1) setIndex(matchedIndex);
   };
@@ -430,15 +437,6 @@ export default function Index() {
   }
 
 
-  const slides =
-    index >= 0
-      ? Images.map(createSlide)
-      : [];
-
-  const visibleImages =
-    filteredImages.slice(0, visibleCount);
-
-
   /* ---------- INITIAL FETCH ---------- */
 
   useEffect(() => {
@@ -447,44 +445,6 @@ export default function Index() {
     __loader(true);
     getImages(nextPageToken);
   }, []);
-
-  useEffect(() => {
-    setVisibleCount(200);
-  }, [searchQuery, Images]);
-
-  useEffect(() => {
-    if (loader || visibleCount >= filteredImages.length) return;
-
-    let cancelled = false;
-    let idleId = null;
-    let timeoutId = null;
-
-    const revealMore = () => {
-      if (cancelled) return;
-
-      setVisibleCount((count) =>
-        Math.min(count + 300, filteredImages.length)
-      );
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(revealMore, { timeout: 250 });
-    } else {
-      timeoutId = window.setTimeout(revealMore, 16);
-    }
-
-    return () => {
-      cancelled = true;
-
-      if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
-      }
-
-      if (timeoutId !== null && typeof window !== "undefined") {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [loader, visibleCount, filteredImages.length]);
 
   /* ---------- CLEANUP TITLE ATTRIBUTE ---------- */
 
@@ -625,7 +585,7 @@ export default function Index() {
       <div className="px-4 lg:px-16 pb-10">
         {!loader ? (
           <div className="w-full columns-2 md:columns-3 lg:columns-4 space-y-3">
-            {visibleImages.map((photo, i) => (
+            {filteredImages.map((photo, i) => (
               <div
                 key={i}
                 className="cursor-pointer text-sm space-x-1"
@@ -642,7 +602,7 @@ export default function Index() {
           <Loader />
         )}
 
-        {index >= 0 && (
+        {slides && (
           <>
             <style jsx global>{`
               .yarl__slide .tndr-lightbox-webm-box {
