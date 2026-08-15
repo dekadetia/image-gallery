@@ -1856,6 +1856,36 @@ function TetrisWall({
 
 
 
+/*
+  SEARCH DIAGNOSTIC ONLY
+
+  This helper DOES NOT alter live search behavior.
+  It lets us compare what the browser receives from Firebase
+  against the normalization behavior we have been trying to add.
+*/
+function diagnosticNormalizeSearchText(value = '') {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/:/g, ' ')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function diagnosticSearchText(image) {
+  return [
+    image?.caption,
+    image?.alphaname,
+    image?.director,
+  ]
+    .filter(value => value !== null && value !== undefined)
+    .map(value => String(value))
+    .join(' | ')
+}
+
+
+
 
 function getApostropheBackendQueries(value = '') {
   const text = String(value)
@@ -2128,7 +2158,43 @@ const images = data.images || []
 
       const data = await res.json()
       if (data.success) {
-        setFullImages(dedupeById(data.images))
+        const dedupedFullImages =
+          dedupeById(data.images)
+
+        console.groupCollapsed(
+          '[ORDR SEARCH DIAG] full catalog loaded'
+        )
+        console.log(
+          'raw count:',
+          data.images?.length ?? 0
+        )
+        console.log(
+          'deduped count:',
+          dedupedFullImages.length
+        )
+        console.log(
+          'first record keys:',
+          Object.keys(
+            dedupedFullImages[0] || {}
+          )
+        )
+        console.log(
+          'first record:',
+          dedupedFullImages[0] || null
+        )
+        console.groupEnd()
+
+        window.__ORDR_SEARCH_DIAG__ = {
+          ...(window.__ORDR_SEARCH_DIAG__ || {}),
+          fullImages:
+            dedupedFullImages,
+          normalize:
+            diagnosticNormalizeSearchText,
+        }
+
+        setFullImages(
+          dedupedFullImages
+        )
       }
     } catch (err) {
       console.error('Error preloading all images:', err)
@@ -2365,6 +2431,9 @@ useEffect(() => {
 
   /* ---------------------------------------------------
                       SEARCH LOGIC
+
+      DIAGNOSTIC BUILD:
+      live behavior is intentionally unchanged.
      --------------------------------------------------- */
 useEffect(() => {
   if (!searchHasMountedRef.current) {
@@ -2375,43 +2444,246 @@ useEffect(() => {
   if (debounceRef.current) clearTimeout(debounceRef.current)
 
   debounceRef.current = setTimeout(async () => {
-    const rawQuery = searchQuery.trim().toLowerCase()
+    const rawQuery =
+      searchQuery.trim().toLowerCase()
+
+    const normalizedQuery =
+      diagnosticNormalizeSearchText(
+        rawQuery
+      )
+
+    const normalizedLocalMatches =
+      normalizedQuery
+        ? FullImages.filter(image => {
+            const fields = [
+              image?.caption,
+              image?.alphaname,
+              image?.director,
+            ]
+
+            return fields.some(field =>
+              diagnosticNormalizeSearchText(
+                field
+              ).includes(
+                normalizedQuery
+              )
+            )
+          })
+        : []
+
+    const rawSubstringMatches =
+      rawQuery
+        ? FullImages.filter(image => {
+            const fields = [
+              image?.caption,
+              image?.alphaname,
+              image?.director,
+            ]
+
+            return fields.some(field =>
+              String(field ?? '')
+                .toLowerCase()
+                .includes(rawQuery)
+            )
+          })
+        : []
+
+    const fuseDetailed =
+      rawQuery
+        ? fuse.search(rawQuery)
+        : []
+
+    console.group(
+      `[ORDR SEARCH DIAG] "${searchQuery}"`
+    )
+    console.log(
+      'typed query:',
+      searchQuery
+    )
+    console.log(
+      'raw query:',
+      rawQuery
+    )
+    console.log(
+      'normalized query:',
+      normalizedQuery
+    )
+    console.log(
+      'FullImages count:',
+      FullImages.length
+    )
+    console.log(
+      'sample record keys:',
+      Object.keys(
+        FullImages[0] || {}
+      )
+    )
+    console.log(
+      'raw substring matches:',
+      rawSubstringMatches.length,
+      rawSubstringMatches
+        .slice(0, 10)
+        .map(image => ({
+          id: image?.id,
+          caption: image?.caption,
+          alphaname: image?.alphaname,
+          director: image?.director,
+          searchable:
+            diagnosticSearchText(image),
+        }))
+    )
+    console.log(
+      'normalized substring matches:',
+      normalizedLocalMatches.length,
+      normalizedLocalMatches
+        .slice(0, 10)
+        .map(image => ({
+          id: image?.id,
+          caption: image?.caption,
+          alphaname: image?.alphaname,
+          director: image?.director,
+          searchable:
+            diagnosticSearchText(image),
+          normalizedCaption:
+            diagnosticNormalizeSearchText(
+              image?.caption
+            ),
+          normalizedAlphaname:
+            diagnosticNormalizeSearchText(
+              image?.alphaname
+            ),
+          normalizedDirector:
+            diagnosticNormalizeSearchText(
+              image?.director
+            ),
+        }))
+    )
+    console.log(
+      'Fuse result count:',
+      fuseDetailed.length
+    )
+    console.log(
+      'Fuse top 10:',
+      fuseDetailed
+        .slice(0, 10)
+        .map(result => ({
+          score: result.score,
+          id: result.item?.id,
+          caption:
+            result.item?.caption,
+          alphaname:
+            result.item?.alphaname,
+          director:
+            result.item?.director,
+        }))
+    )
+    console.log(
+      'next live branch:',
+      !rawQuery
+        ? 'clear/reset'
+        : (
+            /^\d{4}$/.test(rawQuery) ||
+            /^\d{3}$/.test(rawQuery) ||
+            /^\d{3}x$/.test(rawQuery) ||
+            /^\d{4}s$/.test(rawQuery)
+          )
+          ? 'backend numeric/year route'
+          : fuseDetailed.length === 0
+            ? 'backend fallback'
+            : 'Fuse local results'
+    )
+    console.groupEnd()
+
+    window.__ORDR_SEARCH_DIAG__ = {
+      ...(window.__ORDR_SEARCH_DIAG__ || {}),
+      query:
+        searchQuery,
+      rawQuery,
+      normalizedQuery,
+      fullImages:
+        FullImages,
+      rawSubstringMatches,
+      normalizedLocalMatches,
+      fuseResults:
+        fuseDetailed,
+      normalize:
+        diagnosticNormalizeSearchText,
+    }
 
     if (!rawQuery) {
       clearValues().then(() => {
         setSorted(true)
-        sortImages('year', 'desc', 'alphaname', 'asc', PAGE_SIZE, null)
+        sortImages(
+          'year',
+          'desc',
+          'alphaname',
+          'asc',
+          PAGE_SIZE,
+          null
+        )
       })
       return
     }
 
-      if (
-        /^\d{4}$/.test(rawQuery) ||
-        /^\d{3}$/.test(rawQuery) ||
-        /^\d{3}x$/.test(rawQuery) ||
-        /^\d{4}s$/.test(rawQuery)
-      ) {
-        fetchBackendSearch(rawQuery)
-        return
-      }
-      const results = fuse.search(rawQuery).map(r => r.item)
+    if (
+      /^\d{4}$/.test(rawQuery) ||
+      /^\d{3}$/.test(rawQuery) ||
+      /^\d{3}x$/.test(rawQuery) ||
+      /^\d{4}s$/.test(rawQuery)
+    ) {
+      console.log(
+        '[ORDR SEARCH DIAG] calling backend search:',
+        rawQuery
+      )
+      fetchBackendSearch(rawQuery)
+      return
+    }
 
-      if (results.length === 0) {
-        fetchBackendSearch(rawQuery)
-        return
-      }
+    const results =
+      fuse
+        .search(rawQuery)
+        .map(r => r.item)
 
-      applySearchResults(results)
-    }, 300)
+    if (results.length === 0) {
+      console.log(
+        '[ORDR SEARCH DIAG] Fuse returned 0; calling backend:',
+        rawQuery
+      )
+      fetchBackendSearch(rawQuery)
+      return
+    }
+
+    console.log(
+      '[ORDR SEARCH DIAG] applying Fuse results:',
+      results.length
+    )
+
+    applySearchResults(results)
+  }, 300)
 
   return () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (debounceRef.current) {
+      clearTimeout(
+        debounceRef.current
+      )
+    }
   }
-  }, [searchQuery, FullImages])
+}, [
+  searchQuery,
+  FullImages
+])
 
   async function fetchBackendSearch(queryText) {
     const searchRequestId =
       ++searchRequestIdRef.current
+
+    console.log(
+      '[ORDR SEARCH DIAG] backend START',
+      {
+        queryText,
+        searchRequestId,
+      }
+    )
 
     try {
       __loader(true)
@@ -2490,6 +2762,28 @@ useEffect(() => {
               payload.results || []
           )
         )
+
+      console.log(
+        '[ORDR SEARCH DIAG] backend COMPLETE',
+        {
+          queryText,
+          searchRequestId,
+          resultCount:
+            mergedResults.length,
+          firstResults:
+            mergedResults
+              .slice(0, 10)
+              .map(image => ({
+                id: image?.id,
+                caption:
+                  image?.caption,
+                alphaname:
+                  image?.alphaname,
+                director:
+                  image?.director,
+              })),
+        }
+      )
 
       applySearchResults(
         mergedResults
