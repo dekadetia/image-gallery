@@ -993,14 +993,15 @@ function mobileRoll(id) {
 --------------------------------------------------------- */
 
 function getMobileSizeClass(
-  photo
+  photo,
+  mobileSeed
 ) {
   const ratio =
     photo._meta.ratio
 
   const roll =
     mobileRoll(
-      photo.id
+      `${mobileSeed}-${photo.id}`
     )
 
 
@@ -1037,7 +1038,8 @@ function getMobileSizeClass(
 --------------------------------------------------------- */
 
 function buildMobileRows(
-  preparedImages
+  preparedImages,
+  mobileSeed
 ) {
   const rows = []
 
@@ -1057,7 +1059,8 @@ function buildMobileRows(
 
     const currentClass =
       getMobileSizeClass(
-        current
+        current,
+        mobileSeed
       )
 
 
@@ -1106,7 +1109,8 @@ function buildMobileRows(
 
     const nextClass =
       getMobileSizeClass(
-        next
+        next,
+        mobileSeed
       )
 
 
@@ -1248,16 +1252,21 @@ function WallMedia({
 function MobileWall({
   images,
   containerWidth,
-  onImageClick
+  onImageClick,
+  mobileSeed
 }) {
 
   const rows =
     useMemo(
       () =>
         buildMobileRows(
-          images
+          images,
+          mobileSeed
         ),
-      [images]
+      [
+        images,
+        mobileSeed
+      ]
     )
 
 
@@ -1532,6 +1541,14 @@ function TetrisWall({
       chooseDesktopStartIndex()
     )
 
+  const mobileSeedRef =
+    useRef(
+      Math.floor(
+        Math.random() *
+        1000000000
+      )
+    )
+
   const [
     containerWidth,
     setContainerWidth
@@ -1620,6 +1637,9 @@ function TetrisWall({
             }
             onImageClick={
               onImageClick
+            }
+            mobileSeed={
+              mobileSeedRef.current
             }
           />
 
