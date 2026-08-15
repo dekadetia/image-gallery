@@ -237,6 +237,47 @@ const DESKTOP_SEQUENCE = [
 ]
 
 
+/*
+  DESKTOP START VARIETY
+
+  SCRL previously always began at DESKTOP_SEQUENCE[0], which is
+  [1, 2, 2] and therefore strongly favors one large upper-left tile.
+
+  Pick one sane phase once per page load instead. We deliberately
+  exclude the single-column [1] entry as an initial composition.
+*/
+const DESKTOP_START_INDICES = [
+  0,  // [1, 2, 2]   left-heavy
+  1,  // [2, 1, 2]   center-heavy
+  3,  // [2, 2, 1]   right-heavy
+  4,  // [1, 2, 1]
+  5,  // [1, 2, 2, 2]
+  6,  // [2, 1, 1]
+  7,  // [2, 1, 2]
+  8,  // [2, 1]
+  9,  // [1, 1, 2]
+  10, // [2, 2, 1]
+  11, // [2, 2, 1, 2]
+  12, // [1, 2, 2]
+  13, // [1, 2, 1]
+  15, // [2, 1, 2]
+  16, // [2, 2, 1]
+  17, // [1, 2]
+  18, // [1, 1, 2]
+  19, // [2, 1, 1]
+]
+
+
+function chooseDesktopStartIndex() {
+  return DESKTOP_START_INDICES[
+    Math.floor(
+      Math.random() *
+      DESKTOP_START_INDICES.length
+    )
+  ]
+}
+
+
 const TABLET_PATTERNS = [
   [1, 2, 2],
   [2, 1, 2],
@@ -393,7 +434,8 @@ function buildBand(
 
 function buildWall(
   preparedImages,
-  containerWidth
+  containerWidth,
+  desktopStartIndex = 0
 ) {
   if (
     !containerWidth ||
@@ -424,9 +466,18 @@ function buildWall(
     preparedImages.length
   ) {
 
+    const patternOffset =
+      isDesktop
+        ? desktopStartIndex
+        : 0
+
+
     let pattern =
       patterns[
-        bandIndex %
+        (
+          bandIndex +
+          patternOffset
+        ) %
         patterns.length
       ]
 
@@ -972,7 +1023,8 @@ function MobileWall({
 function PackedWall({
   images,
   containerWidth,
-  onImageClick
+  onImageClick,
+  desktopStartIndex
 }) {
 
   const bands =
@@ -980,11 +1032,13 @@ function PackedWall({
       () =>
         buildWall(
           images,
-          containerWidth
+          containerWidth,
+          desktopStartIndex
         ),
       [
         images,
-        containerWidth
+        containerWidth,
+        desktopStartIndex
       ]
     )
 
@@ -1098,6 +1152,11 @@ function TetrisWall({
   const wallRef =
     useRef(null)
 
+  const desktopStartIndexRef =
+    useRef(
+      chooseDesktopStartIndex()
+    )
+
   const [
     containerWidth,
     setContainerWidth
@@ -1200,6 +1259,9 @@ function TetrisWall({
             }
             onImageClick={
               onImageClick
+            }
+            desktopStartIndex={
+              desktopStartIndexRef.current
             }
           />
 
