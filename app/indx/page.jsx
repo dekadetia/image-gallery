@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Video from "yet-another-react-lightbox/plugins/video";
 import Footer from "../../components/Footer";
+import Fuse from "fuse.js";
 import { BsSortAlphaDown } from "react-icons/bs";
 import { TbClockDown, TbClockUp } from "react-icons/tb";
 import { RxCross1 } from "react-icons/rx";
@@ -195,6 +196,17 @@ function createSlide(photo) {
   };
 }
 
+
+function normalizeSearchText(value = "") {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/:/g, " ")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function Index() {
   const searchInputRef = useRef(null);
   const [isSorted, setSorted] = useState(false);
@@ -207,9 +219,6 @@ export default function Index() {
   const [hasMore, setHasMore] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [textSearchResults, setTextSearchResults] = useState([]);
-  const searchDebounceRef = useRef(null);
-  const searchRequestIdRef = useRef(0);
 
   /* ---------- FETCH IMAGES ---------- */
 
@@ -303,216 +312,30 @@ export default function Index() {
   /* ---------- SEARCH ---------- */
 
   const rawQuery =
-    searchQuery
-      .trim()
-      .toLowerCase();
+    normalizeSearchText(
+      searchQuery
+    );
 
-  const isExactYear =
-    /^\d{4}$/.test(rawQuery);
-
-  const isDecadeQuery =
-    /^\d{3}$/.test(rawQuery) ||
-    /^\d{3}x$/.test(rawQuery) ||
-    /^\d{4}s$/.test(rawQuery);
-
-  /*
-    Keep the index-specific year/decade behavior local.
-
-    All ordinary title / director / alphaname searching now uses the
-    same /firebase/search-ordered-images endpoint as /ordr. That endpoint
-    owns the accent / umlaut / tilde / colon normalization.
-
-    Dimensions remain an /indx-only local search feature and are merged
-    into the backend results below.
-  */
-  useEffect(() => {
-    if (searchDebounceRef.current) {
-      clearTimeout(
-        searchDebounceRef.current
-      );
-    }
-
-    const requestId =
-      ++searchRequestIdRef.current;
-
-    if (
-      !rawQuery ||
-      isExactYear ||
-      isDecadeQuery
-    ) {
-      setTextSearchResults([]);
-      return;
-    }
-
-    searchDebounceRef.current =
-      setTimeout(async () => {
-        try {
-          const response =
-            await fetch(
-              `${process.env.NEXT_PUBLIC_APP_URL}/firebase/search-ordered-images`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-                body: JSON.stringify({
-                  queryText:
-                    rawQuery,
-                }),
-              }
-            );
-
-          if (
-            requestId !==
-            searchRequestIdRef.current
-          ) {
-            return;
-          }
-
-          let backendResults = [];
-
-          if (response.ok) {
-            const data =
-              await response.json();
-
-            backendResults =
-              data.results || [];
-          } else {
-            const txt =
-              await response
-                .text()
-                .catch(() => "");
-
-            console.error(
-              "Index search non-OK:",
-              response.status,
-              txt
-            );
-          }
-
-          /*
-            Preserve /indx dimensions searching.
-
-            This intentionally remains local because the shared backend
-            endpoint searches director, caption, year and alphaname, but
-            not dimensions.
-          */
-          const queryParts =
-            rawQuery.split(/\s+/);
-
-          const dimensionResults =
-            Images.filter((img) => {
-              const dim =
-                img.dimensions
-                  ?.slice(0, 6)
-                  .toLowerCase() ||
-                "";
-
-              return queryParts.every(
-                (part) =>
-                  dim.startsWith(part)
-              );
-            });
-
-          const seen =
-            new Set();
-
-          const merged =
-            [
-              ...backendResults,
-              ...dimensionResults,
-            ].filter((img) => {
-              const key =
-                img.id ||
-                img.src;
-
-              if (!key) {
-                return false;
-              }
-
-              if (seen.has(key)) {
-                return false;
-              }
-
-              seen.add(key);
-              return true;
-            });
-
-          if (
-            requestId ===
-            searchRequestIdRef.current
-          ) {
-            setTextSearchResults(
-              merged
-            );
-          }
-        } catch (err) {
-          if (
-            requestId ===
-            searchRequestIdRef.current
-          ) {
-            console.error(
-              "Index search failed:",
-              err
-            );
-
-            /*
-              If the shared backend is unavailable, preserve the
-              dimensions-only local behavior rather than returning
-              unrelated fuzzy results.
-            */
-            const queryParts =
-              rawQuery.split(/\s+/);
-
-            const dimensionResults =
-              Images.filter((img) => {
-                const dim =
-                  img.dimensions
-                    ?.slice(0, 6)
-                    .toLowerCase() ||
-                  "";
-
-                return queryParts.every(
-                  (part) =>
-                    dim.startsWith(part)
-                );
-              });
-
-            setTextSearchResults(
-              dimensionResults
-            );
-          }
-        }
-      }, 300);
-
-    return () => {
-      if (searchDebounceRef.current) {
-        clearTimeout(
-          searchDebounceRef.current
-        );
-      }
-    };
-  }, [
-    rawQuery,
-    isExactYear,
-    isDecadeQuery,
-    Images,
-  ]);
+  const queryParts =
+    rawQuery.split(/\s+/);
 
   let filteredImages;
 
   if (!rawQuery) {
     filteredImages =
       Images;
-  } else if (isExactYear) {
+  } else if (/^\d{4}$/.test(rawQuery)) {
     filteredImages =
       Images.filter(
         (img) =>
           String(img.year) ===
           rawQuery
       );
-  } else if (isDecadeQuery) {
+  } else if (
+    /^\d{3}$/.test(rawQuery) ||
+    /^\d{3}x$/.test(rawQuery) ||
+    /^\d{4}s$/.test(rawQuery)
+  ) {
     const prefix =
       rawQuery.slice(0, 3);
 
@@ -522,8 +345,95 @@ export default function Index() {
           .startsWith(prefix)
       );
   } else {
+    /*
+      Keep /indx fully local.
+
+      Fuse receives normalized shadow fields, but the original image
+      objects are preserved and returned for rendering/lightbox use.
+    */
+    const searchableImages =
+      Images.map((img) => ({
+        ...img,
+        _searchCaption:
+          normalizeSearchText(
+            img.caption
+          ),
+        _searchAlphaname:
+          normalizeSearchText(
+            img.alphaname
+          ),
+      }));
+
+    const fuse =
+      new Fuse(
+        searchableImages,
+        {
+          keys: [
+            {
+              name:
+                "_searchCaption",
+              weight: 0.6,
+            },
+            {
+              name:
+                "_searchAlphaname",
+              weight: 0.4,
+            },
+          ],
+          threshold: 0.3,
+          distance: 200,
+          includeScore: true,
+        }
+      );
+
+    const fuseResults =
+      fuse
+        .search(rawQuery)
+        .map((r) => r.item);
+
+    const acResults =
+      Images.filter((img) => {
+        const dir =
+          normalizeSearchText(
+            img.director
+          );
+
+        const dim =
+          normalizeSearchText(
+            img.dimensions
+              ?.slice(0, 6) ||
+            ""
+          );
+
+        return queryParts.every(
+          (part) =>
+            dir
+              .split(/\s+/)
+              .some(
+                (w) =>
+                  w.startsWith(
+                    part
+                  )
+              ) ||
+            dim.startsWith(part)
+        );
+      });
+
+    const seen =
+      new Set();
+
     filteredImages =
-      textSearchResults;
+      [
+        ...fuseResults,
+        ...acResults,
+      ].filter((img) => {
+        if (seen.has(img.src)) {
+          return false;
+        }
+
+        seen.add(img.src);
+        return true;
+      });
   }
 
 
