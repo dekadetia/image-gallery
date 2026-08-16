@@ -364,9 +364,102 @@ export default function Index() {
           ),
       }));
 
+    const hasPlausibleTokenMatch =
+      (text, part) => {
+        const words =
+          text.split(/\s+/);
+
+        return words.some((word) => {
+          if (
+            word.startsWith(part) ||
+            part.startsWith(word)
+          ) {
+            return true;
+          }
+
+          if (
+            part.length < 4 ||
+            word.length < 4
+          ) {
+            return false;
+          }
+
+          const maxDistance =
+            part.length >= 7
+              ? 2
+              : 1;
+
+          let previous =
+            Array.from(
+              { length: word.length + 1 },
+              (_, i) => i
+            );
+
+          for (
+            let i = 1;
+            i <= part.length;
+            i++
+          ) {
+            const current = [i];
+            let rowMin = i;
+
+            for (
+              let j = 1;
+              j <= word.length;
+              j++
+            ) {
+              const cost =
+                part[i - 1] ===
+                word[j - 1]
+                  ? 0
+                  : 1;
+
+              const value =
+                Math.min(
+                  current[j - 1] + 1,
+                  previous[j] + 1,
+                  previous[j - 1] + cost
+                );
+
+              current.push(value);
+              rowMin =
+                Math.min(
+                  rowMin,
+                  value
+                );
+            }
+
+            if (rowMin > maxDistance) {
+              return false;
+            }
+
+            previous = current;
+          }
+
+          return (
+            previous[word.length] <=
+            maxDistance
+          );
+        });
+      };
+
+    const plausibleImages =
+      searchableImages.filter((img) => {
+        const titleText =
+          `${img._searchCaption} ${img._searchAlphaname}`.trim();
+
+        return queryParts.every(
+          (part) =>
+            hasPlausibleTokenMatch(
+              titleText,
+              part
+            )
+        );
+      });
+
     const fuse =
       new Fuse(
-        searchableImages,
+        plausibleImages,
         {
           keys: [
             {
