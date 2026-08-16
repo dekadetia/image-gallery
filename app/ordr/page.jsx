@@ -2556,7 +2556,7 @@ useEffect(() => {
           )
         )
 
-      const results =
+      const fuseResults =
         fuse
           .search(normalizedQuery)
           .map(result => result.item)
@@ -2566,6 +2566,31 @@ useEffect(() => {
                 photo.id || photo.src
               )
           )
+
+      /*
+        The lexical gate is the admission test.
+
+        Fuse is only a ranking aid. A valid token-order-insensitive
+        match such as "anderson wes" -> "Wes Anderson" must not be
+        discarded just because Fuse dislikes the reversed full phrase.
+      */
+      const fuseIds =
+        new Set(
+          fuseResults.map(
+            photo =>
+              photo.id || photo.src
+          )
+        )
+
+      const results = [
+        ...fuseResults,
+        ...plausibleImages.filter(
+          photo =>
+            !fuseIds.has(
+              photo.id || photo.src
+            )
+        ),
+      ]
 
       if (results.length === 0) {
         fetchBackendSearch(rawQuery)
