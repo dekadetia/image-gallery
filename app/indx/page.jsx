@@ -384,10 +384,7 @@ export default function Index() {
             return false;
           }
 
-          const maxDistance =
-            part.length >= 7
-              ? 2
-              : 1;
+          const maxDistance = 1;
 
           let previous =
             Array.from(
