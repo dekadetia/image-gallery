@@ -1857,129 +1857,6 @@ function TetrisWall({
 
 
 
-
-function normalizeSearchText(value = '') {
-  return String(value)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[’‘']/g, '')
-    .replace(/[^a-zA-Z0-9]+/g, ' ')
-    .trim()
-    .toLowerCase()
-}
-
-function searchWords(value = '') {
-  return normalizeSearchText(value)
-    .split(/\s+/)
-    .filter(Boolean)
-}
-
-function editDistanceAtMostOne(a, b) {
-  if (a === b) return true
-
-  const aLength = a.length
-  const bLength = b.length
-
-  if (Math.abs(aLength - bLength) > 1) {
-    return false
-  }
-
-  if (aLength === bLength) {
-    let differences = 0
-
-    for (let i = 0; i < aLength; i++) {
-      if (a[i] !== b[i]) {
-        differences += 1
-        if (differences > 1) return false
-      }
-    }
-
-    return true
-  }
-
-  const shorter =
-    aLength < bLength ? a : b
-
-  const longer =
-    aLength < bLength ? b : a
-
-  let shortIndex = 0
-  let longIndex = 0
-  let differences = 0
-
-  while (
-    shortIndex < shorter.length &&
-    longIndex < longer.length
-  ) {
-    if (
-      shorter[shortIndex] ===
-      longer[longIndex]
-    ) {
-      shortIndex += 1
-      longIndex += 1
-      continue
-    }
-
-    differences += 1
-
-    if (differences > 1) {
-      return false
-    }
-
-    longIndex += 1
-  }
-
-  return true
-}
-
-function tokenPlausiblyMatches(queryToken, fieldToken) {
-  if (!queryToken || !fieldToken) {
-    return false
-  }
-
-  if (
-    fieldToken.startsWith(queryToken) ||
-    queryToken.startsWith(fieldToken)
-  ) {
-    return true
-  }
-
-  return editDistanceAtMostOne(
-    queryToken,
-    fieldToken
-  )
-}
-
-function passesLexicalSearchGate(photo, query) {
-  const queryTokens =
-    searchWords(query)
-
-  if (!queryTokens.length) {
-    return false
-  }
-
-  const fieldTokens =
-    searchWords(
-      `${photo?.caption || ''} ${photo?.alphaname || ''} ${photo?.director || ''}`
-    )
-
-  if (!fieldTokens.length) {
-    return false
-  }
-
-  return queryTokens.every(
-    queryToken =>
-      fieldTokens.some(
-        fieldToken =>
-          tokenPlausiblyMatches(
-            queryToken,
-            fieldToken
-          )
-      )
-  )
-}
-
-
 function getApostropheBackendQueries(value = '') {
   const text = String(value)
 
@@ -2009,28 +1886,11 @@ export default function Order() {
   const [FullImages, setFullImages] = useState([])
 
 const fuse = useMemo(() => {
-  const normalizedImages =
-    FullImages.map(image => ({
-      ...image,
-      _searchCaption:
-        normalizeSearchText(
-          image.caption
-        ),
-      _searchAlphaname:
-        normalizeSearchText(
-          image.alphaname
-        ),
-      _searchDirector:
-        normalizeSearchText(
-          image.director
-        ),
-    }))
-
-  return new Fuse(normalizedImages, {
+  return new Fuse(FullImages, {
     keys: [
-      { name: '_searchCaption', weight: 0.7 },
-      { name: '_searchAlphaname', weight: 0.2 },
-      { name: '_searchDirector', weight: 0.1 },
+      { name: 'caption', weight: 0.7 },
+      { name: 'alphaname', weight: 0.2 },
+      { name: 'director', weight: 0.1 },
     ],
     threshold: 0.3,
     distance: 100,
@@ -2534,63 +2394,7 @@ useEffect(() => {
         fetchBackendSearch(rawQuery)
         return
       }
-      const normalizedQuery =
-        normalizeSearchText(
-          rawQuery
-        )
-
-      const plausibleImages =
-        FullImages.filter(
-          photo =>
-            passesLexicalSearchGate(
-              photo,
-              normalizedQuery
-            )
-        )
-
-      const plausibleIds =
-        new Set(
-          plausibleImages.map(
-            photo =>
-              photo.id || photo.src
-          )
-        )
-
-      const fuseResults =
-        fuse
-          .search(normalizedQuery)
-          .map(result => result.item)
-          .filter(
-            photo =>
-              plausibleIds.has(
-                photo.id || photo.src
-              )
-          )
-
-      /*
-        The lexical gate is the admission test.
-
-        Fuse is only a ranking aid. A valid token-order-insensitive
-        match such as "anderson wes" -> "Wes Anderson" must not be
-        discarded just because Fuse dislikes the reversed full phrase.
-      */
-      const fuseIds =
-        new Set(
-          fuseResults.map(
-            photo =>
-              photo.id || photo.src
-          )
-        )
-
-      const results = [
-        ...fuseResults,
-        ...plausibleImages.filter(
-          photo =>
-            !fuseIds.has(
-              photo.id || photo.src
-            )
-        ),
-      ]
+      const results = fuse.search(rawQuery).map(r => r.item)
 
       if (results.length === 0) {
         fetchBackendSearch(rawQuery)
