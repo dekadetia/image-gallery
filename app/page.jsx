@@ -1606,7 +1606,7 @@ function TetrisWall({
         prepareImages(
           images
         ),
-      [lightboxImages]
+      [images]
     )
 
 
@@ -1884,7 +1884,7 @@ export default function Page() {
             }
           }
         ),
-      [images]
+      [lightboxImages]
     )
 
 
