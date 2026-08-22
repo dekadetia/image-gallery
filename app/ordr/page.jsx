@@ -256,6 +256,17 @@ function prepareImages(images) {
 }
 
 
+function getLayoutRatio(
+  image
+) {
+  return (
+    image?._layoutRatio ||
+    image?._meta?.ratio ||
+    16 / 9
+  )
+}
+
+
 /* ---------------------------------------------------------
    DESKTOP / TABLET PATTERNS
 --------------------------------------------------------- */
@@ -386,7 +397,9 @@ function buildBand(
         items.reduce(
           (sum, image) =>
             sum +
-            1 / image._meta.ratio,
+            1 / getLayoutRatio(
+              image
+            ),
           0
         )
 
@@ -969,31 +982,40 @@ function chooseRemainderBand(
 
 
 /*
-  ONE-WEBM-PER-BAND RULE
+  WEBM HOTSPOT BAND MODE
 
-  Canonical order is untouched.
+  Canonical order remains completely untouched.
 
-  If the scheduled Tetris band would contain more than one WebM,
-  temporarily reduce that band's density until it contains at most one.
-  Nothing is reordered, deferred, hidden, or removed.
+  When 3+ WebMs occur within the next 10 canonical records,
+  temporarily stretch that region vertically:
+
+    - if the next record is a WebM, give it a [1] full-width band
+    - otherwise consume only the stills before the next WebM,
+      capped at 3 records
+
+  This prevents dense WebM clusters from sharing the same
+  viewport neighborhood without reordering, deferring, or
+  hiding any item.
 */
-function chooseOneWebmPattern(
-  remainingImages,
-  normalPattern
+
+const WEBM_HOTSPOT_WINDOW =
+  10
+
+const WEBM_HOTSPOT_THRESHOLD =
+  3
+
+const WEBM_RESEQUENCE_LIMIT =
+  10
+
+const HOTSPOT_CROP_RELAXATION =
+  0.08
+
+
+function countWebms(
+  images
 ) {
-  const normalCount =
-    patternImageCount(
-      normalPattern
-    )
-
-  const normalSlice =
-    remainingImages.slice(
-      0,
-      normalCount
-    )
-
-  const webmCount =
-    normalSlice.reduce(
+  return (images || [])
+    .reduce(
       (
         count,
         image
@@ -1006,82 +1028,219 @@ function chooseOneWebmPattern(
         ),
       0
     )
+}
 
 
-  if (
-    webmCount <= 1
-  ) {
-    return normalPattern
-  }
-
-
-  /*
-    Consume only enough canonical records to stop before
-    the second WebM.
-
-    Keep the count small and use exact patterns we already
-    know the wall can solve reliably.
-  */
-  let seenWebms =
-    0
-
-  let safeCount =
-    0
-
-
-  for (
-    let i = 0;
-    i <
-      normalSlice.length;
-    i++
-  ) {
-    if (
-      isWebm(
-        normalSlice[i]
+function isWebmHotspot(
+  remainingImages
+) {
+  return (
+    countWebms(
+      remainingImages.slice(
+        0,
+        WEBM_HOTSPOT_WINDOW
       )
-    ) {
-      seenWebms += 1
+    ) >=
+    WEBM_HOTSPOT_THRESHOLD
+  )
+}
 
-      if (
-        seenWebms >= 2
+
+/*
+  Give hotspot images a small layout-only ratio relaxation.
+  The source media itself is untouched; object-cover absorbs
+  the resulting modest crop.
+*/
+function relaxHotspotRatios(
+  images
+) {
+  return images.map(
+    image => {
+      const ratio =
+        image?._meta?.ratio ||
+        16 / 9
+
+      const target =
+        ratio >= 1
+          ? 1.78
+          : 0.8
+
+      return {
+        ...image,
+
+        _layoutRatio:
+          ratio +
+          (
+            target -
+            ratio
+          ) *
+          HOTSPOT_CROP_RELAXATION
+      }
+    }
+  )
+}
+
+
+/*
+  Presentation-only bounded resequencing.
+
+  If the upcoming band would contain too many WebMs, move
+  later offending WebMs forward by swapping with the nearest
+  still after the band. Never move farther than 10 records.
+*/
+function spreadUpcomingWebms(
+  workingImages,
+  startIndex,
+  bandCount,
+  previousBandHadWebm
+) {
+  const bandEnd =
+    Math.min(
+      workingImages.length,
+      startIndex +
+        bandCount
+    )
+
+  const allowedWebms =
+    previousBandHadWebm
+      ? 0
+      : 1
+
+
+  const getWebmIndices =
+    () => {
+      const indices = []
+
+      for (
+        let i =
+          startIndex;
+        i <
+          bandEnd;
+        i++
       ) {
+        if (
+          isWebm(
+            workingImages[i]
+          )
+        ) {
+          indices.push(
+            i
+          )
+        }
+      }
+
+      return indices
+    }
+
+
+  let webmIndices =
+    getWebmIndices()
+
+
+  while (
+    webmIndices.length >
+    allowedWebms
+  ) {
+    const webmIndex =
+      webmIndices[
+        webmIndices.length - 1
+      ]
+
+    const searchEnd =
+      Math.min(
+        workingImages.length,
+        webmIndex +
+          WEBM_RESEQUENCE_LIMIT +
+          1
+      )
+
+    let stillIndex =
+      -1
+
+
+    for (
+      let i =
+        bandEnd;
+      i <
+        searchEnd;
+      i++
+    ) {
+      if (
+        !isWebm(
+          workingImages[i]
+        )
+      ) {
+        stillIndex =
+          i
         break
       }
     }
 
-    safeCount += 1
+
+    if (
+      stillIndex === -1
+    ) {
+      break
+    }
+
+
+    ;[
+      workingImages[webmIndex],
+      workingImages[stillIndex]
+    ] = [
+      workingImages[stillIndex],
+      workingImages[webmIndex]
+    ]
+
+
+    webmIndices =
+      getWebmIndices()
+  }
+}
+
+
+/*
+  Lower-density composition inside hotspot regions.
+*/
+function chooseHotspotPattern(
+  remainingImages,
+  previousBandHadWebm
+) {
+  if (
+    !isWebmHotspot(
+      remainingImages
+    )
+  ) {
+    return null
   }
 
 
-  safeCount =
-    Math.max(
-      1,
-      Math.min(
-        safeCount,
-        4
-      )
-    )
-
-
   if (
-    safeCount === 1
+    isWebm(
+      remainingImages[0]
+    ) &&
+    !previousBandHadWebm
   ) {
     return [1]
   }
 
-  if (
-    safeCount === 2
-  ) {
-    return [1, 1]
-  }
 
+  /*
+    Prefer large occupied bands made from only 2–3 records.
+  */
   if (
-    safeCount === 3
+    remainingImages.length >= 3
   ) {
     return [1, 2]
   }
 
-  return [2, 2]
+  if (
+    remainingImages.length >= 2
+  ) {
+    return [1, 1]
+  }
+
+  return [1]
 }
 
 
@@ -1110,16 +1269,22 @@ function buildWall(
 
   const bands = []
 
+  const workingImages =
+    [...preparedImages]
+
   let imageCursor = 0
   let bandIndex = 0
+
+  let previousBandHadWebm =
+    false
 
 
   while (
     imageCursor <
     preparedImages.length
   ) {
-    const remainingImages =
-      preparedImages.slice(
+    let remainingImages =
+      workingImages.slice(
         imageCursor
       )
 
@@ -1170,17 +1335,46 @@ function buildWall(
     }
 
 
-    pattern =
-      chooseOneWebmPattern(
-        remainingImages,
-        pattern
+    const hotspotActive =
+      isWebmHotspot(
+        remainingImages
       )
 
+    const hotspotPattern =
+      chooseHotspotPattern(
+        remainingImages,
+        previousBandHadWebm
+      )
 
-    const requiredImages =
+    if (
+      hotspotPattern
+    ) {
+      pattern =
+        hotspotPattern
+    }
+
+
+    let requiredImages =
       patternImageCount(
         pattern
       )
+
+
+    if (
+      hotspotActive
+    ) {
+      spreadUpcomingWebms(
+        workingImages,
+        imageCursor,
+        requiredImages,
+        previousBandHadWebm
+      )
+
+      remainingImages =
+        workingImages.slice(
+          imageCursor
+        )
+    }
 
 
     const wouldLeaveLoneTail =
@@ -1195,11 +1389,19 @@ function buildWall(
         requiredImages &&
       !wouldLeaveLoneTail
     ) {
-      const bandImages =
-        remainingImages.slice(
-          0,
-          requiredImages
+      const rawBandImages =
+        workingImages.slice(
+          imageCursor,
+          imageCursor +
+            requiredImages
         )
+
+      const bandImages =
+        hotspotActive
+          ? relaxHotspotRatios(
+              rawBandImages
+            )
+          : rawBandImages
 
 
       const band =
@@ -1216,6 +1418,14 @@ function buildWall(
         )
       }
 
+      previousBandHadWebm =
+        rawBandImages.some(
+          image =>
+            isWebm(
+              image
+            )
+        )
+
 
       imageCursor +=
         requiredImages
@@ -1225,9 +1435,14 @@ function buildWall(
     }
 
 
+    const currentRemainingImages =
+      workingImages.slice(
+        imageCursor
+      )
+
     const remainder =
       chooseRemainderBand(
-        remainingImages,
+        currentRemainingImages,
         patterns,
         containerWidth
       )
@@ -1721,8 +1936,7 @@ function VirtualPackedBand({
   band,
   bandIndex,
   bandCount,
-  onImageClick,
-  spaceBefore = 0
+  onImageClick
 }) {
   const bandRef =
     useRef(null)
@@ -1792,11 +2006,6 @@ function VirtualPackedBand({
         height:
           `${band.height}px`,
 
-        marginTop:
-          spaceBefore
-            ? `${spaceBefore}px`
-            : 0,
-
         marginBottom:
           bandIndex <
           bandCount - 1
@@ -1840,7 +2049,9 @@ function VirtualPackedBand({
                     className="relative w-full shrink-0 overflow-hidden cursor-zoom-in"
                     style={{
                       aspectRatio:
-                        `${photo._meta.ratio}`
+                        `${getLayoutRatio(
+                          photo
+                        )}`
                     }}
                     onClick={() =>
                       onImageClick(
@@ -1878,43 +2089,6 @@ function PackedWall({
   desktopStartIndex
 }) {
 
-  const [
-    viewportHeight,
-    setViewportHeight
-  ] = useState(
-    () =>
-      typeof window !==
-        'undefined'
-        ? window.innerHeight
-        : 900
-  )
-
-
-  useEffect(
-    () => {
-      const updateViewportHeight =
-        () => {
-          setViewportHeight(
-            window.innerHeight
-          )
-        }
-
-      window.addEventListener(
-        'resize',
-        updateViewportHeight
-      )
-
-      return () => {
-        window.removeEventListener(
-          'resize',
-          updateViewportHeight
-        )
-      }
-    },
-    []
-  )
-
-
   const bands =
     useMemo(
       () =>
@@ -1931,96 +2105,12 @@ function PackedWall({
     )
 
 
-
-  const spacedBands =
-    useMemo(
-      () => {
-        let currentTop =
-          0
-
-        let lastWebmTop =
-          null
-
-
-        return bands.map(
-          band => {
-            const hasWebm =
-              band.columns
-                .some(
-                  column =>
-                    column.items
-                      .some(
-                        image =>
-                          isWebm(
-                            image
-                          )
-                      )
-                )
-
-            let spaceBefore =
-              0
-
-
-            if (
-              hasWebm &&
-              lastWebmTop !==
-                null
-            ) {
-              const minimumTop =
-                lastWebmTop +
-                viewportHeight
-
-              if (
-                currentTop <
-                minimumTop
-              ) {
-                spaceBefore =
-                  minimumTop -
-                  currentTop
-
-                currentTop +=
-                  spaceBefore
-              }
-            }
-
-
-            const top =
-              currentTop
-
-
-            if (
-              hasWebm
-            ) {
-              lastWebmTop =
-                top
-            }
-
-
-            currentTop +=
-              band.height +
-              GAP
-
-
-            return {
-              band,
-              spaceBefore
-            }
-          }
-        )
-      },
-      [
-        bands,
-        viewportHeight
-      ]
-    )
-
-
   return (
     <div className="w-full">
 
-      {spacedBands.map(
+      {bands.map(
         (
-          item,
+          band,
           bandIndex
         ) => (
 
@@ -2029,19 +2119,16 @@ function PackedWall({
               `band-${bandIndex}`
             }
             band={
-              item.band
+              band
             }
             bandIndex={
               bandIndex
             }
             bandCount={
-              spacedBands.length
+              bands.length
             }
             onImageClick={
               onImageClick
-            }
-            spaceBefore={
-              item.spaceBefore
             }
           />
 
