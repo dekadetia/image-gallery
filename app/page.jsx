@@ -1681,6 +1681,11 @@ export default function Page() {
 
   const [index, setIndex] = useState(-1)
 
+  const [
+    lightboxHistoryVisible,
+    setLightboxHistoryVisible
+  ] = useState(false)
+
   const wasCalled =
     useRef(false)
 
@@ -1688,9 +1693,6 @@ export default function Page() {
     useRef(null)
 
   const lightboxHistoryActiveRef =
-    useRef(false)
-
-  const syncingFromHistoryRef =
     useRef(false)
 
   const pendingViewUrlTimerRef =
@@ -1936,14 +1938,17 @@ export default function Page() {
     () => {
       cancelPendingViewUrl()
 
+      setLightboxHistoryVisible(
+        false
+      )
+
+      setIndex(-1)
+
       if (
         lightboxHistoryActiveRef.current
       ) {
         window.history.back()
-        return
       }
-
-      setIndex(-1)
     }
 
 
@@ -1972,6 +1977,10 @@ export default function Page() {
         }
 
         setIndex(idx)
+
+        setLightboxHistoryVisible(
+          true
+        )
 
         if (
           image?.name
@@ -2009,14 +2018,6 @@ export default function Page() {
 
   const handleLightboxView =
     ({ index: nextIndex }) => {
-      if (
-        syncingFromHistoryRef.current
-      ) {
-        syncingFromHistoryRef.current =
-          false
-        return
-      }
-
       if (
         !lightboxHistoryActiveRef.current
       ) {
@@ -2103,14 +2104,21 @@ export default function Page() {
             if (
               idx !== -1
             ) {
-              syncingFromHistoryRef.current =
-                true
-
               lightboxHistoryActiveRef.current =
                 true
 
-              setIndex(
-                idx
+              if (
+                index < 0 ||
+                images[index]?.name !==
+                  state.filename
+              ) {
+                setIndex(
+                  idx
+                )
+              }
+
+              setLightboxHistoryVisible(
+                true
               )
 
               return
@@ -2120,10 +2128,9 @@ export default function Page() {
           lightboxHistoryActiveRef.current =
             false
 
-          syncingFromHistoryRef.current =
+          setLightboxHistoryVisible(
             false
-
-          setIndex(-1)
+          )
 
           lightboxOriginUrlRef.current =
             window.location.pathname +
@@ -2143,7 +2150,44 @@ export default function Page() {
         )
       }
     },
-    [images]
+    [
+      images,
+      index
+    ]
+  )
+
+
+  /* -------------------------------------------------------
+     KEEP HISTORY-HIDDEN LIGHTBOX MOUNTED
+
+     Browser Back hides the YARL portal without closing it.
+     Browser Forward reveals the same mounted instance.
+  ------------------------------------------------------- */
+
+  useEffect(
+    () => {
+      const className =
+        'tndr-history-lightbox-hidden'
+
+      const shouldHide =
+        index >= 0 &&
+        !lightboxHistoryVisible
+
+      document.body.classList.toggle(
+        className,
+        shouldHide
+      )
+
+      return () => {
+        document.body.classList.remove(
+          className
+        )
+      }
+    },
+    [
+      index,
+      lightboxHistoryVisible
+    ]
   )
 
 
@@ -2366,6 +2410,11 @@ export default function Page() {
       {slides && (
         <>
           <style jsx global>{`
+            body.tndr-history-lightbox-hidden .yarl__root {
+              visibility: hidden !important;
+              pointer-events: none !important;
+            }
+
             .yarl__slide .tndr-lightbox-webm-box {
               box-sizing: border-box;
             }
