@@ -1698,6 +1698,9 @@ export default function Page() {
   const pendingViewUrlTimerRef =
     useRef(null)
 
+  const pendingSlideUrlTimerRef =
+    useRef(null)
+
   const historyKeyboardFallbackRef =
     useRef(false)
 
@@ -1940,9 +1943,25 @@ export default function Page() {
     }
 
 
+  const cancelPendingSlideUrl =
+    () => {
+      if (
+        pendingSlideUrlTimerRef.current
+      ) {
+        window.clearTimeout(
+          pendingSlideUrlTimerRef.current
+        )
+
+        pendingSlideUrlTimerRef.current =
+          null
+      }
+    }
+
+
   const handleCloseLightbox =
     () => {
       cancelPendingViewUrl()
+      cancelPendingSlideUrl()
 
       historyKeyboardFallbackRef.current =
         false
@@ -2045,20 +2064,31 @@ export default function Page() {
         return
       }
 
-      History.prototype.replaceState.call(
-        window.history,
-        {
-          tndrLightbox:
-            true,
+      cancelPendingSlideUrl()
 
-          filename:
-            image.name
-        },
-        '',
-        getViewUrl(
-          image
+      pendingSlideUrlTimerRef.current =
+        window.setTimeout(
+          () => {
+            History.prototype.replaceState.call(
+              window.history,
+              {
+                tndrLightbox:
+                  true,
+
+                filename:
+                  image.name
+              },
+              '',
+              getViewUrl(
+                image
+              )
+            )
+
+            pendingSlideUrlTimerRef.current =
+              null
+          },
+          150
         )
-      )
     }
 
 
@@ -2181,6 +2211,7 @@ export default function Page() {
       const handleLightboxForward =
         event => {
           cancelPendingViewUrl()
+          cancelPendingSlideUrl()
 
           historyKeyboardFallbackRef.current =
             true
