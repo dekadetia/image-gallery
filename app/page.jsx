@@ -2173,6 +2173,29 @@ export default function Page() {
           showHistorySlide(
             event.detail
           )
+
+          requestAnimationFrame(
+            () => {
+              const lightbox =
+                document.querySelector(
+                  '.yarl__root'
+                )
+
+              if (
+                lightbox
+              ) {
+                lightbox.setAttribute(
+                  'tabindex',
+                  '-1'
+                )
+
+                lightbox.focus({
+                  preventScroll:
+                    true
+                })
+              }
+            }
+          )
         }
 
 
