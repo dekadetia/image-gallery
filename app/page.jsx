@@ -1944,10 +1944,15 @@ export default function Page() {
         if (
           image?.name
         ) {
-          setNativeUrl(
-            `/view/${encodeURIComponent(
-              image.name
-            )}`
+          window.setTimeout(
+            () => {
+              setNativeUrl(
+                `/view/${encodeURIComponent(
+                  image.name
+                )}`
+              )
+            },
+            150
           )
         }
       }
