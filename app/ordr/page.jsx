@@ -108,7 +108,8 @@ function isWebm(photo) {
 
 function LazyWebm({
   src,
-  className = ''
+  className = '',
+  forceUnmount = false
 }) {
   const wrapperRef =
     useRef(null)
@@ -166,7 +167,8 @@ function LazyWebm({
       className="w-full h-full"
     >
 
-      {isNearby ? (
+      {isNearby &&
+      !forceUnmount ? (
 
         <video
           src={src}
@@ -1401,7 +1403,8 @@ function solveMobilePair(
 --------------------------------------------------------- */
 
 function WallMedia({
-  photo
+  photo,
+  forceUnmountWebm = false
 }) {
 
   if (
@@ -1414,6 +1417,9 @@ function WallMedia({
           photo.src
         }
         className="block w-full h-full object-cover"
+        forceUnmount={
+          forceUnmountWebm
+        }
       />
     )
   }
@@ -1442,7 +1448,8 @@ function MobileWall({
   images,
   containerWidth,
   onImageClick,
-  mobileSeed
+  mobileSeed,
+  forceUnmountWebms
 }) {
 
   const rows =
@@ -1509,6 +1516,9 @@ function MobileWall({
                     photo={
                       photo
                     }
+                    forceUnmountWebm={
+                      forceUnmountWebms
+                    }
                   />
 
                 </div>
@@ -1572,6 +1582,9 @@ function MobileWall({
                       photo={
                         photo
                       }
+                      forceUnmountWebm={
+                        forceUnmountWebms
+                      }
                     />
 
                   </div>
@@ -1597,7 +1610,8 @@ function PackedWall({
   images,
   containerWidth,
   onImageClick,
-  desktopStartIndex
+  desktopStartIndex,
+  forceUnmountWebms
 }) {
 
   const bands =
@@ -1691,6 +1705,9 @@ function PackedWall({
                           photo={
                             photo
                           }
+                          forceUnmountWebm={
+                            forceUnmountWebms
+                          }
                         />
 
                       </div>
@@ -1721,7 +1738,8 @@ function TetrisWall({
   images,
   onImageClick,
   desktopStartIndex,
-  mobileSeed
+  mobileSeed,
+  forceUnmountWebms
 }) {
 
   const wallRef =
@@ -1827,6 +1845,9 @@ function TetrisWall({
             mobileSeed={
               mobileSeed
             }
+            forceUnmountWebms={
+              forceUnmountWebms
+            }
           />
 
         ) : (
@@ -1843,6 +1864,9 @@ function TetrisWall({
             }
             desktopStartIndex={
               desktopStartIndex
+            }
+            forceUnmountWebms={
+              forceUnmountWebms
             }
           />
 
@@ -2402,69 +2426,6 @@ useEffect(() => {
       )
     }
   }, [index])
-
-
-  /* ---------------------------------------------------
-          PAUSE WALL WEBMS WHILE LIGHTBOX IS OPEN
-
-     Keep the wall and its lazy-loading structure intact,
-     but release background video decoder/compositor work
-     while YARL is active.
-
-     YARL videos are explicitly excluded.
-     When the lightbox is genuinely closed, resume whatever
-     wall WebMs are currently mounted (LazyWebm ensures only
-     nearby videos exist in the DOM).
-     --------------------------------------------------- */
-
-  useEffect(
-    () => {
-      const wallVideos =
-        Array.from(
-          document.querySelectorAll(
-            'video:not(.yarl__root video)'
-          )
-        ).filter(
-          video =>
-            !video.closest(
-              '.yarl__root'
-            )
-        )
-
-      if (
-        index >= 0
-      ) {
-        wallVideos.forEach(
-          video => {
-            try {
-              video.pause()
-            } catch {}
-          }
-        )
-
-        return
-      }
-
-      wallVideos.forEach(
-        video => {
-          try {
-            const playPromise =
-              video.play()
-
-            if (
-              playPromise?.catch
-            ) {
-              playPromise.catch(
-                () => {}
-              )
-            }
-          } catch {}
-        }
-      )
-    },
-    [index]
-  )
-
 
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
@@ -3202,6 +3163,9 @@ useEffect(() => {
               onImageClick={handleImageClick}
               desktopStartIndex={desktopStartIndex}
               mobileSeed={mobileSeed}
+              forceUnmountWebms={
+                lightboxHistoryVisible
+              }
             />
           </InfiniteScroll>
 
