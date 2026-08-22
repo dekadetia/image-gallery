@@ -382,7 +382,7 @@ export default function ViewPage() {
     async (
       cursor,
       direction,
-      pageSize = 30
+      pageSize = 10
     ) => {
       const response =
         await fetch(
@@ -498,7 +498,7 @@ export default function ViewPage() {
 
         if (
           incoming.length <
-          30
+          10
         ) {
           hasMoreBeforeRef.current =
             false;
@@ -591,7 +591,7 @@ export default function ViewPage() {
 
         if (
           incoming.length <
-          30
+          10
         ) {
           hasMoreAfterRef.current =
             false;
@@ -743,11 +743,11 @@ export default function ViewPage() {
 
             hasMoreBeforeRef.current =
               beforeFiles.length >=
-              30;
+              10;
 
             hasMoreAfterRef.current =
               afterFiles.length >=
-              30;
+              10;
 
             setLoading(
               false
@@ -809,7 +809,7 @@ export default function ViewPage() {
       }
 
       const EDGE_THRESHOLD =
-        10;
+        4;
 
       if (
         nextIndex <=
