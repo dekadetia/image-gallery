@@ -1669,8 +1669,14 @@ function TetrisWall({
 }
 
 
+
 /* ---------------------------------------------------------
    VIEW PERMALINK
+
+   IMPORTANT:
+   Next.js App Router patches window.history.replaceState().
+   Use the native History prototype method so changing the
+   visible URL does NOT trigger a Next route-state update.
 --------------------------------------------------------- */
 
 function getViewPath(image) {
@@ -1682,6 +1688,16 @@ function getViewPath(image) {
   return `/view/${encodeURIComponent(
     String(filename)
   )}`
+}
+
+
+function nativeReplaceUrl(url) {
+  History.prototype.replaceState.call(
+    window.history,
+    window.history.state,
+    '',
+    url
+  )
 }
 
 
@@ -1701,6 +1717,9 @@ export default function Page() {
     useRef(false)
 
   const lightboxOriginRef =
+    useRef(null)
+
+  const permalinkFrameRef =
     useRef(null)
 
 
@@ -1903,20 +1922,6 @@ export default function Page() {
      resolve the clicked image back to its canonical array index.
   ------------------------------------------------------- */
 
-  const replaceViewUrl =
-    image => {
-      if (!image) {
-        return
-      }
-
-      window.history.replaceState(
-        window.history.state,
-        '',
-        getViewPath(image)
-      )
-    }
-
-
   const handleImageClick =
     imageId => {
       const idx =
@@ -1929,23 +1934,34 @@ export default function Page() {
       if (
         idx !== -1
       ) {
+        const image =
+          images[idx]
+
         if (!lightboxOriginRef.current) {
           lightboxOriginRef.current =
             `${window.location.pathname}${window.location.search}${window.location.hash}`
         }
 
-        /* Keep the exact original lightbox-open operation. */
-        setIndex(idx)
-
-        /* URL mirroring happens after the click stack clears. */
-        setTimeout(
-          () => {
-            replaceViewUrl(
-              images[idx]
-            )
-          },
-          0
+        setIndex(
+          idx
         )
+
+        if (permalinkFrameRef.current) {
+          cancelAnimationFrame(
+            permalinkFrameRef.current
+          )
+        }
+
+        permalinkFrameRef.current =
+          requestAnimationFrame(
+            () => {
+              nativeReplaceUrl(
+                getViewPath(
+                  image
+                )
+              )
+            }
+          )
       }
     }
 
@@ -1956,22 +1972,27 @@ export default function Page() {
         lightboxOriginRef.current ||
         '/'
 
-      /* Keep the exact original close operation. */
-      setIndex(-1)
-
-      setTimeout(
-        () => {
-          window.history.replaceState(
-            window.history.state,
-            '',
-            origin
-          )
-
-          lightboxOriginRef.current =
-            null
-        },
-        0
+      setIndex(
+        -1
       )
+
+      if (permalinkFrameRef.current) {
+        cancelAnimationFrame(
+          permalinkFrameRef.current
+        )
+      }
+
+      permalinkFrameRef.current =
+        requestAnimationFrame(
+          () => {
+            nativeReplaceUrl(
+              origin
+            )
+
+            lightboxOriginRef.current =
+              null
+          }
+        )
     }
 
 
@@ -2254,16 +2275,15 @@ export default function Page() {
           on={{
             view: ({ index: viewedIndex }) => {
               const viewedImage =
-                images[viewedIndex]
+                images[
+                  viewedIndex
+                ]
 
               if (viewedImage) {
-                setTimeout(
-                  () => {
-                    replaceViewUrl(
-                      viewedImage
-                    )
-                  },
-                  0
+                nativeReplaceUrl(
+                  getViewPath(
+                    viewedImage
+                  )
                 )
               }
             }
