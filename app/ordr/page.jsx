@@ -1916,6 +1916,32 @@ const [order_value_2, __order_value_2] = useState(null)
   const searchRequestIdRef = useRef(0)
 
   const [
+    lightboxHistoryVisible,
+    setLightboxHistoryVisible
+  ] = useState(false)
+
+  const lightboxOriginUrlRef =
+    useRef(null)
+
+  const lightboxHistoryActiveRef =
+    useRef(false)
+
+  const pendingViewUrlTimerRef =
+    useRef(null)
+
+  const pendingSlideUrlTimerRef =
+    useRef(null)
+
+  const historyKeyboardFallbackRef =
+    useRef(false)
+
+  const lightboxControllerRef =
+    useRef(null)
+
+  const lightboxFetchInFlightRef =
+    useRef(false)
+
+  const [
     desktopStartIndex,
     setDesktopStartIndex
   ] = useState(
@@ -2256,17 +2282,37 @@ const images = data.images || []
 
   const loadMoreByCondition = () => {
     if (searchQuery.trim()) {
-      loadMoreSearchResults()
-      return
+      return loadMoreSearchResults()
     }
 
     if (order_key === 'alphaname') {
-      sortImages(order_key, order_value, null, null, PAGE_SIZE, nextPageToken)
-    } else if (order_key === 'year' && order_key_2 === 'alphaname') {
-      sortImages(order_key, order_value, order_key_2, order_value_2, PAGE_SIZE, nextPageToken)
-    } else {
-      getImages(nextPageToken)
+      return sortImages(
+        order_key,
+        order_value,
+        null,
+        null,
+        PAGE_SIZE,
+        nextPageToken
+      )
     }
+
+    if (
+      order_key === 'year' &&
+      order_key_2 === 'alphaname'
+    ) {
+      return sortImages(
+        order_key,
+        order_value,
+        order_key_2,
+        order_value_2,
+        PAGE_SIZE,
+        nextPageToken
+      )
+    }
+
+    return getImages(
+      nextPageToken
+    )
   }
 
   /* ---------------------------------------------------
@@ -2339,7 +2385,7 @@ useEffect(() => {
         return
       }
 
-      setIndex(-1)
+      handleCloseLightbox()
     }
 
     document.addEventListener(
@@ -2515,19 +2561,486 @@ useEffect(() => {
   }
 
   /* ---------------------------------------------------
-               WALL CLICK -> CANONICAL LIGHTBOX INDEX
+               LIGHTBOX URL / HISTORY
 
-      The Tetris wall can locally nudge adjacent items. Resolve
-      the clicked photo back to Images so slide order stays true
-      to the active chronology/alphabetical/search ordering.
+       The Tetris wall can locally nudge adjacent items. Resolve
+       the clicked photo back to Images so slide order stays true
+       to the active chronology/alphabetical/search ordering.
      --------------------------------------------------- */
-  const handleImageClick = imageId => {
-    const idx = Images.findIndex(image =>
-      (image?.id || image?.src) === imageId
-    )
 
-    if (idx >= 0) setIndex(idx)
-  }
+  const pushNativeUrl =
+    (
+      url,
+      state
+    ) => {
+      History.prototype.pushState.call(
+        window.history,
+        state,
+        '',
+        url
+      )
+    }
+
+
+  const getViewUrl =
+    image =>
+      `/view/${encodeURIComponent(
+        image.name
+      )}`
+
+
+  const cancelPendingViewUrl =
+    () => {
+      if (
+        pendingViewUrlTimerRef.current
+      ) {
+        window.clearTimeout(
+          pendingViewUrlTimerRef.current
+        )
+
+        pendingViewUrlTimerRef.current =
+          null
+      }
+    }
+
+
+  const cancelPendingSlideUrl =
+    () => {
+      if (
+        pendingSlideUrlTimerRef.current
+      ) {
+        window.clearTimeout(
+          pendingSlideUrlTimerRef.current
+        )
+
+        pendingSlideUrlTimerRef.current =
+          null
+      }
+    }
+
+
+  const handleCloseLightbox =
+    () => {
+      cancelPendingViewUrl()
+      cancelPendingSlideUrl()
+
+      historyKeyboardFallbackRef.current =
+        false
+
+      setLightboxHistoryVisible(
+        false
+      )
+
+      setIndex(-1)
+
+      if (
+        lightboxHistoryActiveRef.current
+      ) {
+        window.history.back()
+      }
+    }
+
+
+  const fetchMoreForLightbox =
+    async () => {
+      if (
+        lightboxFetchInFlightRef.current ||
+        !hasMore
+      ) {
+        return
+      }
+
+      lightboxFetchInFlightRef.current =
+        true
+
+      try {
+        await Promise.resolve(
+          loadMoreByCondition()
+        )
+      } finally {
+        lightboxFetchInFlightRef.current =
+          false
+      }
+    }
+
+
+  const handleImageClick =
+    imageId => {
+      const idx =
+        Images.findIndex(
+          image =>
+            (
+              image?.id ||
+              image?.src
+            ) ===
+            imageId
+        )
+
+      if (
+        idx < 0
+      ) {
+        return
+      }
+
+      const image =
+        Images[idx]
+
+      historyKeyboardFallbackRef.current =
+        false
+
+      if (
+        !lightboxOriginUrlRef.current
+      ) {
+        lightboxOriginUrlRef.current =
+          window.location.pathname +
+          window.location.search +
+          window.location.hash
+      }
+
+      setIndex(
+        idx
+      )
+
+      setLightboxHistoryVisible(
+        true
+      )
+
+      if (
+        image?.name
+      ) {
+        cancelPendingViewUrl()
+
+        pendingViewUrlTimerRef.current =
+          window.setTimeout(
+            () => {
+              pushNativeUrl(
+                getViewUrl(
+                  image
+                ),
+                {
+                  tndrLightbox:
+                    true,
+
+                  filename:
+                    image.name
+                }
+              )
+
+              lightboxHistoryActiveRef.current =
+                true
+
+              pendingViewUrlTimerRef.current =
+                null
+            },
+            150
+          )
+      }
+    }
+
+
+  const handleLightboxView =
+    ({
+      index:
+        nextIndex
+    }) => {
+      /*
+        Keep React synchronized with YARL. This is especially
+        important when a new ordered/search batch appends.
+      */
+      setIndex(
+        nextIndex
+      )
+
+      const LIGHTBOX_FETCH_THRESHOLD =
+        12
+
+      if (
+        hasMore &&
+        nextIndex >=
+          Images.length -
+            1 -
+            LIGHTBOX_FETCH_THRESHOLD
+      ) {
+        fetchMoreForLightbox()
+      }
+
+      if (
+        !lightboxHistoryActiveRef.current
+      ) {
+        return
+      }
+
+      const image =
+        Images[nextIndex]
+
+      if (
+        !image?.name
+      ) {
+        return
+      }
+
+      cancelPendingSlideUrl()
+
+      pendingSlideUrlTimerRef.current =
+        window.setTimeout(
+          () => {
+            History.prototype.replaceState.call(
+              window.history,
+              {
+                tndrLightbox:
+                  true,
+
+                filename:
+                  image.name
+              },
+              '',
+              getViewUrl(
+                image
+              )
+            )
+
+            pendingSlideUrlTimerRef.current =
+              null
+          },
+          150
+        )
+    }
+
+
+  /* ---------------------------------------------------
+                     BROWSER HISTORY
+     --------------------------------------------------- */
+
+  useEffect(
+    () => {
+      const showHistorySlide =
+        state => {
+          if (
+            !state?.tndrLightbox ||
+            !state?.filename
+          ) {
+            return
+          }
+
+          const idx =
+            Images.findIndex(
+              image =>
+                image.name ===
+                state.filename
+            )
+
+          if (
+            idx === -1
+          ) {
+            return
+          }
+
+          lightboxHistoryActiveRef.current =
+            true
+
+          if (
+            index < 0 ||
+            Images[index]?.name !==
+              state.filename
+          ) {
+            setIndex(
+              idx
+            )
+          }
+
+          setLightboxHistoryVisible(
+            true
+          )
+        }
+
+
+      const handlePopState =
+        event => {
+          cancelPendingViewUrl()
+          cancelPendingSlideUrl()
+
+          if (
+            event.state?.tndrLightbox
+          ) {
+            showHistorySlide(
+              event.state
+            )
+
+            return
+          }
+
+          lightboxHistoryActiveRef.current =
+            false
+
+          setLightboxHistoryVisible(
+            false
+          )
+
+          lightboxOriginUrlRef.current =
+            window.location.pathname +
+            window.location.search +
+            window.location.hash
+        }
+
+
+      const handleLightboxForward =
+        event => {
+          cancelPendingViewUrl()
+          cancelPendingSlideUrl()
+
+          historyKeyboardFallbackRef.current =
+            true
+
+          showHistorySlide(
+            event.detail
+          )
+        }
+
+
+      window.addEventListener(
+        'popstate',
+        handlePopState
+      )
+
+      window.addEventListener(
+        'tndr-lightbox-forward',
+        handleLightboxForward
+      )
+
+
+      return () => {
+        window.removeEventListener(
+          'popstate',
+          handlePopState
+        )
+
+        window.removeEventListener(
+          'tndr-lightbox-forward',
+          handleLightboxForward
+        )
+      }
+    },
+    [
+      Images,
+      index
+    ]
+  )
+
+
+  /* ---------------------------------------------------
+              FORWARD KEYBOARD FALLBACK
+     --------------------------------------------------- */
+
+  useEffect(
+    () => {
+      const handleHistoryArrowKey =
+        event => {
+          if (
+            !historyKeyboardFallbackRef.current ||
+            !lightboxHistoryVisible ||
+            index < 0 ||
+            !slides.length
+          ) {
+            return
+          }
+
+          if (
+            event.key !==
+              'ArrowLeft' &&
+            event.key !==
+              'ArrowRight'
+          ) {
+            return
+          }
+
+          const target =
+            event.target
+
+          if (
+            target instanceof Element &&
+            target.closest(
+              'input, textarea, select, [contenteditable="true"]'
+            )
+          ) {
+            return
+          }
+
+          event.preventDefault()
+          event.stopPropagation()
+          event.stopImmediatePropagation()
+
+          if (
+            event.key ===
+            'ArrowRight'
+          ) {
+            lightboxControllerRef
+              .current
+              ?.next({
+                count: 1
+              })
+          } else {
+            lightboxControllerRef
+              .current
+              ?.prev({
+                count: 1
+              })
+          }
+        }
+
+
+      window.addEventListener(
+        'keydown',
+        handleHistoryArrowKey,
+        true
+      )
+
+
+      return () => {
+        window.removeEventListener(
+          'keydown',
+          handleHistoryArrowKey,
+          true
+        )
+      }
+    },
+    [
+      index,
+      slides.length,
+      lightboxHistoryVisible
+    ]
+  )
+
+
+  /* ---------------------------------------------------
+           KEEP BACK-HIDDEN LIGHTBOX MOUNTED
+     --------------------------------------------------- */
+
+  useEffect(
+    () => {
+      const className =
+        'tndr-history-lightbox-hidden'
+
+      const shouldHide =
+        index >= 0 &&
+        !lightboxHistoryVisible
+
+      document.body.classList.toggle(
+        className,
+        shouldHide
+      )
+
+      return () => {
+        document.body.classList.remove(
+          className
+        )
+      }
+    },
+    [
+      index,
+      lightboxHistoryVisible
+    ]
+  )
+
 
   /* ---------------------------------------------------
                         RENDER
@@ -2633,6 +3146,11 @@ useEffect(() => {
           {slides && (
             <>
               <style jsx global>{`
+                body.tndr-history-lightbox-hidden .yarl__root {
+                  visibility: hidden !important;
+                  pointer-events: none !important;
+                }
+
                 .yarl__slide .tndr-lightbox-webm-box {
                   box-sizing: border-box;
                 }
@@ -2654,7 +3172,18 @@ useEffect(() => {
                 index={index}
                 slides={slides}
                 open={index >= 0}
-                close={() => setIndex(-1)}
+                close={handleCloseLightbox}
+                controller={{
+                  ref:
+                    lightboxControllerRef
+                }}
+                on={{
+                  view:
+                    handleLightboxView
+                }}
+                carousel={{
+                  finite: true
+                }}
                 plugins={[Video]}
                 render={{
                   slide: ({ slide, rect }) =>
