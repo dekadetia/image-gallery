@@ -1701,6 +1701,9 @@ export default function Page() {
   const pendingSlideUrlTimerRef =
     useRef(null)
 
+  const lightboxFetchInFlightRef =
+    useRef(false)
+
   const historyKeyboardFallbackRef =
     useRef(false)
 
@@ -1901,6 +1904,39 @@ export default function Page() {
 
 
   /* -------------------------------------------------------
+     LIGHTBOX INCREMENTAL LOAD
+
+     The wall already loads additional ordered batches through
+     fetchImages(nextPageToken). Let lightbox navigation reuse
+     that same pagination path when the active slide gets close
+     to the end of the currently loaded array.
+  ------------------------------------------------------- */
+
+  const fetchMoreForLightbox =
+    async () => {
+      if (
+        lightboxFetchInFlightRef.current ||
+        !hasMore ||
+        !nextPageToken
+      ) {
+        return
+      }
+
+      lightboxFetchInFlightRef.current =
+        true
+
+      try {
+        await fetchImages(
+          nextPageToken
+        )
+      } finally {
+        lightboxFetchInFlightRef.current =
+          false
+      }
+    }
+
+
+  /* -------------------------------------------------------
      LIGHTBOX CLICK
 
      The visual wall can locally nudge adjacent files, so we
@@ -2049,6 +2085,20 @@ export default function Page() {
 
   const handleLightboxView =
     ({ index: nextIndex }) => {
+      const LIGHTBOX_FETCH_THRESHOLD =
+        5
+
+      if (
+        hasMore &&
+        nextPageToken &&
+        nextIndex >=
+          images.length -
+            1 -
+            LIGHTBOX_FETCH_THRESHOLD
+      ) {
+        fetchMoreForLightbox()
+      }
+
       if (
         !lightboxHistoryActiveRef.current
       ) {
