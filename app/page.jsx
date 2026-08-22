@@ -2085,6 +2085,10 @@ export default function Page() {
 
   const handleLightboxView =
     ({ index: nextIndex }) => {
+      setIndex(
+        nextIndex
+      )
+
       const LIGHTBOX_FETCH_THRESHOLD =
         12
 
