@@ -968,157 +968,6 @@ function chooseRemainderBand(
 }
 
 
-const WALL_WEBM_LOOKAHEAD =
-  8
-
-
-/*
-  Presentation-only WebM balancing for /ordr.
-
-  IMPORTANT:
-    - works only on buildWall's private working copy
-    - never changes Images or slides
-    - never removes or defers an item
-    - output length is always identical
-    - only swaps a WebM with the nearest later still
-      within WALL_WEBM_LOOKAHEAD positions
-
-  Prefer:
-    - no more than one WebM in a band
-    - if the previous band had a WebM, try to make
-      the current band WebM-free
-*/
-function balanceWebmsForBand(
-  workingImages,
-  startIndex,
-  bandCount,
-  previousBandHadWebm
-) {
-  const bandEnd =
-    Math.min(
-      workingImages.length,
-      startIndex +
-        bandCount
-    )
-
-  const targetWebmCount =
-    previousBandHadWebm
-      ? 0
-      : 1
-
-
-  const getBandWebmIndices =
-    () => {
-      const indices = []
-
-      for (
-        let i =
-          startIndex;
-        i <
-          bandEnd;
-        i++
-      ) {
-        if (
-          isWebm(
-            workingImages[i]
-          )
-        ) {
-          indices.push(
-            i
-          )
-        }
-      }
-
-      return indices
-    }
-
-
-  let webmIndices =
-    getBandWebmIndices()
-
-
-  while (
-    webmIndices.length >
-    targetWebmCount
-  ) {
-    /*
-      Keep the earliest WebM in the band when one
-      WebM is permitted. Move later WebMs first.
-    */
-    const webmIndex =
-      webmIndices[
-        webmIndices.length - 1
-      ]
-
-    const searchEnd =
-      Math.min(
-        workingImages.length,
-        bandEnd +
-          WALL_WEBM_LOOKAHEAD
-      )
-
-    let replacementIndex =
-      -1
-
-
-    for (
-      let i =
-        bandEnd;
-      i <
-        searchEnd;
-      i++
-    ) {
-      if (
-        !isWebm(
-          workingImages[i]
-        )
-      ) {
-        replacementIndex =
-          i
-
-        break
-      }
-    }
-
-
-    if (
-      replacementIndex ===
-      -1
-    ) {
-      break
-    }
-
-
-    ;[
-      workingImages[
-        webmIndex
-      ],
-      workingImages[
-        replacementIndex
-      ]
-    ] = [
-      workingImages[
-        replacementIndex
-      ],
-      workingImages[
-        webmIndex
-      ]
-    ]
-
-
-    webmIndices =
-      getBandWebmIndices()
-  }
-
-
-  return (
-    getBandWebmIndices()
-      .length >
-    0
-  )
-}
-
-
 function buildWall(
   preparedImages,
   containerWidth,
@@ -1144,18 +993,8 @@ function buildWall(
 
   const bands = []
 
-  /*
-    Private presentation copy only.
-    Canonical preparedImages remains untouched.
-  */
-  const workingImages =
-    [...preparedImages]
-
   let imageCursor = 0
   let bandIndex = 0
-
-  let previousBandHadWebm =
-    false
 
 
   while (
@@ -1163,7 +1002,7 @@ function buildWall(
     preparedImages.length
   ) {
     const remainingImages =
-      workingImages.slice(
+      preparedImages.slice(
         imageCursor
       )
 
@@ -1232,19 +1071,10 @@ function buildWall(
         requiredImages &&
       !wouldLeaveLoneTail
     ) {
-      const bandHadWebm =
-        balanceWebmsForBand(
-          workingImages,
-          imageCursor,
-          requiredImages,
-          previousBandHadWebm
-        )
-
       const bandImages =
-        workingImages.slice(
-          imageCursor,
-          imageCursor +
-            requiredImages
+        remainingImages.slice(
+          0,
+          requiredImages
         )
 
 
@@ -1262,9 +1092,6 @@ function buildWall(
         )
       }
 
-      previousBandHadWebm =
-        bandHadWebm
-
 
       imageCursor +=
         requiredImages
@@ -1274,14 +1101,9 @@ function buildWall(
     }
 
 
-    const currentRemainingImages =
-      workingImages.slice(
-        imageCursor
-      )
-
     const remainder =
       chooseRemainderBand(
-        currentRemainingImages,
+        remainingImages,
         patterns,
         containerWidth
       )
@@ -1295,19 +1117,6 @@ function buildWall(
     bands.push(
       remainder.band
     )
-
-    previousBandHadWebm =
-      remainder.band.columns
-        .some(
-          column =>
-            column.items
-              .some(
-                image =>
-                  isWebm(
-                    image
-                  )
-              )
-        )
 
 
     imageCursor +=
@@ -1784,6 +1593,154 @@ function MobileWall({
    DESKTOP / TABLET WALL
 --------------------------------------------------------- */
 
+function VirtualPackedBand({
+  band,
+  bandIndex,
+  bandCount,
+  onImageClick
+}) {
+  const bandRef =
+    useRef(null)
+
+  const [
+    isNearby,
+    setIsNearby
+  ] = useState(false)
+
+
+  useEffect(
+    () => {
+      const element =
+        bandRef.current
+
+      if (!element) {
+        return
+      }
+
+      const margin =
+        Math.max(
+          1200,
+          Math.round(
+            window.innerHeight *
+            2.5
+          )
+        )
+
+      const observer =
+        new IntersectionObserver(
+          entries => {
+            setIsNearby(
+              entries[0]
+                .isIntersecting
+            )
+          },
+          {
+            root: null,
+            rootMargin:
+              `${margin}px 0px`,
+            threshold: 0
+          }
+        )
+
+      observer.observe(
+        element
+      )
+
+      return () => {
+        observer.disconnect()
+      }
+    },
+    []
+  )
+
+
+  return (
+    <div
+      ref={
+        bandRef
+      }
+      className="w-full flex"
+      style={{
+        gap:
+          `${GAP}px`,
+
+        height:
+          `${band.height}px`,
+
+        marginBottom:
+          bandIndex <
+          bandCount - 1
+            ? `${GAP}px`
+            : 0
+      }}
+    >
+
+      {isNearby &&
+        band.columns.map(
+          (
+            column,
+            columnIndex
+          ) => (
+
+            <div
+              key={
+                `column-${bandIndex}-${columnIndex}`
+              }
+              className="flex flex-col shrink-0"
+              style={{
+                width:
+                  `${column.width}px`,
+
+                height:
+                  `${band.height}px`,
+
+                gap:
+                  `${GAP}px`
+              }}
+            >
+
+              {column.items.map(
+                photo => (
+
+                  <div
+                    key={
+                      photo.id ||
+                      photo.src
+                    }
+                    className="relative w-full shrink-0 overflow-hidden cursor-zoom-in"
+                    style={{
+                      aspectRatio:
+                        `${photo._meta.ratio}`
+                    }}
+                    onClick={() =>
+                      onImageClick(
+                        photo.id ||
+                        photo.src
+                      )
+                    }
+                  >
+
+                    <WallMedia
+                      photo={
+                        photo
+                      }
+                    />
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          )
+        )}
+
+    </div>
+  )
+}
+
+
 function PackedWall({
   images,
   containerWidth,
@@ -1816,85 +1773,23 @@ function PackedWall({
           bandIndex
         ) => (
 
-          <div
+          <VirtualPackedBand
             key={
               `band-${bandIndex}`
             }
-            className="w-full flex"
-            style={{
-              gap:
-                `${GAP}px`,
-
-              height:
-                `${band.height}px`,
-
-              marginBottom:
-                bandIndex <
-                bands.length - 1
-                  ? `${GAP}px`
-                  : 0
-            }}
-          >
-
-            {band.columns.map(
-              (
-                column,
-                columnIndex
-              ) => (
-
-                <div
-                  key={
-                    `column-${bandIndex}-${columnIndex}`
-                  }
-                  className="flex flex-col shrink-0"
-                  style={{
-                    width:
-                      `${column.width}px`,
-
-                    height:
-                      `${band.height}px`,
-
-                    gap:
-                      `${GAP}px`
-                  }}
-                >
-
-                  {column.items.map(
-                    photo => (
-
-                      <div
-                        key={
-                          photo.id || photo.src
-                        }
-                        className="relative w-full shrink-0 overflow-hidden cursor-zoom-in"
-                        style={{
-                          aspectRatio:
-                            `${photo._meta.ratio}`
-                        }}
-                        onClick={() =>
-                          onImageClick(
-                            photo.id || photo.src
-                          )
-                        }
-                      >
-
-                        <WallMedia
-                          photo={
-                            photo
-                          }
-                        />
-
-                      </div>
-
-                    )
-                  )}
-
-                </div>
-
-              )
-            )}
-
-          </div>
+            band={
+              band
+            }
+            bandIndex={
+              bandIndex
+            }
+            bandCount={
+              bands.length
+            }
+            onImageClick={
+              onImageClick
+            }
+          />
 
         )
       )}
@@ -2593,68 +2488,6 @@ useEffect(() => {
       )
     }
   }, [index])
-
-
-  /* ---------------------------------------------------
-          PAUSE WALL WEBMS WHILE LIGHTBOX IS OPEN
-
-     Keep the wall and its lazy-loading structure intact,
-     but release background video decoder/compositor work
-     while YARL is active.
-
-     YARL videos are explicitly excluded.
-     When the lightbox is genuinely closed, resume whatever
-     wall WebMs are currently mounted (LazyWebm ensures only
-     nearby videos exist in the DOM).
-     --------------------------------------------------- */
-
-  useEffect(
-    () => {
-      const wallVideos =
-        Array.from(
-          document.querySelectorAll(
-            'video:not(.yarl__root video)'
-          )
-        ).filter(
-          video =>
-            !video.closest(
-              '.yarl__root'
-            )
-        )
-
-      if (
-        index >= 0
-      ) {
-        wallVideos.forEach(
-          video => {
-            try {
-              video.pause()
-            } catch {}
-          }
-        )
-
-        return
-      }
-
-      wallVideos.forEach(
-        video => {
-          try {
-            const playPromise =
-              video.play()
-
-            if (
-              playPromise?.catch
-            ) {
-              playPromise.catch(
-                () => {}
-              )
-            }
-          } catch {}
-        }
-      )
-    },
-    [index]
-  )
 
 
   useEffect(() => {
