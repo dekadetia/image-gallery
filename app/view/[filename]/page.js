@@ -638,7 +638,7 @@ export default function ViewPage() {
 
   return (
     <RootLayout>
-      <div className="fixed inset-0 bg-black">
+      <div className="fixed inset-0">
 
         <style jsx global>{`
 
