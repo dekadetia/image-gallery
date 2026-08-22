@@ -1884,46 +1884,6 @@ export default function Page() {
      resolve the clicked image back to its canonical array index.
   ------------------------------------------------------- */
 
-  const setNativeUrl =
-    url => {
-      History.prototype.replaceState.call(
-        window.history,
-        null,
-        '',
-        url
-      )
-    }
-
-
-  const handleLightboxEntered =
-    () => {
-      const image =
-        images[index]
-
-      if (
-        image?.name
-      ) {
-        History.prototype.pushState.call(
-          window.history,
-          {
-            tndrLightbox:
-              true
-          },
-          '',
-          `/view/${encodeURIComponent(
-            image.name
-          )}`
-        )
-      }
-    }
-
-
-  const handleLightboxExited =
-    () => {
-      setNativeUrl('/')
-    }
-
-
   const handleImageClick =
     imageId => {
       const idx =
@@ -2216,13 +2176,6 @@ export default function Page() {
           close={() =>
             setIndex(-1)
           }
-          on={{
-            entered:
-              handleLightboxEntered,
-
-            exited:
-              handleLightboxExited
-          }}
           plugins={[
             Video
           ]}
