@@ -256,17 +256,6 @@ function prepareImages(images) {
 }
 
 
-function getLayoutRatio(
-  image
-) {
-  return (
-    image?._layoutRatio ||
-    image?._meta?.ratio ||
-    16 / 9
-  )
-}
-
-
 /* ---------------------------------------------------------
    DESKTOP / TABLET PATTERNS
 --------------------------------------------------------- */
@@ -397,9 +386,7 @@ function buildBand(
         items.reduce(
           (sum, image) =>
             sum +
-            1 / getLayoutRatio(
-              image
-            ),
+            1 / image._meta.ratio,
           0
         )
 
@@ -981,304 +968,10 @@ function chooseRemainderBand(
 }
 
 
-/*
-  WEBM HOTSPOT BAND MODE
-
-  Canonical order remains completely untouched.
-
-  When 3+ WebMs occur within the next 10 canonical records,
-  temporarily stretch that region vertically:
-
-    - if the next record is a WebM, give it a [1] full-width band
-    - otherwise consume only the stills before the next WebM,
-      capped at 3 records
-
-  This prevents dense WebM clusters from sharing the same
-  viewport neighborhood without reordering, deferring, or
-  hiding any item.
-*/
-
-const WEBM_HOTSPOT_WINDOW =
-  10
-
-const WEBM_HOTSPOT_THRESHOLD =
-  3
-
-const WEBM_RESEQUENCE_LIMIT =
-  10
-
-const HOTSPOT_CROP_RELAXATION =
-  0.08
-
-
-function countWebms(
-  images
-) {
-  return (images || [])
-    .reduce(
-      (
-        count,
-        image
-      ) =>
-        count +
-        (
-          isWebm(image)
-            ? 1
-            : 0
-        ),
-      0
-    )
-}
-
-
-function isWebmHotspot(
-  remainingImages
-) {
-  return (
-    countWebms(
-      remainingImages.slice(
-        0,
-        WEBM_HOTSPOT_WINDOW
-      )
-    ) >=
-    WEBM_HOTSPOT_THRESHOLD
-  )
-}
-
-
-/*
-  Give hotspot images a small layout-only ratio relaxation.
-  The source media itself is untouched; object-cover absorbs
-  the resulting modest crop.
-*/
-function relaxHotspotRatios(
-  images
-) {
-  return images.map(
-    image => {
-      const ratio =
-        image?._meta?.ratio ||
-        16 / 9
-
-      const target =
-        ratio >= 1
-          ? 1.78
-          : 0.8
-
-      return {
-        ...image,
-
-        _layoutRatio:
-          ratio +
-          (
-            target -
-            ratio
-          ) *
-          HOTSPOT_CROP_RELAXATION
-      }
-    }
-  )
-}
-
-
-/*
-  Presentation-only bounded resequencing.
-
-  If the upcoming band would contain too many WebMs, move
-  later offending WebMs forward by swapping with the nearest
-  still after the band. Never move farther than 10 records.
-*/
-function spreadUpcomingWebms(
-  workingImages,
-  startIndex,
-  bandCount,
-  pixelsSinceLastWebm,
-  viewportHeight
-) {
-  const bandEnd =
-    Math.min(
-      workingImages.length,
-      startIndex +
-        bandCount
-    )
-
-  const minimumDistance =
-    Math.max(
-      1,
-      viewportHeight
-    )
-
-  const webmAllowed =
-    pixelsSinceLastWebm >=
-    minimumDistance
-
-
-  const getWebmIndices =
-    () => {
-      const indices = []
-
-      for (
-        let i =
-          startIndex;
-        i <
-          bandEnd;
-        i++
-      ) {
-        if (
-          isWebm(
-            workingImages[i]
-          )
-        ) {
-          indices.push(
-            i
-          )
-        }
-      }
-
-      return indices
-    }
-
-
-  let webmIndices =
-    getWebmIndices()
-
-
-  /*
-    If we have not yet accumulated one viewport of actual
-    intervening content, this band must contain NO WebMs.
-
-    Once enough vertical distance exists, allow exactly one.
-  */
-  const allowedWebms =
-    webmAllowed
-      ? 1
-      : 0
-
-
-  while (
-    webmIndices.length >
-    allowedWebms
-  ) {
-    const webmIndex =
-      webmIndices[
-        webmIndices.length - 1
-      ]
-
-    /*
-      Give the wall enough room to push a dense cluster apart.
-      This is still presentation-only and bounded.
-    */
-    const searchEnd =
-      Math.min(
-        workingImages.length,
-        webmIndex +
-          31
-      )
-
-    let stillIndex =
-      -1
-
-
-    for (
-      let i =
-        bandEnd;
-      i <
-        searchEnd;
-      i++
-    ) {
-      if (
-        !isWebm(
-          workingImages[i]
-        )
-      ) {
-        stillIndex =
-          i
-
-        break
-      }
-    }
-
-
-    if (
-      stillIndex ===
-      -1
-    ) {
-      break
-    }
-
-
-    ;[
-      workingImages[webmIndex],
-      workingImages[stillIndex]
-    ] = [
-      workingImages[stillIndex],
-      workingImages[webmIndex]
-    ]
-
-
-    webmIndices =
-      getWebmIndices()
-  }
-
-
-  return (
-    getWebmIndices()
-      .length >
-    0
-  )
-}
-
-
-/*
-  Lower-density composition inside hotspot regions.
-*/
-function chooseHotspotPattern(
-  remainingImages,
-  previousBandHadWebm
-) {
-  if (
-    !isWebmHotspot(
-      remainingImages
-    )
-  ) {
-    return null
-  }
-
-
-  if (
-    isWebm(
-      remainingImages[0]
-    ) &&
-    !previousBandHadWebm
-  ) {
-    return [1]
-  }
-
-
-  /*
-    Prefer large occupied bands made from only 2–3 records.
-  */
-  if (
-    remainingImages.length >= 3
-  ) {
-    return [1, 2]
-  }
-
-  if (
-    remainingImages.length >= 2
-  ) {
-    return [1, 1]
-  }
-
-  return [1]
-}
-
-
 function buildWall(
   preparedImages,
   containerWidth,
-  desktopStartIndex = 0,
-  viewportHeight = 900
+  desktopStartIndex = 0
 ) {
   if (
     !containerWidth ||
@@ -1300,25 +993,16 @@ function buildWall(
 
   const bands = []
 
-  const workingImages =
-    [...preparedImages]
-
   let imageCursor = 0
   let bandIndex = 0
-
-  let previousBandHadWebm =
-    false
-
-  let pixelsSinceLastWebm =
-    Number.POSITIVE_INFINITY
 
 
   while (
     imageCursor <
     preparedImages.length
   ) {
-    let remainingImages =
-      workingImages.slice(
+    const remainingImages =
+      preparedImages.slice(
         imageCursor
       )
 
@@ -1369,47 +1053,10 @@ function buildWall(
     }
 
 
-    const hotspotActive =
-      isWebmHotspot(
-        remainingImages
-      )
-
-    const hotspotPattern =
-      chooseHotspotPattern(
-        remainingImages,
-        previousBandHadWebm
-      )
-
-    if (
-      hotspotPattern
-    ) {
-      pattern =
-        hotspotPattern
-    }
-
-
-    let requiredImages =
+    const requiredImages =
       patternImageCount(
         pattern
       )
-
-
-    if (
-      hotspotActive
-    ) {
-      spreadUpcomingWebms(
-        workingImages,
-        imageCursor,
-        requiredImages,
-        pixelsSinceLastWebm,
-        viewportHeight
-      )
-
-      remainingImages =
-        workingImages.slice(
-          imageCursor
-        )
-    }
 
 
     const wouldLeaveLoneTail =
@@ -1424,19 +1071,11 @@ function buildWall(
         requiredImages &&
       !wouldLeaveLoneTail
     ) {
-      const rawBandImages =
-        workingImages.slice(
-          imageCursor,
-          imageCursor +
-            requiredImages
-        )
-
       const bandImages =
-        hotspotActive
-          ? relaxHotspotRatios(
-              rawBandImages
-            )
-          : rawBandImages
+        remainingImages.slice(
+          0,
+          requiredImages
+        )
 
 
       const band =
@@ -1453,28 +1092,6 @@ function buildWall(
         )
       }
 
-      previousBandHadWebm =
-        rawBandImages.some(
-          image =>
-            isWebm(
-              image
-            )
-        )
-
-      if (
-        previousBandHadWebm
-      ) {
-        pixelsSinceLastWebm =
-          0
-      } else {
-        pixelsSinceLastWebm +=
-          (
-            band?.height ||
-            0
-          ) +
-          GAP
-      }
-
 
       imageCursor +=
         requiredImages
@@ -1484,14 +1101,9 @@ function buildWall(
     }
 
 
-    const currentRemainingImages =
-      workingImages.slice(
-        imageCursor
-      )
-
     const remainder =
       chooseRemainderBand(
-        currentRemainingImages,
+        remainingImages,
         patterns,
         containerWidth
       )
@@ -1505,30 +1117,6 @@ function buildWall(
     bands.push(
       remainder.band
     )
-
-    const remainderHadWebm =
-      remainder.band.columns
-        .some(
-          column =>
-            column.items
-              .some(
-                image =>
-                  isWebm(
-                    image
-                  )
-              )
-        )
-
-    if (
-      remainderHadWebm
-    ) {
-      pixelsSinceLastWebm =
-        0
-    } else {
-      pixelsSinceLastWebm +=
-        remainder.band.height +
-        GAP
-    }
 
 
     imageCursor +=
@@ -2122,9 +1710,7 @@ function VirtualPackedBand({
                     className="relative w-full shrink-0 overflow-hidden cursor-zoom-in"
                     style={{
                       aspectRatio:
-                        `${getLayoutRatio(
-                          photo
-                        )}`
+                        `${photo._meta.ratio}`
                     }}
                     onClick={() =>
                       onImageClick(
@@ -2162,57 +1748,18 @@ function PackedWall({
   desktopStartIndex
 }) {
 
-  const [
-    viewportHeight,
-    setViewportHeight
-  ] = useState(
-    () =>
-      typeof window !==
-        'undefined'
-        ? window.innerHeight
-        : 900
-  )
-
-
-  useEffect(
-    () => {
-      const updateViewportHeight =
-        () => {
-          setViewportHeight(
-            window.innerHeight
-          )
-        }
-
-      window.addEventListener(
-        'resize',
-        updateViewportHeight
-      )
-
-      return () => {
-        window.removeEventListener(
-          'resize',
-          updateViewportHeight
-        )
-      }
-    },
-    []
-  )
-
-
   const bands =
     useMemo(
       () =>
         buildWall(
           images,
           containerWidth,
-          desktopStartIndex,
-          viewportHeight
+          desktopStartIndex
         ),
       [
         images,
         containerWidth,
-        desktopStartIndex,
-        viewportHeight
+        desktopStartIndex
       ]
     )
 
