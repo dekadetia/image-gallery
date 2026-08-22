@@ -1684,6 +1684,9 @@ export default function Page() {
   const wasCalled =
     useRef(false)
 
+  const lightboxOriginUrlRef =
+    useRef(null)
+
 
   /* -------------------------------------------------------
      LIGHTBOX SLIDES
@@ -1884,6 +1887,34 @@ export default function Page() {
      resolve the clicked image back to its canonical array index.
   ------------------------------------------------------- */
 
+  const setNativeUrl =
+    url => {
+      History.prototype.replaceState.call(
+        window.history,
+        null,
+        '',
+        url
+      )
+    }
+
+
+  const handleCloseLightbox =
+    () => {
+      setIndex(-1)
+
+      if (
+        lightboxOriginUrlRef.current
+      ) {
+        setNativeUrl(
+          lightboxOriginUrlRef.current
+        )
+
+        lightboxOriginUrlRef.current =
+          null
+      }
+    }
+
+
   const handleImageClick =
     imageId => {
       const idx =
@@ -1896,7 +1927,29 @@ export default function Page() {
       if (
         idx !== -1
       ) {
+        const image =
+          images[idx]
+
+        if (
+          !lightboxOriginUrlRef.current
+        ) {
+          lightboxOriginUrlRef.current =
+            window.location.pathname +
+            window.location.search +
+            window.location.hash
+        }
+
         setIndex(idx)
+
+        if (
+          image?.name
+        ) {
+          setNativeUrl(
+            `/view/${encodeURIComponent(
+              image.name
+            )}`
+          )
+        }
       }
     }
 
@@ -2036,9 +2089,7 @@ export default function Page() {
           }
 
 
-          setIndex(
-            -1
-          )
+          handleCloseLightbox()
         }
 
 
@@ -2173,8 +2224,8 @@ export default function Page() {
           open={
             index >= 0
           }
-          close={() =>
-            setIndex(-1)
+          close={
+            handleCloseLightbox
           }
           plugins={[
             Video
