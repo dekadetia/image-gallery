@@ -1698,6 +1698,9 @@ export default function Page() {
   const pendingViewUrlTimerRef =
     useRef(null)
 
+  const historyKeyboardFallbackRef =
+    useRef(false)
+
 
   /* -------------------------------------------------------
      LIGHTBOX SLIDES
@@ -1938,6 +1941,9 @@ export default function Page() {
     () => {
       cancelPendingViewUrl()
 
+      historyKeyboardFallbackRef.current =
+        false
+
       setLightboxHistoryVisible(
         false
       )
@@ -1966,6 +1972,9 @@ export default function Page() {
       ) {
         const image =
           images[idx]
+
+        historyKeyboardFallbackRef.current =
+          false
 
         if (
           !lightboxOriginUrlRef.current
@@ -2170,31 +2179,11 @@ export default function Page() {
         event => {
           cancelPendingViewUrl()
 
+          historyKeyboardFallbackRef.current =
+            true
+
           showHistorySlide(
             event.detail
-          )
-
-          requestAnimationFrame(
-            () => {
-              const lightbox =
-                document.querySelector(
-                  '.yarl__root'
-                )
-
-              if (
-                lightbox
-              ) {
-                lightbox.setAttribute(
-                  'tabindex',
-                  '-1'
-                )
-
-                lightbox.focus({
-                  preventScroll:
-                    true
-                })
-              }
-            }
           )
         }
 
@@ -2225,6 +2214,99 @@ export default function Page() {
     [
       images,
       index
+    ]
+  )
+
+
+  /* -------------------------------------------------------
+     HISTORY-FORWARD KEYBOARD FALLBACK
+
+     After browser Forward, YARL's mounted pointer/touch
+     controls survive but its keyboard sensor does not
+     reliably reattach. In that state only, handle the two
+     navigation keys here against the same controlled index.
+
+     Normal lightbox opens continue using YARL's own
+     keyboard handling.
+  ------------------------------------------------------- */
+
+  useEffect(
+    () => {
+      const handleHistoryArrowKey =
+        event => {
+          if (
+            !historyKeyboardFallbackRef.current ||
+            !lightboxHistoryVisible ||
+            index < 0 ||
+            !slides.length
+          ) {
+            return
+          }
+
+          if (
+            event.key !==
+              'ArrowLeft' &&
+            event.key !==
+              'ArrowRight'
+          ) {
+            return
+          }
+
+          const target =
+            event.target
+
+          if (
+            target instanceof Element &&
+            target.closest(
+              'input, textarea, select, [contenteditable="true"]'
+            )
+          ) {
+            return
+          }
+
+          event.preventDefault()
+          event.stopPropagation()
+          event.stopImmediatePropagation()
+
+          const direction =
+            event.key ===
+              'ArrowRight'
+              ? 1
+              : -1
+
+          const nextIndex =
+            (
+              index +
+              direction +
+              slides.length
+            ) %
+            slides.length
+
+          setIndex(
+            nextIndex
+          )
+        }
+
+
+      window.addEventListener(
+        'keydown',
+        handleHistoryArrowKey,
+        true
+      )
+
+
+      return () => {
+        window.removeEventListener(
+          'keydown',
+          handleHistoryArrowKey,
+          true
+        )
+      }
+    },
+    [
+      index,
+      slides.length,
+      lightboxHistoryVisible
     ]
   )
 
