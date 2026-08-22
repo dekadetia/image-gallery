@@ -1895,9 +1895,31 @@ export default function Page() {
     }
 
 
-  const handleCloseLightbox =
+  const handleLightboxEntered =
     () => {
-      setIndex(-1)
+      const image =
+        images[index]
+
+      if (
+        image?.name
+      ) {
+        History.prototype.pushState.call(
+          window.history,
+          {
+            tndrLightbox:
+              true
+          },
+          '',
+          `/view/${encodeURIComponent(
+            image.name
+          )}`
+        )
+      }
+    }
+
+
+  const handleLightboxExited =
+    () => {
       setNativeUrl('/')
     }
 
@@ -1914,26 +1936,7 @@ export default function Page() {
       if (
         idx !== -1
       ) {
-        const image =
-          images[idx]
-
         setIndex(idx)
-
-        if (
-          image?.name
-        ) {
-          History.prototype.pushState.call(
-            window.history,
-            {
-              tndrLightbox:
-                true
-            },
-            '',
-            `/view/${encodeURIComponent(
-              image.name
-            )}`
-          )
-        }
       }
     }
 
@@ -2073,7 +2076,9 @@ export default function Page() {
           }
 
 
-          handleCloseLightbox()
+          setIndex(
+            -1
+          )
         }
 
 
@@ -2208,9 +2213,16 @@ export default function Page() {
           open={
             index >= 0
           }
-          close={
-            handleCloseLightbox
+          close={() =>
+            setIndex(-1)
           }
+          on={{
+            entered:
+              handleLightboxEntered,
+
+            exited:
+              handleLightboxExited
+          }}
           plugins={[
             Video
           ]}
