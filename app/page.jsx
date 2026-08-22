@@ -1673,10 +1673,8 @@ function TetrisWall({
 /* ---------------------------------------------------------
    VIEW PERMALINK
 
-   IMPORTANT:
-   Next.js App Router patches window.history.replaceState().
-   Use the native History prototype method so changing the
-   visible URL does NOT trigger a Next route-state update.
+   URL synchronization is intentionally delayed so it never
+   participates in YARL's open / close / slide transition work.
 --------------------------------------------------------- */
 
 function getViewPath(image) {
@@ -1719,8 +1717,11 @@ export default function Page() {
   const lightboxOriginRef =
     useRef(null)
 
-  const permalinkFrameRef =
+  const urlSyncTimerRef =
     useRef(null)
+
+  const lightboxClosingRef =
+    useRef(false)
 
 
   /* -------------------------------------------------------
@@ -1922,6 +1923,29 @@ export default function Page() {
      resolve the clicked image back to its canonical array index.
   ------------------------------------------------------- */
 
+  const scheduleUrlSync =
+    url => {
+      if (urlSyncTimerRef.current) {
+        clearTimeout(
+          urlSyncTimerRef.current
+        )
+      }
+
+      urlSyncTimerRef.current =
+        setTimeout(
+          () => {
+            nativeReplaceUrl(
+              url
+            )
+
+            urlSyncTimerRef.current =
+              null
+          },
+          350
+        )
+    }
+
+
   const handleImageClick =
     imageId => {
       const idx =
@@ -1942,26 +1966,20 @@ export default function Page() {
             `${window.location.pathname}${window.location.search}${window.location.hash}`
         }
 
-        setIndex(
-          idx
+        lightboxClosingRef.current =
+          false
+
+        /*
+          This is the original lightbox-open operation.
+          Nothing else runs synchronously before or after it.
+        */
+        setIndex(idx)
+
+        scheduleUrlSync(
+          getViewPath(
+            image
+          )
         )
-
-        if (permalinkFrameRef.current) {
-          cancelAnimationFrame(
-            permalinkFrameRef.current
-          )
-        }
-
-        permalinkFrameRef.current =
-          requestAnimationFrame(
-            () => {
-              nativeReplaceUrl(
-                getViewPath(
-                  image
-                )
-              )
-            }
-          )
       }
     }
 
@@ -1972,18 +1990,27 @@ export default function Page() {
         lightboxOriginRef.current ||
         '/'
 
-      setIndex(
-        -1
-      )
+      lightboxClosingRef.current =
+        true
 
-      if (permalinkFrameRef.current) {
-        cancelAnimationFrame(
-          permalinkFrameRef.current
+      if (urlSyncTimerRef.current) {
+        clearTimeout(
+          urlSyncTimerRef.current
         )
+
+        urlSyncTimerRef.current =
+          null
       }
 
-      permalinkFrameRef.current =
-        requestAnimationFrame(
+      /*
+        This is the original close operation.
+        URL restoration happens only after YARL has had time
+        to finish its teardown animation.
+      */
+      setIndex(-1)
+
+      urlSyncTimerRef.current =
+        setTimeout(
           () => {
             nativeReplaceUrl(
               origin
@@ -1991,7 +2018,14 @@ export default function Page() {
 
             lightboxOriginRef.current =
               null
-          }
+
+            lightboxClosingRef.current =
+              false
+
+            urlSyncTimerRef.current =
+              null
+          },
+          350
         )
     }
 
@@ -2015,6 +2049,22 @@ export default function Page() {
 
       __loader(true)
       fetchImages(null)
+    },
+    []
+  )
+
+
+  useEffect(
+    () => {
+      return () => {
+        if (
+          urlSyncTimerRef.current
+        ) {
+          clearTimeout(
+            urlSyncTimerRef.current
+          )
+        }
+      }
     },
     []
   )
@@ -2274,13 +2324,19 @@ export default function Page() {
           ]}
           on={{
             view: ({ index: viewedIndex }) => {
+              if (
+                lightboxClosingRef.current
+              ) {
+                return
+              }
+
               const viewedImage =
                 images[
                   viewedIndex
                 ]
 
               if (viewedImage) {
-                nativeReplaceUrl(
+                scheduleUrlSync(
                   getViewPath(
                     viewedImage
                   )
