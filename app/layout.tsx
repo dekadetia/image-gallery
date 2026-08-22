@@ -21,8 +21,10 @@ const GA_TRACKING_ID = "AIzaSyDfjB5O8yxpzGv1reOb0wz5rZdWZbXm37I";
 
 export default function RootLayout({
   children,
+  lightbox,
 }: {
   children: React.ReactNode;
+  lightbox: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -49,7 +51,10 @@ export default function RootLayout({
 
       <body className={`${graphik.className} ${tiempos.variable}`}>
         {/* Client-only logic lives inside this component */}
-        <ClientShell>{children}</ClientShell>
+        <ClientShell>
+          {children}
+          {lightbox}
+        </ClientShell>
 
         {/* Google Analytics */}
         <Script
