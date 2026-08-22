@@ -114,81 +114,133 @@ const MIN_WALL_IMAGES_BETWEEN_WEBMS =
 function spaceWebmsForWall(
   images
 ) {
-  const spaced = []
-  const pendingWebms = []
+  const spaced =
+    [...(images || [])]
 
-  let imagesSinceWebm =
-    MIN_WALL_IMAGES_BETWEEN_WEBMS
+  let lastWebmIndex =
+    -(
+      MIN_WALL_IMAGES_BETWEEN_WEBMS +
+      1
+    )
 
 
-  const flushOnePending =
-    () => {
-      if (
-        !pendingWebms.length ||
-        imagesSinceWebm <
-          MIN_WALL_IMAGES_BETWEEN_WEBMS
-      ) {
-        return
-      }
-
-      spaced.push(
-        pendingWebms.shift()
+  for (
+    let i = 0;
+    i < spaced.length;
+    i++
+  ) {
+    if (
+      !isWebm(
+        spaced[i]
       )
-
-      imagesSinceWebm =
-        0
+    ) {
+      continue
     }
 
 
-  ;(images || []).forEach(
-    image => {
-      if (
-        isWebm(image)
+    const gap =
+      i -
+      lastWebmIndex -
+      1
+
+
+    if (
+      gap >=
+      MIN_WALL_IMAGES_BETWEEN_WEBMS
+    ) {
+      lastWebmIndex =
+        i
+
+      continue
+    }
+
+
+    /*
+      This WebM is too close to the previous one.
+
+      Bubble it forward by swapping with later stills until
+      the requested spacing is reached, or until we run out
+      of later stills in the currently loaded sequence.
+
+      IMPORTANT:
+        - no item is removed
+        - no item is deferred
+        - output length always equals Images.length
+        - InfiniteScroll therefore sees honest wall geometry
+    */
+
+    let webmIndex =
+      i
+
+    while (
+      webmIndex <
+        spaced.length - 1 &&
+      webmIndex -
+        lastWebmIndex -
+        1 <
+        MIN_WALL_IMAGES_BETWEEN_WEBMS
+    ) {
+      let nextStillIndex =
+        -1
+
+      for (
+        let j =
+          webmIndex + 1;
+        j < spaced.length;
+        j++
       ) {
         if (
-          imagesSinceWebm >=
-            MIN_WALL_IMAGES_BETWEEN_WEBMS &&
-          !pendingWebms.length
+          !isWebm(
+            spaced[j]
+          )
         ) {
-          spaced.push(
-            image
-          )
+          nextStillIndex =
+            j
 
-          imagesSinceWebm =
-            0
-        } else {
-          pendingWebms.push(
-            image
-          )
+          break
         }
-
-        return
       }
 
 
-      spaced.push(
-        image
+      if (
+        nextStillIndex ===
+        -1
+      ) {
+        break
+      }
+
+
+      const still =
+        spaced[
+          nextStillIndex
+        ]
+
+      spaced.splice(
+        nextStillIndex,
+        1
       )
 
-      imagesSinceWebm +=
+      spaced.splice(
+        webmIndex,
+        0,
+        still
+      )
+
+      webmIndex +=
         1
-
-      flushOnePending()
     }
-  )
 
 
-  /*
-    Do NOT dump deferred WebMs at the current end of Images.
+    lastWebmIndex =
+      webmIndex
 
-    /ordr is paginated, so that end is usually only a temporary
-    batch boundary. Pending WebMs remain presentation-only
-    deferred until later stills arrive and this deterministic
-    pass runs again.
+    /*
+      Continue scanning after the WebM's new location.
+    */
+    i =
+      webmIndex
+  }
 
-    Canonical Images/slides are untouched, and the existing
-    InfiniteScroll pagination remains completely unchanged.
-  */
 
   return spaced
 }
