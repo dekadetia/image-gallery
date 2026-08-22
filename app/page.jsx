@@ -1884,6 +1884,24 @@ export default function Page() {
      resolve the clicked image back to its canonical array index.
   ------------------------------------------------------- */
 
+  const setNativeUrl =
+    url => {
+      History.prototype.replaceState.call(
+        window.history,
+        null,
+        '',
+        url
+      )
+    }
+
+
+  const handleCloseLightbox =
+    () => {
+      setIndex(-1)
+      setNativeUrl('/')
+    }
+
+
   const handleImageClick =
     imageId => {
       const idx =
@@ -1904,23 +1922,16 @@ export default function Page() {
         if (
           image?.name
         ) {
-          requestAnimationFrame(
-            () => {
-              requestAnimationFrame(
-                () => {
-                  window.history.pushState(
-                    {
-                      tndrLightbox:
-                        true
-                    },
-                    '',
-                    `/view/${encodeURIComponent(
-                      image.name
-                    )}`
-                  )
-                }
-              )
-            }
+          History.prototype.pushState.call(
+            window.history,
+            {
+              tndrLightbox:
+                true
+            },
+            '',
+            `/view/${encodeURIComponent(
+              image.name
+            )}`
           )
         }
       }
@@ -2062,9 +2073,7 @@ export default function Page() {
           }
 
 
-          setIndex(
-            -1
-          )
+          handleCloseLightbox()
         }
 
 
@@ -2199,8 +2208,8 @@ export default function Page() {
           open={
             index >= 0
           }
-          close={() =>
-            setIndex(-1)
+          close={
+            handleCloseLightbox
           }
           plugins={[
             Video
