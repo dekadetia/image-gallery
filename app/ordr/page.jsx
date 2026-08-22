@@ -969,222 +969,122 @@ function chooseRemainderBand(
 
 
 /*
-  WEBM-AWARE LOW-DENSITY BAND CHOICE
+  WEBM HOTSPOT BAND MODE
 
-  Canonical order stays untouched.
+  Canonical order remains completely untouched.
 
-  If the next normal band would contain multiple WebMs,
-  use a smaller exact-count pattern so fewer records occupy
-  the same vertical region. This makes the band taller and
-  naturally pushes subsequent WebMs farther down the page.
+  When 3+ WebMs occur within the next 10 canonical records,
+  temporarily stretch that region vertically:
 
-  No items are reordered, removed, deferred, or hidden.
+    - if the next record is a WebM, give it a [1] full-width band
+    - otherwise consume only the stills before the next WebM,
+      capped at 3 records
+
+  This prevents dense WebM clusters from sharing the same
+  viewport neighborhood without reordering, deferring, or
+  hiding any item.
 */
 
-const WEBM_CLUSTER_LOOKAHEAD =
-  8
+const WEBM_HOTSPOT_WINDOW =
+  10
+
+const WEBM_HOTSPOT_THRESHOLD =
+  3
 
 
-function countWebms(
-  images
+function isWebmHotspot(
+  remainingImages
 ) {
-  return (images || [])
-    .reduce(
-      (
-        count,
-        image
-      ) =>
-        count +
-        (
-          isWebm(image)
-            ? 1
-            : 0
-        ),
-      0
+  const windowImages =
+    remainingImages.slice(
+      0,
+      WEBM_HOTSPOT_WINDOW
     )
+
+  let count =
+    0
+
+  for (
+    const image of
+    windowImages
+  ) {
+    if (
+      isWebm(image)
+    ) {
+      count += 1
+    }
+  }
+
+  return (
+    count >=
+    WEBM_HOTSPOT_THRESHOLD
+  )
 }
 
 
-function chooseWebmAwarePattern(
-  remainingImages,
-  normalPattern,
-  patterns,
-  containerWidth
+function chooseHotspotPattern(
+  remainingImages
 ) {
-  const normalCount =
-    patternImageCount(
-      normalPattern
-    )
-
-  const normalSlice =
-    remainingImages.slice(
-      0,
-      normalCount
-    )
-
-  const nearbySlice =
-    remainingImages.slice(
-      0,
-      Math.min(
-        remainingImages.length,
-        normalCount +
-          WEBM_CLUSTER_LOOKAHEAD
-      )
-    )
-
-  const normalWebms =
-    countWebms(
-      normalSlice
-    )
-
-  const nearbyWebms =
-    countWebms(
-      nearbySlice
-    )
-
-
-  /*
-    Ordinary case: keep the scheduled Tetris pattern.
-  */
   if (
-    normalWebms <= 1 &&
-    nearbyWebms <= 2
+    !isWebmHotspot(
+      remainingImages
+    )
   ) {
-    return normalPattern
+    return null
   }
 
 
   /*
-    WebM-heavy area.
-
-    Prefer consuming only 2 or 3 records in this band.
-    These patterns are intentionally lower-density and
-    therefore create taller bands.
-
-    Choose the candidate that:
-      1. contains the fewest WebMs
-      2. then preserves the most normal order by taking
-         the largest candidate count among ties
-      3. then has the best geometry score
+    A WebM at the front gets its own full-width band.
   */
+  if (
+    isWebm(
+      remainingImages[0]
+    )
+  ) {
+    return [1]
+  }
 
-  const candidateCounts =
-    [2, 3]
-      .filter(
-        count =>
-          remainingImages.length >=
-          count
+
+  /*
+    Otherwise consume only stills up to the next WebM,
+    with a maximum density of 3 items.
+  */
+  let stillCount =
+    0
+
+  for (
+    let i = 0;
+    i <
+      remainingImages.length &&
+    i < 3;
+    i++
+  ) {
+    if (
+      isWebm(
+        remainingImages[i]
       )
-
-
-  let best =
-    null
-
-
-  candidateCounts.forEach(
-    count => {
-      const exactPatterns = [
-        ...(
-          SMALL_EXACT_PATTERNS[
-            count
-          ] ||
-          []
-        ),
-
-        ...patterns.filter(
-          pattern =>
-            patternImageCount(
-              pattern
-            ) ===
-            count
-        )
-      ]
-
-
-      const uniquePatterns =
-        Array.from(
-          new Map(
-            exactPatterns.map(
-              pattern => [
-                pattern.join(','),
-                pattern
-              ]
-            )
-          ).values()
-        )
-
-
-      const images =
-        remainingImages.slice(
-          0,
-          count
-        )
-
-      const webmCount =
-        countWebms(
-          images
-        )
-
-
-      uniquePatterns.forEach(
-        pattern => {
-          const band =
-            buildOrderedBand(
-              images,
-              pattern,
-              containerWidth
-            )
-
-          if (!band) {
-            return
-          }
-
-          const geometryScore =
-            bandGeometryScore(
-              band
-            )
-
-
-          const candidate = {
-            pattern,
-            count,
-            webmCount,
-            geometryScore
-          }
-
-
-          if (
-            !best ||
-            candidate.webmCount <
-              best.webmCount ||
-            (
-              candidate.webmCount ===
-                best.webmCount &&
-              candidate.count >
-                best.count
-            ) ||
-            (
-              candidate.webmCount ===
-                best.webmCount &&
-              candidate.count ===
-                best.count &&
-              candidate.geometryScore <
-                best.geometryScore
-            )
-          ) {
-            best =
-              candidate
-          }
-        }
-      )
+    ) {
+      break
     }
-  )
+
+    stillCount += 1
+  }
 
 
-  return (
-    best?.pattern ||
-    normalPattern
-  )
+  if (
+    stillCount <= 1
+  ) {
+    return [1]
+  }
+
+  if (
+    stillCount === 2
+  ) {
+    return [1, 1]
+  }
+
+  return [1, 2]
 }
 
 
@@ -1273,13 +1173,17 @@ function buildWall(
     }
 
 
-    pattern =
-      chooseWebmAwarePattern(
-        remainingImages,
-        pattern,
-        patterns,
-        containerWidth
+    const hotspotPattern =
+      chooseHotspotPattern(
+        remainingImages
       )
+
+    if (
+      hotspotPattern
+    ) {
+      pattern =
+        hotspotPattern
+    }
 
 
     const requiredImages =
