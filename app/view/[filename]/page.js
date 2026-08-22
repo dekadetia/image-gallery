@@ -673,12 +673,6 @@ export default function ViewPage() {
             const directFile =
               data.file;
 
-            setFiles([
-              directFile,
-            ]);
-
-            setIndex(0);
-
             beforeCursorRef.current =
               directFile.id;
 
@@ -690,10 +684,6 @@ export default function ViewPage() {
 
             hasMoreAfterRef.current =
               true;
-
-            setLoading(
-              false
-            );
 
             const [
               beforeData,
@@ -758,6 +748,10 @@ export default function ViewPage() {
             hasMoreAfterRef.current =
               afterFiles.length >=
               30;
+
+            setLoading(
+              false
+            );
           } catch (error) {
             if (
               !cancelled
