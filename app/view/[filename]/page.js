@@ -367,7 +367,7 @@ export default function ViewPage() {
           try {
             const response =
               await fetch(
-                `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-single-image`,
+                `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-view-image`,
                 {
                   method:
                     "POST",
@@ -395,18 +395,6 @@ export default function ViewPage() {
 
             const data =
               await response.json();
-
-
-            /* TEMPORARY:
-               Verify exactly what metadata the existing
-               get-single-image endpoint is returning.
-            */
-
-            console.log(
-              "VIEW FILE DATA:",
-              data.file
-            );
-
 
             if (
               cancelled
