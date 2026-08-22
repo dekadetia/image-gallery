@@ -2,6 +2,8 @@
 
 import {
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -312,9 +314,26 @@ export default function ViewPage() {
       : "";
 
   const [
-    slide,
-    setSlide,
-  ] = useState(null);
+    files,
+    setFiles,
+  ] = useState([]);
+
+  const [
+    index,
+    setIndex,
+  ] = useState(0);
+
+  const requestedFileRef =
+    useRef(null);
+
+  const slides =
+    useMemo(
+      () =>
+        files.map(
+          createSlide
+        ),
+      [files]
+    );
 
   const [
     loading,
@@ -341,12 +360,15 @@ export default function ViewPage() {
 
 
   /* -------------------------------------------------------
-     FETCH EXACTLY ONE FILE
+     LOAD DIRECT FILE + CANONICAL FILENAME-ORDERED CATALOG
 
-     No gallery fetch.
-     No /rndm preload.
-     No homepage preload.
-     No origin reconstruction.
+     The exact requested file is still fetched directly so a
+     standalone /view/ remains anchored to the URL target.
+
+     In parallel, load the same canonical name-ascending
+     catalog used by the site. Once available, locate the
+     requested filename and hand the complete ordered sequence
+     to YARL so navigation works naturally in both directions.
   ------------------------------------------------------- */
 
   useEffect(
@@ -362,39 +384,77 @@ export default function ViewPage() {
       let cancelled =
         false;
 
-      const loadFile =
+      requestedFileRef.current =
+        filename;
+
+      const loadView =
         async () => {
           try {
-            const response =
-              await fetch(
-                `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-view-image`,
-                {
-                  method:
-                    "POST",
+            const [
+              exactResponse,
+              catalogResponse,
+            ] =
+              await Promise.all([
+                fetch(
+                  `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-view-image`,
+                  {
+                    method:
+                      "POST",
 
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
+                    headers: {
+                      "Content-Type":
+                        "application/json",
+                    },
 
-                  body:
-                    JSON.stringify({
-                      file:
-                        filename,
-                    }),
-                }
-              );
+                    body:
+                      JSON.stringify({
+                        file:
+                          filename,
+                      }),
+                  }
+                ),
+
+                fetch(
+                  `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`,
+                  {
+                    method:
+                      "POST",
+
+                    headers: {
+                      "Content-Type":
+                        "application/json",
+                    },
+
+                    body:
+                      JSON.stringify({}),
+                  }
+                ),
+              ]);
 
             if (
-              !response.ok
+              !exactResponse.ok
             ) {
               throw new Error(
                 "Image not found"
               );
             }
 
-            const data =
-              await response.json();
+            if (
+              !catalogResponse.ok
+            ) {
+              throw new Error(
+                "Catalog not found"
+              );
+            }
+
+            const [
+              exactData,
+              catalogData,
+            ] =
+              await Promise.all([
+                exactResponse.json(),
+                catalogResponse.json(),
+              ]);
 
             if (
               cancelled
@@ -403,24 +463,54 @@ export default function ViewPage() {
             }
 
             if (
-              !data?.file?.src
+              !exactData?.file?.src
             ) {
               throw new Error(
                 "Invalid image response"
               );
             }
 
-            setSlide(
-              createSlide(
-                data.file
+            const catalog =
+              Array.isArray(
+                catalogData?.images
               )
-            );
+                ? catalogData.images
+                : [];
+
+            const requestedIndex =
+              catalog.findIndex(
+                file =>
+                  file.name ===
+                  filename
+              );
+
+            if (
+              requestedIndex === -1
+            ) {
+              /*
+                Defensive fallback: the direct file exists but
+                is unexpectedly absent from the catalog response.
+              */
+              setFiles([
+                exactData.file,
+              ]);
+
+              setIndex(0);
+            } else {
+              setFiles(
+                catalog
+              );
+
+              setIndex(
+                requestedIndex
+              );
+            }
           } catch (error) {
             if (
               !cancelled
             ) {
               console.error(
-                "Failed to load /view/ image:",
+                "Failed to load /view/ image sequence:",
                 error
               );
 
@@ -439,7 +529,7 @@ export default function ViewPage() {
           }
         };
 
-      loadFile();
+      loadView();
 
       return () => {
         cancelled =
@@ -451,6 +541,44 @@ export default function ViewPage() {
 
 
   /* -------------------------------------------------------
+     VIEW CHANGE
+
+     Keep React synchronized with YARL and mirror the active
+     filename in the address bar without asking Next to mount
+     another standalone route.
+  ------------------------------------------------------- */
+
+  const handleView =
+    ({
+      index:
+        nextIndex,
+    }) => {
+      setIndex(
+        nextIndex
+      );
+
+      const file =
+        files[nextIndex];
+
+      if (
+        !file?.name
+      ) {
+        return;
+      }
+
+      requestedFileRef.current =
+        file.name;
+
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `/view/${encodeURIComponent(
+          file.name
+        )}`
+      );
+    };
+
+  /* -------------------------------------------------------
      REMOVE YARL CLOSE TITLE
 
      Preserves the existing site's lightbox treatment.
@@ -459,7 +587,7 @@ export default function ViewPage() {
   useEffect(
     () => {
       if (
-        !slide
+        !slides.length
       ) {
         return;
       }
@@ -496,7 +624,7 @@ export default function ViewPage() {
         observer.disconnect();
       };
     },
-    [slide]
+    [slides.length]
   );
 
 
@@ -509,7 +637,7 @@ export default function ViewPage() {
   useEffect(
     () => {
       if (
-        !slide
+        !slides.length
       ) {
         return;
       }
@@ -574,7 +702,7 @@ export default function ViewPage() {
         );
       };
     },
-    [slide]
+    [slides.length]
   );
 
 
@@ -605,7 +733,7 @@ export default function ViewPage() {
 
   if (
     failed ||
-    !slide
+    !slides.length
   ) {
     return (
       <RootLayout>
@@ -669,12 +797,12 @@ export default function ViewPage() {
 
         <Lightbox
           index={
-            0
+            index
           }
 
-          slides={[
-            slide
-          ]}
+          slides={
+            slides
+          }
 
           open={
             true
@@ -683,6 +811,11 @@ export default function ViewPage() {
           close={
             handleClose
           }
+
+          on={{
+            view:
+              handleView
+          }}
 
           plugins={[
             Video
