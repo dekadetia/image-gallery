@@ -323,8 +323,28 @@ export default function ViewPage() {
     setIndex,
   ] = useState(0);
 
-  const requestedFileRef =
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const beforeCursorRef =
     useRef(null);
+
+  const afterCursorRef =
+    useRef(null);
+
+  const hasMoreBeforeRef =
+    useRef(true);
+
+  const hasMoreAfterRef =
+    useRef(true);
+
+  const beforeFetchInFlightRef =
+    useRef(false);
+
+  const afterFetchInFlightRef =
+    useRef(false);
 
   const slides =
     useMemo(
@@ -334,11 +354,6 @@ export default function ViewPage() {
         ),
       [files]
     );
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
 
   const [
     failed,
@@ -360,16 +375,238 @@ export default function ViewPage() {
 
 
   /* -------------------------------------------------------
-     LOAD DIRECT FILE + CANONICAL FILENAME-ORDERED CATALOG
-
-     The exact requested file is still fetched directly so a
-     standalone /view/ remains anchored to the URL target.
-
-     In parallel, load the same canonical name-ascending
-     catalog used by the site. Once available, locate the
-     requested filename and hand the complete ordered sequence
-     to YARL so navigation works naturally in both directions.
+     DIRECT FILE + BIDIRECTIONAL WINDOW
   ------------------------------------------------------- */
+
+  const fetchWindow =
+    async (
+      cursor,
+      direction,
+      pageSize = 30
+    ) => {
+      const response =
+        await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-images`,
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                pageSize,
+                lastVisibleDocId:
+                  cursor,
+                direction,
+              }),
+          }
+        );
+
+      if (
+        !response.ok
+      ) {
+        throw new Error(
+          `Failed to fetch ${direction} view batch`
+        );
+      }
+
+      return response.json();
+    };
+
+
+  const prependPreviousBatch =
+    async () => {
+      if (
+        beforeFetchInFlightRef.current ||
+        !hasMoreBeforeRef.current ||
+        !beforeCursorRef.current
+      ) {
+        return;
+      }
+
+      beforeFetchInFlightRef.current =
+        true;
+
+      try {
+        const data =
+          await fetchWindow(
+            beforeCursorRef.current,
+            "before"
+          );
+
+        const incoming =
+          Array.isArray(
+            data?.images
+          )
+            ? data.images
+            : [];
+
+        if (
+          !incoming.length
+        ) {
+          hasMoreBeforeRef.current =
+            false;
+          return;
+        }
+
+        setFiles(
+          current => {
+            const existing =
+              new Set(
+                current.map(
+                  file =>
+                    file.name
+                )
+              );
+
+            const uniqueIncoming =
+              incoming.filter(
+                file =>
+                  !existing.has(
+                    file.name
+                  )
+              );
+
+            if (
+              !uniqueIncoming.length
+            ) {
+              hasMoreBeforeRef.current =
+                false;
+              return current;
+            }
+
+            setIndex(
+              currentIndex =>
+                currentIndex +
+                uniqueIncoming.length
+            );
+
+            return [
+              ...uniqueIncoming,
+              ...current,
+            ];
+          }
+        );
+
+        beforeCursorRef.current =
+          incoming[0]?.id ||
+          null;
+
+        if (
+          incoming.length <
+          30
+        ) {
+          hasMoreBeforeRef.current =
+            false;
+        }
+      } catch (error) {
+        console.error(
+          "Failed to prepend /view/ images:",
+          error
+        );
+      } finally {
+        beforeFetchInFlightRef.current =
+          false;
+      }
+    };
+
+
+  const appendNextBatch =
+    async () => {
+      if (
+        afterFetchInFlightRef.current ||
+        !hasMoreAfterRef.current ||
+        !afterCursorRef.current
+      ) {
+        return;
+      }
+
+      afterFetchInFlightRef.current =
+        true;
+
+      try {
+        const data =
+          await fetchWindow(
+            afterCursorRef.current,
+            "after"
+          );
+
+        const incoming =
+          Array.isArray(
+            data?.images
+          )
+            ? data.images
+            : [];
+
+        if (
+          !incoming.length
+        ) {
+          hasMoreAfterRef.current =
+            false;
+          return;
+        }
+
+        setFiles(
+          current => {
+            const existing =
+              new Set(
+                current.map(
+                  file =>
+                    file.name
+                )
+              );
+
+            const uniqueIncoming =
+              incoming.filter(
+                file =>
+                  !existing.has(
+                    file.name
+                  )
+              );
+
+            if (
+              !uniqueIncoming.length
+            ) {
+              hasMoreAfterRef.current =
+                false;
+              return current;
+            }
+
+            return [
+              ...current,
+              ...uniqueIncoming,
+            ];
+          }
+        );
+
+        afterCursorRef.current =
+          incoming[
+            incoming.length - 1
+          ]?.id ||
+          null;
+
+        if (
+          incoming.length <
+          30
+        ) {
+          hasMoreAfterRef.current =
+            false;
+        }
+      } catch (error) {
+        console.error(
+          "Failed to append /view/ images:",
+          error
+        );
+      } finally {
+        afterFetchInFlightRef.current =
+          false;
+      }
+    };
+
 
   useEffect(
     () => {
@@ -384,77 +621,39 @@ export default function ViewPage() {
       let cancelled =
         false;
 
-      requestedFileRef.current =
-        filename;
-
-      const loadView =
+      const loadFile =
         async () => {
           try {
-            const [
-              exactResponse,
-              catalogResponse,
-            ] =
-              await Promise.all([
-                fetch(
-                  `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-view-image`,
-                  {
-                    method:
-                      "POST",
+            const response =
+              await fetch(
+                `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-view-image`,
+                {
+                  method:
+                    "POST",
 
-                    headers: {
-                      "Content-Type":
-                        "application/json",
-                    },
+                  headers: {
+                    "Content-Type":
+                      "application/json",
+                  },
 
-                    body:
-                      JSON.stringify({
-                        file:
-                          filename,
-                      }),
-                  }
-                ),
-
-                fetch(
-                  `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-all-images`,
-                  {
-                    method:
-                      "POST",
-
-                    headers: {
-                      "Content-Type":
-                        "application/json",
-                    },
-
-                    body:
-                      JSON.stringify({}),
-                  }
-                ),
-              ]);
+                  body:
+                    JSON.stringify({
+                      file:
+                        filename,
+                    }),
+                }
+              );
 
             if (
-              !exactResponse.ok
+              !response.ok
             ) {
               throw new Error(
                 "Image not found"
               );
             }
 
-            if (
-              !catalogResponse.ok
-            ) {
-              throw new Error(
-                "Catalog not found"
-              );
-            }
-
-            const [
-              exactData,
-              catalogData,
-            ] =
-              await Promise.all([
-                exactResponse.json(),
-                catalogResponse.json(),
-              ]);
+            const data =
+              await response.json();
 
             if (
               cancelled
@@ -463,65 +662,115 @@ export default function ViewPage() {
             }
 
             if (
-              !exactData?.file?.src
+              !data?.file?.src ||
+              !data?.file?.id
             ) {
               throw new Error(
                 "Invalid image response"
               );
             }
 
-            const catalog =
-              Array.isArray(
-                catalogData?.images
-              )
-                ? catalogData.images
-                : [];
+            const directFile =
+              data.file;
 
-            const requestedIndex =
-              catalog.findIndex(
-                file =>
-                  file.name ===
-                  filename
-              );
+            setFiles([
+              directFile,
+            ]);
 
-            if (
-              requestedIndex === -1
-            ) {
-              /*
-                Defensive fallback: the direct file exists but
-                is unexpectedly absent from the catalog response.
-              */
-              setFiles([
-                exactData.file,
+            setIndex(0);
+
+            beforeCursorRef.current =
+              directFile.id;
+
+            afterCursorRef.current =
+              directFile.id;
+
+            hasMoreBeforeRef.current =
+              true;
+
+            hasMoreAfterRef.current =
+              true;
+
+            setLoading(
+              false
+            );
+
+            const [
+              beforeData,
+              afterData,
+            ] =
+              await Promise.all([
+                fetchWindow(
+                  directFile.id,
+                  "before"
+                ),
+
+                fetchWindow(
+                  directFile.id,
+                  "after"
+                ),
               ]);
 
-              setIndex(0);
-            } else {
-              setFiles(
-                catalog
-              );
-
-              setIndex(
-                requestedIndex
-              );
+            if (
+              cancelled
+            ) {
+              return;
             }
+
+            const beforeFiles =
+              Array.isArray(
+                beforeData?.images
+              )
+                ? beforeData.images
+                : [];
+
+            const afterFiles =
+              Array.isArray(
+                afterData?.images
+              )
+                ? afterData.images
+                : [];
+
+            setFiles([
+              ...beforeFiles,
+              directFile,
+              ...afterFiles,
+            ]);
+
+            setIndex(
+              beforeFiles.length
+            );
+
+            beforeCursorRef.current =
+              beforeFiles[0]?.id ||
+              directFile.id;
+
+            afterCursorRef.current =
+              afterFiles[
+                afterFiles.length - 1
+              ]?.id ||
+              directFile.id;
+
+            hasMoreBeforeRef.current =
+              beforeFiles.length >=
+              30;
+
+            hasMoreAfterRef.current =
+              afterFiles.length >=
+              30;
           } catch (error) {
             if (
               !cancelled
             ) {
               console.error(
-                "Failed to load /view/ image sequence:",
+                "Failed to load /view/ image:",
                 error
               );
 
               setFailed(
                 true
               );
-            }
-          } finally {
-            if (
-              !cancelled
-            ) {
+
               setLoading(
                 false
               );
@@ -529,7 +778,7 @@ export default function ViewPage() {
           }
         };
 
-      loadView();
+      loadFile();
 
       return () => {
         cancelled =
@@ -539,14 +788,6 @@ export default function ViewPage() {
     [filename]
   );
 
-
-  /* -------------------------------------------------------
-     VIEW CHANGE
-
-     Keep React synchronized with YARL and mirror the active
-     filename in the address bar without asking Next to mount
-     another standalone route.
-  ------------------------------------------------------- */
 
   const handleView =
     ({
@@ -561,21 +802,36 @@ export default function ViewPage() {
         files[nextIndex];
 
       if (
-        !file?.name
+        file?.name
       ) {
-        return;
+        History.prototype.replaceState.call(
+          window.history,
+          window.history.state,
+          "",
+          `/view/${encodeURIComponent(
+            file.name
+          )}`
+        );
       }
 
-      requestedFileRef.current =
-        file.name;
+      const EDGE_THRESHOLD =
+        10;
 
-      window.history.replaceState(
-        window.history.state,
-        "",
-        `/view/${encodeURIComponent(
-          file.name
-        )}`
-      );
+      if (
+        nextIndex <=
+        EDGE_THRESHOLD
+      ) {
+        prependPreviousBatch();
+      }
+
+      if (
+        nextIndex >=
+        files.length -
+          1 -
+          EDGE_THRESHOLD
+      ) {
+        appendNextBatch();
+      }
     };
 
   /* -------------------------------------------------------
