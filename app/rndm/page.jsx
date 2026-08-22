@@ -1373,6 +1373,59 @@ function TetrisWall({
 }
 
 
+
+/* ---------------------------------------------------------
+   VIEW PERMALINKS
+
+   Canonical TNDR presentation URL:
+     /view/<full-filename>
+
+   Direct/cold /view arrivals render RNDM underneath.
+   Internal opens keep the current page mounted and only
+   change browser history.
+--------------------------------------------------------- */
+
+function getRequestedViewFilename() {
+  const match =
+    window.location.pathname.match(
+      /^\/view\/([^/]+)\/?$/
+    )
+
+  return match
+    ? decodeURIComponent(
+        match[1]
+      )
+    : null
+}
+
+
+function getViewPath(image) {
+  const filename =
+    image?.name ||
+    image?.id ||
+    ''
+
+  return `/view/${encodeURIComponent(
+    String(filename)
+  )}`
+}
+
+
+function matchesRequestedImage(
+  image,
+  requested
+) {
+  if (!requested) {
+    return false
+  }
+
+  return (
+    image?.name === requested ||
+    image?.id === requested
+  )
+}
+
+
 /* ---------------------------------------------------------
    PAGE
 --------------------------------------------------------- */
@@ -1393,6 +1446,11 @@ export default function Tetris() {
     loader,
     __loader
   ] = useState(true)
+
+  const [
+    deepLinkImage,
+    setDeepLinkImage
+  ] = useState(null)
 
 
   const wasCalled =
@@ -1581,13 +1639,43 @@ export default function Tetris() {
 
 
   /* -------------------------------------------------------
+     LIGHTBOX IMAGE SET
+
+     A direct /view target can live outside the current random
+     wall batch. Keep it available to YARL without inserting it
+     into the random wall itself.
+  ------------------------------------------------------- */
+
+  const lightboxImages =
+    useMemo(
+      () => {
+        if (!deepLinkImage) {
+          return Images
+        }
+
+        return [
+          deepLinkImage,
+          ...Images.filter(
+            image =>
+              image.id !== deepLinkImage.id
+          )
+        ]
+      },
+      [
+        Images,
+        deepLinkImage
+      ]
+    )
+
+
+  /* -------------------------------------------------------
      LIGHTBOX SLIDES
   ------------------------------------------------------- */
 
   const slides =
     useMemo(
       () =>
-        Images.map(
+        lightboxImages.map(
           photo => {
 
             const src =
@@ -1693,7 +1781,7 @@ export default function Tetris() {
             }
           }
         ),
-      [Images]
+      [lightboxImages]
     )
 
 
@@ -1904,21 +1992,86 @@ export default function Tetris() {
 
 
   /* -------------------------------------------------------
-     LIGHTBOX
+     LIGHTBOX + VIEW PERMALINKS
   ------------------------------------------------------- */
+
+  const openViewPermalink =
+    image => {
+      if (!image) {
+        return
+      }
+
+      const currentPath =
+        `${window.location.pathname}${window.location.search}${window.location.hash}`
+
+      window.history.pushState(
+        {
+          ...(window.history.state || {}),
+          tndrLightbox: true,
+          tndrOrigin: currentPath
+        },
+        '',
+        getViewPath(image)
+      )
+    }
+
+
+  const replaceViewPermalink =
+    image => {
+      if (!image) {
+        return
+      }
+
+      window.history.replaceState(
+        {
+          ...(window.history.state || {}),
+          tndrLightbox: true
+        },
+        '',
+        getViewPath(image)
+      )
+    }
+
 
   const handleCloseLightbox =
     () => {
+      const state =
+        window.history.state || {}
 
+      /*
+        Opened from an already-running TNDR page:
+        restore that exact page instance.
+      */
+      if (
+        state.tndrLightbox &&
+        state.tndrOrigin
+      ) {
+        window.history.back()
+        return
+      }
+
+      /*
+        Cold/direct /view arrival:
+        RNDM is already painted underneath. Reveal it in place.
+      */
       setIndex(
         -1
+      )
+
+      setDeepLinkImage(
+        null
+      )
+
+      window.history.replaceState(
+        {},
+        '',
+        '/rndm'
       )
     }
 
 
   const handleImageClick =
     imageId => {
-
       const idx =
         Images.findIndex(
           img =>
@@ -1926,38 +2079,185 @@ export default function Tetris() {
             imageId
         )
 
-
       if (
         idx !== -1
       ) {
+        const image =
+          Images[idx]
+
+        setDeepLinkImage(
+          null
+        )
 
         setIndex(
           idx
+        )
+
+        openViewPermalink(
+          image
         )
       }
     }
 
 
+  const fetchRequestedViewImage =
+    async requestedFilename => {
+      if (!requestedFilename) {
+        return null
+      }
+
+      const response =
+        await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify({})
+          }
+        )
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to resolve view image: ${response.status}`
+        )
+      }
+
+      const data =
+        await response.json()
+
+      return (
+        (data.images || []).find(
+          image =>
+            matchesRequestedImage(
+              image,
+              requestedFilename
+            )
+        ) ||
+        null
+      )
+    }
+
+
   /* -------------------------------------------------------
      INITIAL LOAD
+
+     Normal /rndm:
+       paint RNDM normally.
+
+     Cold/direct /view/<filename>:
+       start RNDM painting immediately and resolve the requested
+       lightbox target concurrently.
   ------------------------------------------------------- */
 
   useEffect(
     () => {
-
       if (
         wasCalled.current
       ) {
         return
       }
 
-
       wasCalled.current =
         true
 
+      const requestedFilename =
+        getRequestedViewFilename()
 
+      /*
+        Always begin painting RNDM immediately.
+      */
       getImages()
 
+      if (!requestedFilename) {
+        return
+      }
+
+      fetchRequestedViewImage(
+        requestedFilename
+      )
+        .then(
+          target => {
+            if (!target) {
+              window.location.replace(
+                '/rndm'
+              )
+              return
+            }
+
+            setDeepLinkImage(
+              target
+            )
+
+            setIndex(
+              0
+            )
+
+            window.history.replaceState(
+              {},
+              '',
+              getViewPath(
+                target
+              )
+            )
+          }
+        )
+        .catch(
+          error => {
+            console.error(
+              'Failed to open direct view:',
+              error
+            )
+
+            window.location.replace(
+              '/rndm'
+            )
+          }
+        )
+    },
+    []
+  )
+
+
+  /*
+    Browser Back after an internally-opened RNDM lightbox:
+    close the overlay but preserve the existing random wall.
+  */
+  useEffect(
+    () => {
+      const handlePopState =
+        () => {
+          if (
+            !window.location.pathname.startsWith(
+              '/view/'
+            )
+          ) {
+            setIndex(
+              -1
+            )
+
+            setDeepLinkImage(
+              null
+            )
+          }
+        }
+
+      window.addEventListener(
+        'popstate',
+        handlePopState
+      )
+
+      return () => {
+        window.removeEventListener(
+          'popstate',
+          handlePopState
+        )
+      }
     },
     []
   )
@@ -2260,6 +2560,24 @@ export default function Tetris() {
             plugins={[
               Video
             ]}
+            on={{
+              view: ({ index: nextIndex }) => {
+                setIndex(
+                  nextIndex
+                )
+
+                const nextImage =
+                  lightboxImages[
+                    nextIndex
+                  ]
+
+                if (nextImage) {
+                  replaceViewPermalink(
+                    nextImage
+                  )
+                }
+              }
+            }}
             render={{
               slide:
                 ({
