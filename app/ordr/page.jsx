@@ -179,26 +179,18 @@ function spaceWebmsForWall(
 
 
   /*
-    IMPORTANT:
+    Do NOT dump deferred WebMs at the current end of Images.
 
-    Do NOT flush pending WebMs at the current end of Images.
+    /ordr is paginated, so that end is usually only a temporary
+    batch boundary. Pending WebMs remain presentation-only
+    deferred until later stills arrive and this deterministic
+    pass runs again.
 
-    /ordr is paginated, so the current end is usually only a
-    temporary batch boundary. Dumping deferred WebMs here is
-    what created dense WebM clusters and distorted the wall
-    geometry right where InfiniteScroll needed to load more.
-
-    Pending WebMs will become eligible naturally when later
-    stills arrive and this deterministic pass runs again.
+    Canonical Images/slides are untouched, and the existing
+    InfiniteScroll pagination remains completely unchanged.
   */
 
-  return {
-    images:
-      spaced,
-
-    pendingCount:
-      pendingWebms.length
-  }
+  return spaced
 }
 
 
@@ -1733,8 +1725,7 @@ function TetrisWall({
   images,
   onImageClick,
   desktopStartIndex,
-  mobileSeed,
-  onPendingWebmsChange
+  mobileSeed
 }) {
 
   const wallRef =
@@ -1799,7 +1790,7 @@ function TetrisWall({
   }, [])
 
 
-  const spacedWall =
+  const wallImages =
     useMemo(
       () =>
         spaceWebmsForWall(
@@ -1807,10 +1798,6 @@ function TetrisWall({
         ),
       [images]
     )
-
-
-  const wallImages =
-    spacedWall.images
 
 
   const preparedImages =
@@ -1821,19 +1808,6 @@ function TetrisWall({
         ),
       [wallImages]
     )
-
-
-  useEffect(
-    () => {
-      onPendingWebmsChange?.(
-        spacedWall.pendingCount
-      )
-    },
-    [
-      spacedWall.pendingCount,
-      onPendingWebmsChange
-    ]
-  )
 
 
   const isMobile =
@@ -1979,14 +1953,6 @@ const [order_value_2, __order_value_2] = useState(null)
     useRef(null)
 
   const lightboxFetchInFlightRef =
-    useRef(false)
-
-  const [
-    pendingWallWebms,
-    setPendingWallWebms
-  ] = useState(0)
-
-  const wallPendingFetchInFlightRef =
     useRef(false)
 
   const [
@@ -2919,59 +2885,6 @@ useEffect(() => {
 
 
   /* ---------------------------------------------------
-          KEEP SPACED WALL MOVING ACROSS BATCH EDGES
-
-     If one or more WebMs are deferred at the temporary end
-     of the currently loaded wall, pull the next canonical
-     batch immediately instead of waiting for InfiniteScroll
-     to infer the shortened wall geometry correctly.
-     --------------------------------------------------- */
-
-  useEffect(
-    () => {
-      if (
-        pendingWallWebms <= 0 ||
-        !hasMore ||
-        wallPendingFetchInFlightRef.current
-      ) {
-        return
-      }
-
-      wallPendingFetchInFlightRef.current =
-        true
-
-      Promise.resolve(
-        loadMoreByCondition()
-      )
-        .catch(
-          error => {
-            console.error(
-              'Failed to extend /ordr for deferred WebMs:',
-              error
-            )
-          }
-        )
-        .finally(
-          () => {
-            wallPendingFetchInFlightRef.current =
-              false
-          }
-        )
-    },
-    [
-      pendingWallWebms,
-      hasMore,
-      nextPageToken,
-      order_key,
-      order_value,
-      order_key_2,
-      order_value_2,
-      searchQuery
-    ]
-  )
-
-
-  /* ---------------------------------------------------
                      BROWSER HISTORY
      --------------------------------------------------- */
 
@@ -3303,9 +3216,6 @@ useEffect(() => {
               onImageClick={handleImageClick}
               desktopStartIndex={desktopStartIndex}
               mobileSeed={mobileSeed}
-              onPendingWebmsChange={
-                setPendingWallWebms
-              }
             />
           </InfiniteScroll>
 
