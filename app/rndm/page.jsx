@@ -1456,6 +1456,15 @@ export default function Tetris() {
   const wasCalled =
     useRef(false)
 
+  const lightboxOriginRef =
+    useRef(null)
+
+  const permalinkFrameRef =
+    useRef(null)
+
+  const directViewArrivalRef =
+    useRef(false)
+
   const seenImageIds =
     useRef(
       new Set()
@@ -1993,28 +2002,11 @@ export default function Tetris() {
 
   /* -------------------------------------------------------
      LIGHTBOX + VIEW PERMALINKS
+
+     Session opens stay on the mounted RNDM instance and use
+     replaceState only. Cold/direct /view arrivals are detected
+     during initial load and reveal RNDM in place when closed.
   ------------------------------------------------------- */
-
-  const openViewPermalink =
-    image => {
-      if (!image) {
-        return
-      }
-
-      const currentPath =
-        `${window.location.pathname}${window.location.search}${window.location.hash}`
-
-      window.history.pushState(
-        {
-          ...(window.history.state || {}),
-          tndrLightbox: true,
-          tndrOrigin: currentPath
-        },
-        '',
-        getViewPath(image)
-      )
-    }
-
 
   const replaceViewPermalink =
     image => {
@@ -2023,10 +2015,7 @@ export default function Tetris() {
       }
 
       window.history.replaceState(
-        {
-          ...(window.history.state || {}),
-          tndrLightbox: true
-        },
+        window.history.state,
         '',
         getViewPath(image)
       )
@@ -2035,25 +2024,9 @@ export default function Tetris() {
 
   const handleCloseLightbox =
     () => {
-      const state =
-        window.history.state || {}
+      const origin =
+        lightboxOriginRef.current
 
-      /*
-        Opened from an already-running TNDR page:
-        restore that exact page instance.
-      */
-      if (
-        state.tndrLightbox &&
-        state.tndrOrigin
-      ) {
-        window.history.back()
-        return
-      }
-
-      /*
-        Cold/direct /view arrival:
-        RNDM is already painted underneath. Reveal it in place.
-      */
       setIndex(
         -1
       )
@@ -2062,11 +2035,47 @@ export default function Tetris() {
         null
       )
 
-      window.history.replaceState(
-        {},
-        '',
-        '/rndm'
-      )
+      if (permalinkFrameRef.current) {
+        cancelAnimationFrame(
+          permalinkFrameRef.current
+        )
+      }
+
+      permalinkFrameRef.current =
+        requestAnimationFrame(
+          () => {
+            if (
+              directViewArrivalRef.current ||
+              !origin
+            ) {
+              /*
+                Direct/external /view arrival: RNDM is already
+                painted underneath, so simply reveal it.
+              */
+              window.history.replaceState(
+                window.history.state,
+                '',
+                '/rndm'
+              )
+
+              directViewArrivalRef.current =
+                false
+            } else {
+              /*
+                Session open: restore the exact originating URL
+                without browser history navigation or scroll restore.
+              */
+              window.history.replaceState(
+                window.history.state,
+                '',
+                origin
+              )
+            }
+
+            lightboxOriginRef.current =
+              null
+          }
+        )
     }
 
 
@@ -2080,23 +2089,47 @@ export default function Tetris() {
         )
 
       if (
-        idx !== -1
+        idx === -1
       ) {
-        const image =
-          Images[idx]
+        return
+      }
 
-        setDeepLinkImage(
-          null
-        )
+      const image =
+        Images[idx]
 
-        setIndex(
-          idx
-        )
+      if (!lightboxOriginRef.current) {
+        lightboxOriginRef.current =
+          `${window.location.pathname}${window.location.search}${window.location.hash}`
+      }
 
-        openViewPermalink(
-          image
+      directViewArrivalRef.current =
+        false
+
+      setDeepLinkImage(
+        null
+      )
+
+      /*
+        Paint YARL first. Mirror the permalink on the next frame.
+      */
+      setIndex(
+        idx
+      )
+
+      if (permalinkFrameRef.current) {
+        cancelAnimationFrame(
+          permalinkFrameRef.current
         )
       }
+
+      permalinkFrameRef.current =
+        requestAnimationFrame(
+          () => {
+            replaceViewPermalink(
+              image
+            )
+          }
+        )
     }
 
 
@@ -2178,6 +2211,9 @@ export default function Tetris() {
         return
       }
 
+      directViewArrivalRef.current =
+        true
+
       fetchRequestedViewImage(
         requestedFilename
       )
@@ -2224,39 +2260,16 @@ export default function Tetris() {
   )
 
 
-  /*
-    Browser Back after an internally-opened RNDM lightbox:
-    close the overlay but preserve the existing random wall.
-  */
   useEffect(
     () => {
-      const handlePopState =
-        () => {
-          if (
-            !window.location.pathname.startsWith(
-              '/view/'
-            )
-          ) {
-            setIndex(
-              -1
-            )
-
-            setDeepLinkImage(
-              null
-            )
-          }
-        }
-
-      window.addEventListener(
-        'popstate',
-        handlePopState
-      )
-
       return () => {
-        window.removeEventListener(
-          'popstate',
-          handlePopState
-        )
+        if (
+          permalinkFrameRef.current
+        ) {
+          cancelAnimationFrame(
+            permalinkFrameRef.current
+          )
+        }
       }
     },
     []
@@ -2572,9 +2585,20 @@ export default function Tetris() {
                   ]
 
                 if (nextImage) {
-                  replaceViewPermalink(
-                    nextImage
-                  )
+                  if (permalinkFrameRef.current) {
+                    cancelAnimationFrame(
+                      permalinkFrameRef.current
+                    )
+                  }
+
+                  permalinkFrameRef.current =
+                    requestAnimationFrame(
+                      () => {
+                        replaceViewPermalink(
+                          nextImage
+                        )
+                      }
+                    )
                 }
               }
             }}
