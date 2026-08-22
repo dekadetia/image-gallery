@@ -2403,6 +2403,69 @@ useEffect(() => {
     }
   }, [index])
 
+
+  /* ---------------------------------------------------
+          PAUSE WALL WEBMS WHILE LIGHTBOX IS OPEN
+
+     Keep the wall and its lazy-loading structure intact,
+     but release background video decoder/compositor work
+     while YARL is active.
+
+     YARL videos are explicitly excluded.
+     When the lightbox is genuinely closed, resume whatever
+     wall WebMs are currently mounted (LazyWebm ensures only
+     nearby videos exist in the DOM).
+     --------------------------------------------------- */
+
+  useEffect(
+    () => {
+      const wallVideos =
+        Array.from(
+          document.querySelectorAll(
+            'video:not(.yarl__root video)'
+          )
+        ).filter(
+          video =>
+            !video.closest(
+              '.yarl__root'
+            )
+        )
+
+      if (
+        index >= 0
+      ) {
+        wallVideos.forEach(
+          video => {
+            try {
+              video.pause()
+            } catch {}
+          }
+        )
+
+        return
+      }
+
+      wallVideos.forEach(
+        video => {
+          try {
+            const playPromise =
+              video.play()
+
+            if (
+              playPromise?.catch
+            ) {
+              playPromise.catch(
+                () => {}
+              )
+            }
+          } catch {}
+        }
+      )
+    },
+    [index]
+  )
+
+
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => searchInputRef.current.focus(), 0)
