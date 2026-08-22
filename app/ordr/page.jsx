@@ -968,6 +968,226 @@ function chooseRemainderBand(
 }
 
 
+/*
+  WEBM-AWARE LOW-DENSITY BAND CHOICE
+
+  Canonical order stays untouched.
+
+  If the next normal band would contain multiple WebMs,
+  use a smaller exact-count pattern so fewer records occupy
+  the same vertical region. This makes the band taller and
+  naturally pushes subsequent WebMs farther down the page.
+
+  No items are reordered, removed, deferred, or hidden.
+*/
+
+const WEBM_CLUSTER_LOOKAHEAD =
+  8
+
+
+function countWebms(
+  images
+) {
+  return (images || [])
+    .reduce(
+      (
+        count,
+        image
+      ) =>
+        count +
+        (
+          isWebm(image)
+            ? 1
+            : 0
+        ),
+      0
+    )
+}
+
+
+function chooseWebmAwarePattern(
+  remainingImages,
+  normalPattern,
+  patterns,
+  containerWidth
+) {
+  const normalCount =
+    patternImageCount(
+      normalPattern
+    )
+
+  const normalSlice =
+    remainingImages.slice(
+      0,
+      normalCount
+    )
+
+  const nearbySlice =
+    remainingImages.slice(
+      0,
+      Math.min(
+        remainingImages.length,
+        normalCount +
+          WEBM_CLUSTER_LOOKAHEAD
+      )
+    )
+
+  const normalWebms =
+    countWebms(
+      normalSlice
+    )
+
+  const nearbyWebms =
+    countWebms(
+      nearbySlice
+    )
+
+
+  /*
+    Ordinary case: keep the scheduled Tetris pattern.
+  */
+  if (
+    normalWebms <= 1 &&
+    nearbyWebms <= 2
+  ) {
+    return normalPattern
+  }
+
+
+  /*
+    WebM-heavy area.
+
+    Prefer consuming only 2 or 3 records in this band.
+    These patterns are intentionally lower-density and
+    therefore create taller bands.
+
+    Choose the candidate that:
+      1. contains the fewest WebMs
+      2. then preserves the most normal order by taking
+         the largest candidate count among ties
+      3. then has the best geometry score
+  */
+
+  const candidateCounts =
+    [2, 3]
+      .filter(
+        count =>
+          remainingImages.length >=
+          count
+      )
+
+
+  let best =
+    null
+
+
+  candidateCounts.forEach(
+    count => {
+      const exactPatterns = [
+        ...(
+          SMALL_EXACT_PATTERNS[
+            count
+          ] ||
+          []
+        ),
+
+        ...patterns.filter(
+          pattern =>
+            patternImageCount(
+              pattern
+            ) ===
+            count
+        )
+      ]
+
+
+      const uniquePatterns =
+        Array.from(
+          new Map(
+            exactPatterns.map(
+              pattern => [
+                pattern.join(','),
+                pattern
+              ]
+            )
+          ).values()
+        )
+
+
+      const images =
+        remainingImages.slice(
+          0,
+          count
+        )
+
+      const webmCount =
+        countWebms(
+          images
+        )
+
+
+      uniquePatterns.forEach(
+        pattern => {
+          const band =
+            buildOrderedBand(
+              images,
+              pattern,
+              containerWidth
+            )
+
+          if (!band) {
+            return
+          }
+
+          const geometryScore =
+            bandGeometryScore(
+              band
+            )
+
+
+          const candidate = {
+            pattern,
+            count,
+            webmCount,
+            geometryScore
+          }
+
+
+          if (
+            !best ||
+            candidate.webmCount <
+              best.webmCount ||
+            (
+              candidate.webmCount ===
+                best.webmCount &&
+              candidate.count >
+                best.count
+            ) ||
+            (
+              candidate.webmCount ===
+                best.webmCount &&
+              candidate.count ===
+                best.count &&
+              candidate.geometryScore <
+                best.geometryScore
+            )
+          ) {
+            best =
+              candidate
+          }
+        }
+      )
+    }
+  )
+
+
+  return (
+    best?.pattern ||
+    normalPattern
+  )
+}
+
+
 function buildWall(
   preparedImages,
   containerWidth,
@@ -1051,6 +1271,15 @@ function buildWall(
         ]
       }
     }
+
+
+    pattern =
+      chooseWebmAwarePattern(
+        remainingImages,
+        pattern,
+        patterns,
+        containerWidth
+      )
 
 
     const requiredImages =
