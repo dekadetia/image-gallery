@@ -96,6 +96,107 @@ function isWebm(photo) {
 
 
 /* ---------------------------------------------------------
+   PRESENTATION-ONLY WEBM SPACING
+
+   Keep the canonical Images/slides sequence untouched.
+
+   The wall alone defers a WebM when it would appear too
+   close to the previous wall WebM. Clicks still resolve
+   back to canonical Images by id/src, so lightbox order,
+   sort order, search order, URL history, and pagination
+   remain unchanged.
+--------------------------------------------------------- */
+
+const MIN_WALL_IMAGES_BETWEEN_WEBMS =
+  7
+
+
+function spaceWebmsForWall(
+  images
+) {
+  const spaced = []
+  const pendingWebms = []
+
+  let imagesSinceWebm =
+    MIN_WALL_IMAGES_BETWEEN_WEBMS
+
+
+  const flushOnePending =
+    () => {
+      if (
+        !pendingWebms.length ||
+        imagesSinceWebm <
+          MIN_WALL_IMAGES_BETWEEN_WEBMS
+      ) {
+        return
+      }
+
+      spaced.push(
+        pendingWebms.shift()
+      )
+
+      imagesSinceWebm =
+        0
+    }
+
+
+  ;(images || []).forEach(
+    image => {
+      if (
+        isWebm(image)
+      ) {
+        if (
+          imagesSinceWebm >=
+            MIN_WALL_IMAGES_BETWEEN_WEBMS &&
+          !pendingWebms.length
+        ) {
+          spaced.push(
+            image
+          )
+
+          imagesSinceWebm =
+            0
+        } else {
+          pendingWebms.push(
+            image
+          )
+        }
+
+        return
+      }
+
+
+      spaced.push(
+        image
+      )
+
+      imagesSinceWebm +=
+        1
+
+      flushOnePending()
+    }
+  )
+
+
+  /*
+    If the stream ends before every deferred WebM can reach
+    the requested spacing, append the remainder in original
+    WebM order rather than dropping anything.
+  */
+  if (
+    pendingWebms.length
+  ) {
+    spaced.push(
+      ...pendingWebms
+    )
+  }
+
+
+  return spaced
+}
+
+
+/* ---------------------------------------------------------
    LAZY WEBM
 
    Only mount a real <video> while the tile is within
@@ -108,8 +209,7 @@ function isWebm(photo) {
 
 function LazyWebm({
   src,
-  className = '',
-  forceUnmount = false
+  className = ''
 }) {
   const wrapperRef =
     useRef(null)
@@ -167,8 +267,7 @@ function LazyWebm({
       className="w-full h-full"
     >
 
-      {isNearby &&
-      !forceUnmount ? (
+      {isNearby ? (
 
         <video
           src={src}
@@ -1403,8 +1502,7 @@ function solveMobilePair(
 --------------------------------------------------------- */
 
 function WallMedia({
-  photo,
-  forceUnmountWebm = false
+  photo
 }) {
 
   if (
@@ -1417,9 +1515,6 @@ function WallMedia({
           photo.src
         }
         className="block w-full h-full object-cover"
-        forceUnmount={
-          forceUnmountWebm
-        }
       />
     )
   }
@@ -1448,8 +1543,7 @@ function MobileWall({
   images,
   containerWidth,
   onImageClick,
-  mobileSeed,
-  forceUnmountWebms
+  mobileSeed
 }) {
 
   const rows =
@@ -1516,9 +1610,6 @@ function MobileWall({
                     photo={
                       photo
                     }
-                    forceUnmountWebm={
-                      forceUnmountWebms
-                    }
                   />
 
                 </div>
@@ -1582,9 +1673,6 @@ function MobileWall({
                       photo={
                         photo
                       }
-                      forceUnmountWebm={
-                        forceUnmountWebms
-                      }
                     />
 
                   </div>
@@ -1610,8 +1698,7 @@ function PackedWall({
   images,
   containerWidth,
   onImageClick,
-  desktopStartIndex,
-  forceUnmountWebms
+  desktopStartIndex
 }) {
 
   const bands =
@@ -1705,9 +1792,6 @@ function PackedWall({
                           photo={
                             photo
                           }
-                          forceUnmountWebm={
-                            forceUnmountWebms
-                          }
                         />
 
                       </div>
@@ -1738,8 +1822,7 @@ function TetrisWall({
   images,
   onImageClick,
   desktopStartIndex,
-  mobileSeed,
-  forceUnmountWebms
+  mobileSeed
 }) {
 
   const wallRef =
@@ -1804,13 +1887,23 @@ function TetrisWall({
   }, [])
 
 
+  const wallImages =
+    useMemo(
+      () =>
+        spaceWebmsForWall(
+          images
+        ),
+      [images]
+    )
+
+
   const preparedImages =
     useMemo(
       () =>
         prepareImages(
-          images
+          wallImages
         ),
-      [images]
+      [wallImages]
     )
 
 
@@ -1845,9 +1938,6 @@ function TetrisWall({
             mobileSeed={
               mobileSeed
             }
-            forceUnmountWebms={
-              forceUnmountWebms
-            }
           />
 
         ) : (
@@ -1864,9 +1954,6 @@ function TetrisWall({
             }
             desktopStartIndex={
               desktopStartIndex
-            }
-            forceUnmountWebms={
-              forceUnmountWebms
             }
           />
 
@@ -3163,9 +3250,6 @@ useEffect(() => {
               onImageClick={handleImageClick}
               desktopStartIndex={desktopStartIndex}
               mobileSeed={mobileSeed}
-              forceUnmountWebms={
-                lightboxHistoryVisible
-              }
             />
           </InfiniteScroll>
 
