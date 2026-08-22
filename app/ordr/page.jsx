@@ -1092,7 +1092,8 @@ function spreadUpcomingWebms(
   workingImages,
   startIndex,
   bandCount,
-  previousBandHadWebm
+  pixelsSinceLastWebm,
+  viewportHeight
 ) {
   const bandEnd =
     Math.min(
@@ -1101,10 +1102,15 @@ function spreadUpcomingWebms(
         bandCount
     )
 
-  const allowedWebms =
-    previousBandHadWebm
-      ? 0
-      : 1
+  const minimumDistance =
+    Math.max(
+      1,
+      viewportHeight
+    )
+
+  const webmAllowed =
+    pixelsSinceLastWebm >=
+    minimumDistance
 
 
   const getWebmIndices =
@@ -1137,6 +1143,18 @@ function spreadUpcomingWebms(
     getWebmIndices()
 
 
+  /*
+    If we have not yet accumulated one viewport of actual
+    intervening content, this band must contain NO WebMs.
+
+    Once enough vertical distance exists, allow exactly one.
+  */
+  const allowedWebms =
+    webmAllowed
+      ? 1
+      : 0
+
+
   while (
     webmIndices.length >
     allowedWebms
@@ -1146,12 +1164,15 @@ function spreadUpcomingWebms(
         webmIndices.length - 1
       ]
 
+    /*
+      Give the wall enough room to push a dense cluster apart.
+      This is still presentation-only and bounded.
+    */
     const searchEnd =
       Math.min(
         workingImages.length,
         webmIndex +
-          WEBM_RESEQUENCE_LIMIT +
-          1
+          31
       )
 
     let stillIndex =
@@ -1172,13 +1193,15 @@ function spreadUpcomingWebms(
       ) {
         stillIndex =
           i
+
         break
       }
     }
 
 
     if (
-      stillIndex === -1
+      stillIndex ===
+      -1
     ) {
       break
     }
@@ -1196,6 +1219,13 @@ function spreadUpcomingWebms(
     webmIndices =
       getWebmIndices()
   }
+
+
+  return (
+    getWebmIndices()
+      .length >
+    0
+  )
 }
 
 
@@ -1247,7 +1277,8 @@ function chooseHotspotPattern(
 function buildWall(
   preparedImages,
   containerWidth,
-  desktopStartIndex = 0
+  desktopStartIndex = 0,
+  viewportHeight = 900
 ) {
   if (
     !containerWidth ||
@@ -1277,6 +1308,9 @@ function buildWall(
 
   let previousBandHadWebm =
     false
+
+  let pixelsSinceLastWebm =
+    Number.POSITIVE_INFINITY
 
 
   while (
@@ -1367,7 +1401,8 @@ function buildWall(
         workingImages,
         imageCursor,
         requiredImages,
-        previousBandHadWebm
+        pixelsSinceLastWebm,
+        viewportHeight
       )
 
       remainingImages =
@@ -1426,6 +1461,20 @@ function buildWall(
             )
         )
 
+      if (
+        previousBandHadWebm
+      ) {
+        pixelsSinceLastWebm =
+          0
+      } else {
+        pixelsSinceLastWebm +=
+          (
+            band?.height ||
+            0
+          ) +
+          GAP
+      }
+
 
       imageCursor +=
         requiredImages
@@ -1456,6 +1505,30 @@ function buildWall(
     bands.push(
       remainder.band
     )
+
+    const remainderHadWebm =
+      remainder.band.columns
+        .some(
+          column =>
+            column.items
+              .some(
+                image =>
+                  isWebm(
+                    image
+                  )
+              )
+        )
+
+    if (
+      remainderHadWebm
+    ) {
+      pixelsSinceLastWebm =
+        0
+    } else {
+      pixelsSinceLastWebm +=
+        remainder.band.height +
+        GAP
+    }
 
 
     imageCursor +=
@@ -2089,18 +2162,57 @@ function PackedWall({
   desktopStartIndex
 }) {
 
+  const [
+    viewportHeight,
+    setViewportHeight
+  ] = useState(
+    () =>
+      typeof window !==
+        'undefined'
+        ? window.innerHeight
+        : 900
+  )
+
+
+  useEffect(
+    () => {
+      const updateViewportHeight =
+        () => {
+          setViewportHeight(
+            window.innerHeight
+          )
+        }
+
+      window.addEventListener(
+        'resize',
+        updateViewportHeight
+      )
+
+      return () => {
+        window.removeEventListener(
+          'resize',
+          updateViewportHeight
+        )
+      }
+    },
+    []
+  )
+
+
   const bands =
     useMemo(
       () =>
         buildWall(
           images,
           containerWidth,
-          desktopStartIndex
+          desktopStartIndex,
+          viewportHeight
         ),
       [
         images,
         containerWidth,
-        desktopStartIndex
+        desktopStartIndex,
+        viewportHeight
       ]
     )
 
