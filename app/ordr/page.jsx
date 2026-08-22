@@ -179,115 +179,26 @@ function spaceWebmsForWall(
 
 
   /*
-    If the stream ends before every deferred WebM can reach
-    the requested spacing, append the remainder in original
-    WebM order rather than dropping anything.
+    IMPORTANT:
+
+    Do NOT flush pending WebMs at the current end of Images.
+
+    /ordr is paginated, so the current end is usually only a
+    temporary batch boundary. Dumping deferred WebMs here is
+    what created dense WebM clusters and distorted the wall
+    geometry right where InfiniteScroll needed to load more.
+
+    Pending WebMs will become eligible naturally when later
+    stills arrive and this deterministic pass runs again.
   */
-  if (
-    pendingWebms.length
-  ) {
-    spaced.push(
-      ...pendingWebms
-    )
+
+  return {
+    images:
+      spaced,
+
+    pendingCount:
+      pendingWebms.length
   }
-
-
-  return spaced
-}
-
-
-/* ---------------------------------------------------------
-   LAZY WEBM
-
-   Only mount a real <video> while the tile is within
-   800px of the viewport.
-
-   Once it moves sufficiently far away, the <video>
-   disappears completely from the DOM, freeing decoder
-   and buffering resources while preserving tile geometry.
---------------------------------------------------------- */
-
-function LazyWebm({
-  src,
-  className = ''
-}) {
-  const wrapperRef =
-    useRef(null)
-
-  const [
-    isNearby,
-    setIsNearby
-  ] = useState(false)
-
-
-  useEffect(() => {
-    const element =
-      wrapperRef.current
-
-    if (!element) {
-      return
-    }
-
-
-    const observer =
-      new IntersectionObserver(
-        entries => {
-          const entry =
-            entries[0]
-
-          setIsNearby(
-            entry.isIntersecting
-          )
-        },
-        {
-          root: null,
-
-          rootMargin:
-            '800px 0px',
-
-          threshold: 0
-        }
-      )
-
-
-    observer.observe(
-      element
-    )
-
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
-
-
-  return (
-    <div
-      ref={wrapperRef}
-      className="w-full h-full"
-    >
-
-      {isNearby ? (
-
-        <video
-          src={src}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster="/assets/transparent.png"
-          className={className}
-        />
-
-      ) : (
-
-        <div className="w-full h-full" />
-
-      )}
-
-    </div>
-  )
 }
 
 
@@ -1822,7 +1733,8 @@ function TetrisWall({
   images,
   onImageClick,
   desktopStartIndex,
-  mobileSeed
+  mobileSeed,
+  onPendingWebmsChange
 }) {
 
   const wallRef =
@@ -1887,7 +1799,7 @@ function TetrisWall({
   }, [])
 
 
-  const wallImages =
+  const spacedWall =
     useMemo(
       () =>
         spaceWebmsForWall(
@@ -1895,6 +1807,10 @@ function TetrisWall({
         ),
       [images]
     )
+
+
+  const wallImages =
+    spacedWall.images
 
 
   const preparedImages =
@@ -1905,6 +1821,19 @@ function TetrisWall({
         ),
       [wallImages]
     )
+
+
+  useEffect(
+    () => {
+      onPendingWebmsChange?.(
+        spacedWall.pendingCount
+      )
+    },
+    [
+      spacedWall.pendingCount,
+      onPendingWebmsChange
+    ]
+  )
 
 
   const isMobile =
@@ -2050,6 +1979,14 @@ const [order_value_2, __order_value_2] = useState(null)
     useRef(null)
 
   const lightboxFetchInFlightRef =
+    useRef(false)
+
+  const [
+    pendingWallWebms,
+    setPendingWallWebms
+  ] = useState(0)
+
+  const wallPendingFetchInFlightRef =
     useRef(false)
 
   const [
@@ -2514,6 +2451,69 @@ useEffect(() => {
     }
   }, [index])
 
+
+  /* ---------------------------------------------------
+          PAUSE WALL WEBMS WHILE LIGHTBOX IS OPEN
+
+     Keep the wall mounted and preserve its geometry.
+     Only pause wall videos while YARL is active, then
+     resume currently mounted wall WebMs when the
+     lightbox closes or is hidden.
+     --------------------------------------------------- */
+
+  useEffect(
+    () => {
+      const wallVideos =
+        Array.from(
+          document.querySelectorAll(
+            'video'
+          )
+        ).filter(
+          video =>
+            !video.closest(
+              '.yarl__root'
+            )
+        )
+
+      if (
+        index >= 0 &&
+        lightboxHistoryVisible
+      ) {
+        wallVideos.forEach(
+          video => {
+            try {
+              video.pause()
+            } catch {}
+          }
+        )
+
+        return
+      }
+
+      wallVideos.forEach(
+        video => {
+          try {
+            const playPromise =
+              video.play()
+
+            if (
+              playPromise?.catch
+            ) {
+              playPromise.catch(
+                () => {}
+              )
+            }
+          } catch {}
+        }
+      )
+    },
+    [
+      index,
+      lightboxHistoryVisible
+    ]
+  )
+
+
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       setTimeout(() => searchInputRef.current.focus(), 0)
@@ -2919,6 +2919,59 @@ useEffect(() => {
 
 
   /* ---------------------------------------------------
+          KEEP SPACED WALL MOVING ACROSS BATCH EDGES
+
+     If one or more WebMs are deferred at the temporary end
+     of the currently loaded wall, pull the next canonical
+     batch immediately instead of waiting for InfiniteScroll
+     to infer the shortened wall geometry correctly.
+     --------------------------------------------------- */
+
+  useEffect(
+    () => {
+      if (
+        pendingWallWebms <= 0 ||
+        !hasMore ||
+        wallPendingFetchInFlightRef.current
+      ) {
+        return
+      }
+
+      wallPendingFetchInFlightRef.current =
+        true
+
+      Promise.resolve(
+        loadMoreByCondition()
+      )
+        .catch(
+          error => {
+            console.error(
+              'Failed to extend /ordr for deferred WebMs:',
+              error
+            )
+          }
+        )
+        .finally(
+          () => {
+            wallPendingFetchInFlightRef.current =
+              false
+          }
+        )
+    },
+    [
+      pendingWallWebms,
+      hasMore,
+      nextPageToken,
+      order_key,
+      order_value,
+      order_key_2,
+      order_value_2,
+      searchQuery
+    ]
+  )
+
+
+  /* ---------------------------------------------------
                      BROWSER HISTORY
      --------------------------------------------------- */
 
@@ -3250,6 +3303,9 @@ useEffect(() => {
               onImageClick={handleImageClick}
               desktopStartIndex={desktopStartIndex}
               mobileSeed={mobileSeed}
+              onPendingWebmsChange={
+                setPendingWallWebms
+              }
             />
           </InfiniteScroll>
 
