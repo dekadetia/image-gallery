@@ -45,6 +45,52 @@ export default function RootLayout({
           type="font/otf"
           crossOrigin="anonymous"
         />
+
+        {/*
+          TNDR synthetic lightbox history guard.
+
+          Internal lightboxes may display /view/[filename] in the address bar,
+          but browser Forward must not hand that synthetic history entry to
+          Next's App Router, which would mount the standalone /view route.
+
+          Direct loads are unaffected because this only intercepts popstate
+          events carrying our own tndrLightbox history marker.
+        */}
+        <Script id="tndr-lightbox-history-guard" strategy="beforeInteractive">
+          {`
+            (function () {
+              if (window.__tndrLightboxHistoryGuardInstalled) {
+                return;
+              }
+
+              window.__tndrLightboxHistoryGuardInstalled = true;
+
+              window.addEventListener(
+                'popstate',
+                function (event) {
+                  if (
+                    !event.state ||
+                    event.state.tndrLightbox !== true
+                  ) {
+                    return;
+                  }
+
+                  event.stopImmediatePropagation();
+
+                  window.dispatchEvent(
+                    new CustomEvent(
+                      'tndr-lightbox-forward',
+                      {
+                        detail: event.state
+                      }
+                    )
+                  );
+                },
+                true
+              );
+            })();
+          `}
+        </Script>
       </head>
 
       <body className={`${graphik.className} ${tiempos.variable}`}>
