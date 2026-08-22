@@ -968,6 +968,157 @@ function chooseRemainderBand(
 }
 
 
+const WALL_WEBM_LOOKAHEAD =
+  8
+
+
+/*
+  Presentation-only WebM balancing for /ordr.
+
+  IMPORTANT:
+    - works only on buildWall's private working copy
+    - never changes Images or slides
+    - never removes or defers an item
+    - output length is always identical
+    - only swaps a WebM with the nearest later still
+      within WALL_WEBM_LOOKAHEAD positions
+
+  Prefer:
+    - no more than one WebM in a band
+    - if the previous band had a WebM, try to make
+      the current band WebM-free
+*/
+function balanceWebmsForBand(
+  workingImages,
+  startIndex,
+  bandCount,
+  previousBandHadWebm
+) {
+  const bandEnd =
+    Math.min(
+      workingImages.length,
+      startIndex +
+        bandCount
+    )
+
+  const targetWebmCount =
+    previousBandHadWebm
+      ? 0
+      : 1
+
+
+  const getBandWebmIndices =
+    () => {
+      const indices = []
+
+      for (
+        let i =
+          startIndex;
+        i <
+          bandEnd;
+        i++
+      ) {
+        if (
+          isWebm(
+            workingImages[i]
+          )
+        ) {
+          indices.push(
+            i
+          )
+        }
+      }
+
+      return indices
+    }
+
+
+  let webmIndices =
+    getBandWebmIndices()
+
+
+  while (
+    webmIndices.length >
+    targetWebmCount
+  ) {
+    /*
+      Keep the earliest WebM in the band when one
+      WebM is permitted. Move later WebMs first.
+    */
+    const webmIndex =
+      webmIndices[
+        webmIndices.length - 1
+      ]
+
+    const searchEnd =
+      Math.min(
+        workingImages.length,
+        bandEnd +
+          WALL_WEBM_LOOKAHEAD
+      )
+
+    let replacementIndex =
+      -1
+
+
+    for (
+      let i =
+        bandEnd;
+      i <
+        searchEnd;
+      i++
+    ) {
+      if (
+        !isWebm(
+          workingImages[i]
+        )
+      ) {
+        replacementIndex =
+          i
+
+        break
+      }
+    }
+
+
+    if (
+      replacementIndex ===
+      -1
+    ) {
+      break
+    }
+
+
+    ;[
+      workingImages[
+        webmIndex
+      ],
+      workingImages[
+        replacementIndex
+      ]
+    ] = [
+      workingImages[
+        replacementIndex
+      ],
+      workingImages[
+        webmIndex
+      ]
+    ]
+
+
+    webmIndices =
+      getBandWebmIndices()
+  }
+
+
+  return (
+    getBandWebmIndices()
+      .length >
+    0
+  )
+}
+
+
 function buildWall(
   preparedImages,
   containerWidth,
@@ -993,8 +1144,18 @@ function buildWall(
 
   const bands = []
 
+  /*
+    Private presentation copy only.
+    Canonical preparedImages remains untouched.
+  */
+  const workingImages =
+    [...preparedImages]
+
   let imageCursor = 0
   let bandIndex = 0
+
+  let previousBandHadWebm =
+    false
 
 
   while (
@@ -1002,7 +1163,7 @@ function buildWall(
     preparedImages.length
   ) {
     const remainingImages =
-      preparedImages.slice(
+      workingImages.slice(
         imageCursor
       )
 
@@ -1071,10 +1232,19 @@ function buildWall(
         requiredImages &&
       !wouldLeaveLoneTail
     ) {
+      const bandHadWebm =
+        balanceWebmsForBand(
+          workingImages,
+          imageCursor,
+          requiredImages,
+          previousBandHadWebm
+        )
+
       const bandImages =
-        remainingImages.slice(
-          0,
-          requiredImages
+        workingImages.slice(
+          imageCursor,
+          imageCursor +
+            requiredImages
         )
 
 
@@ -1092,6 +1262,9 @@ function buildWall(
         )
       }
 
+      previousBandHadWebm =
+        bandHadWebm
+
 
       imageCursor +=
         requiredImages
@@ -1101,9 +1274,14 @@ function buildWall(
     }
 
 
+    const currentRemainingImages =
+      workingImages.slice(
+        imageCursor
+      )
+
     const remainder =
       chooseRemainderBand(
-        remainingImages,
+        currentRemainingImages,
         patterns,
         containerWidth
       )
@@ -1117,6 +1295,19 @@ function buildWall(
     bands.push(
       remainder.band
     )
+
+    previousBandHadWebm =
+      remainder.band.columns
+        .some(
+          column =>
+            column.items
+              .some(
+                image =>
+                  isWebm(
+                    image
+                  )
+              )
+        )
 
 
     imageCursor +=
