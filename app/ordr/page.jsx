@@ -96,153 +96,97 @@ function isWebm(photo) {
 
 
 /* ---------------------------------------------------------
-   PRESENTATION-ONLY WEBM SPACING
+   LAZY WEBM
 
-   Keep the canonical Images/slides sequence untouched.
+   Only mount a real <video> while the tile is within
+   800px of the viewport.
 
-   The wall alone defers a WebM when it would appear too
-   close to the previous wall WebM. Clicks still resolve
-   back to canonical Images by id/src, so lightbox order,
-   sort order, search order, URL history, and pagination
-   remain unchanged.
+   Once it moves sufficiently far away, the <video>
+   disappears completely from the DOM, freeing decoder
+   and buffering resources while preserving tile geometry.
 --------------------------------------------------------- */
 
-const MIN_WALL_IMAGES_BETWEEN_WEBMS =
-  7
+function LazyWebm({
+  src,
+  className = ''
+}) {
+  const wrapperRef =
+    useRef(null)
+
+  const [
+    isNearby,
+    setIsNearby
+  ] = useState(false)
 
 
-function spaceWebmsForWall(
-  images
-) {
-  const spaced =
-    [...(images || [])]
+  useEffect(() => {
+    const element =
+      wrapperRef.current
 
-  let lastWebmIndex =
-    -(
-      MIN_WALL_IMAGES_BETWEEN_WEBMS +
-      1
+    if (!element) {
+      return
+    }
+
+
+    const observer =
+      new IntersectionObserver(
+        entries => {
+          const entry =
+            entries[0]
+
+          setIsNearby(
+            entry.isIntersecting
+          )
+        },
+        {
+          root: null,
+
+          rootMargin:
+            '800px 0px',
+
+          threshold: 0
+        }
+      )
+
+
+    observer.observe(
+      element
     )
 
 
-  for (
-    let i = 0;
-    i < spaced.length;
-    i++
-  ) {
-    if (
-      !isWebm(
-        spaced[i]
-      )
-    ) {
-      continue
+    return () => {
+      observer.disconnect()
     }
+  }, [])
 
 
-    const gap =
-      i -
-      lastWebmIndex -
-      1
+  return (
+    <div
+      ref={wrapperRef}
+      className="w-full h-full"
+    >
 
+      {isNearby ? (
 
-    if (
-      gap >=
-      MIN_WALL_IMAGES_BETWEEN_WEBMS
-    ) {
-      lastWebmIndex =
-        i
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/assets/transparent.png"
+          className={className}
+        />
 
-      continue
-    }
+      ) : (
 
+        <div className="w-full h-full" />
 
-    /*
-      This WebM is too close to the previous one.
+      )}
 
-      Bubble it forward by swapping with later stills until
-      the requested spacing is reached, or until we run out
-      of later stills in the currently loaded sequence.
-
-      IMPORTANT:
-        - no item is removed
-        - no item is deferred
-        - output length always equals Images.length
-        - InfiniteScroll therefore sees honest wall geometry
-    */
-
-    let webmIndex =
-      i
-
-    while (
-      webmIndex <
-        spaced.length - 1 &&
-      webmIndex -
-        lastWebmIndex -
-        1 <
-        MIN_WALL_IMAGES_BETWEEN_WEBMS
-    ) {
-      let nextStillIndex =
-        -1
-
-      for (
-        let j =
-          webmIndex + 1;
-        j < spaced.length;
-        j++
-      ) {
-        if (
-          !isWebm(
-            spaced[j]
-          )
-        ) {
-          nextStillIndex =
-            j
-
-          break
-        }
-      }
-
-
-      if (
-        nextStillIndex ===
-        -1
-      ) {
-        break
-      }
-
-
-      const still =
-        spaced[
-          nextStillIndex
-        ]
-
-      spaced.splice(
-        nextStillIndex,
-        1
-      )
-
-      spaced.splice(
-        webmIndex,
-        0,
-        still
-      )
-
-      webmIndex +=
-        1
-    }
-
-
-    lastWebmIndex =
-      webmIndex
-
-    /*
-      Continue scanning after the WebM's new location.
-    */
-    i =
-      webmIndex
-  }
-
-
-  return spaced
+    </div>
+  )
 }
 
 
@@ -1842,23 +1786,13 @@ function TetrisWall({
   }, [])
 
 
-  const wallImages =
-    useMemo(
-      () =>
-        spaceWebmsForWall(
-          images
-        ),
-      [images]
-    )
-
-
   const preparedImages =
     useMemo(
       () =>
         prepareImages(
-          wallImages
+          images
         ),
-      [wallImages]
+      [images]
     )
 
 
@@ -2473,10 +2407,14 @@ useEffect(() => {
   /* ---------------------------------------------------
           PAUSE WALL WEBMS WHILE LIGHTBOX IS OPEN
 
-     Keep the wall mounted and preserve its geometry.
-     Only pause wall videos while YARL is active, then
-     resume currently mounted wall WebMs when the
-     lightbox closes or is hidden.
+     Keep the wall and its lazy-loading structure intact,
+     but release background video decoder/compositor work
+     while YARL is active.
+
+     YARL videos are explicitly excluded.
+     When the lightbox is genuinely closed, resume whatever
+     wall WebMs are currently mounted (LazyWebm ensures only
+     nearby videos exist in the DOM).
      --------------------------------------------------- */
 
   useEffect(
@@ -2484,7 +2422,7 @@ useEffect(() => {
       const wallVideos =
         Array.from(
           document.querySelectorAll(
-            'video'
+            'video:not(.yarl__root video)'
           )
         ).filter(
           video =>
@@ -2494,8 +2432,7 @@ useEffect(() => {
         )
 
       if (
-        index >= 0 &&
-        lightboxHistoryVisible
+        index >= 0
       ) {
         wallVideos.forEach(
           video => {
@@ -2525,10 +2462,7 @@ useEffect(() => {
         }
       )
     },
-    [
-      index,
-      lightboxHistoryVisible
-    ]
+    [index]
   )
 
 
