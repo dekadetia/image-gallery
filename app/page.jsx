@@ -1884,18 +1884,6 @@ export default function Page() {
      resolve the clicked image back to its canonical array index.
   ------------------------------------------------------- */
 
-  const handleCloseLightbox =
-    () => {
-      setIndex(-1)
-
-      window.history.replaceState(
-        null,
-        '',
-        '/'
-      )
-    }
-
-
   const handleImageClick =
     imageId => {
       const idx =
@@ -1908,25 +1896,7 @@ export default function Page() {
       if (
         idx !== -1
       ) {
-        const image =
-          images[idx]
-
         setIndex(idx)
-
-        if (
-          image?.name
-        ) {
-          window.history.pushState(
-            {
-              tndrLightbox:
-                true
-            },
-            '',
-            `/view/${encodeURIComponent(
-              image.name
-            )}`
-          )
-        }
       }
     }
 
@@ -2066,7 +2036,9 @@ export default function Page() {
           }
 
 
-          handleCloseLightbox()
+          setIndex(
+            -1
+          )
         }
 
 
@@ -2201,8 +2173,8 @@ export default function Page() {
           open={
             index >= 0
           }
-          close={
-            handleCloseLightbox
+          close={() =>
+            setIndex(-1)
           }
           plugins={[
             Video
