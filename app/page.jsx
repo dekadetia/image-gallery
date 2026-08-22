@@ -2176,10 +2176,6 @@ export default function Page() {
           close={() =>
             setIndex(-1)
           }
-          animation={{
-            fade: 0,
-            swipe: 0,
-          }}
           plugins={[
             Video
           ]}
