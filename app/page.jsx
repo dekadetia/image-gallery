@@ -2086,7 +2086,7 @@ export default function Page() {
   const handleLightboxView =
     ({ index: nextIndex }) => {
       const LIGHTBOX_FETCH_THRESHOLD =
-        5
+        12
 
       if (
         hasMore &&
@@ -2687,6 +2687,9 @@ export default function Page() {
           controller={{
             ref:
               lightboxControllerRef
+          }}
+          carousel={{
+            finite: true
           }}
           on={{
             view:
