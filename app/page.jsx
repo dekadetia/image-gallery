@@ -1896,7 +1896,33 @@ export default function Page() {
       if (
         idx !== -1
       ) {
+        const image =
+          images[idx]
+
         setIndex(idx)
+
+        if (
+          image?.name
+        ) {
+          requestAnimationFrame(
+            () => {
+              requestAnimationFrame(
+                () => {
+                  window.history.pushState(
+                    {
+                      tndrLightbox:
+                        true
+                    },
+                    '',
+                    `/view/${encodeURIComponent(
+                      image.name
+                    )}`
+                  )
+                }
+              )
+            }
+          )
+        }
       }
     }
 
