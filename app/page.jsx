@@ -1669,36 +1669,6 @@ function TetrisWall({
 }
 
 
-
-/* ---------------------------------------------------------
-   VIEW PERMALINK
-
-   URL synchronization is intentionally delayed so it never
-   participates in YARL's open / close / slide transition work.
---------------------------------------------------------- */
-
-function getViewPath(image) {
-  const filename =
-    image?.name ||
-    image?.id ||
-    ''
-
-  return `/view/${encodeURIComponent(
-    String(filename)
-  )}`
-}
-
-
-function nativeReplaceUrl(url) {
-  History.prototype.replaceState.call(
-    window.history,
-    window.history.state,
-    '',
-    url
-  )
-}
-
-
 /* ---------------------------------------------------------
    PAGE
 --------------------------------------------------------- */
@@ -1712,15 +1682,6 @@ export default function Page() {
   const [index, setIndex] = useState(-1)
 
   const wasCalled =
-    useRef(false)
-
-  const lightboxOriginRef =
-    useRef(null)
-
-  const urlSyncTimerRef =
-    useRef(null)
-
-  const lightboxClosingRef =
     useRef(false)
 
 
@@ -1923,29 +1884,6 @@ export default function Page() {
      resolve the clicked image back to its canonical array index.
   ------------------------------------------------------- */
 
-  const scheduleUrlSync =
-    url => {
-      if (urlSyncTimerRef.current) {
-        clearTimeout(
-          urlSyncTimerRef.current
-        )
-      }
-
-      urlSyncTimerRef.current =
-        setTimeout(
-          () => {
-            nativeReplaceUrl(
-              url
-            )
-
-            urlSyncTimerRef.current =
-              null
-          },
-          350
-        )
-    }
-
-
   const handleImageClick =
     imageId => {
       const idx =
@@ -1958,75 +1896,8 @@ export default function Page() {
       if (
         idx !== -1
       ) {
-        const image =
-          images[idx]
-
-        if (!lightboxOriginRef.current) {
-          lightboxOriginRef.current =
-            `${window.location.pathname}${window.location.search}${window.location.hash}`
-        }
-
-        lightboxClosingRef.current =
-          false
-
-        /*
-          This is the original lightbox-open operation.
-          Nothing else runs synchronously before or after it.
-        */
         setIndex(idx)
-
-        scheduleUrlSync(
-          getViewPath(
-            image
-          )
-        )
       }
-    }
-
-
-  const handleCloseLightbox =
-    () => {
-      const origin =
-        lightboxOriginRef.current ||
-        '/'
-
-      lightboxClosingRef.current =
-        true
-
-      if (urlSyncTimerRef.current) {
-        clearTimeout(
-          urlSyncTimerRef.current
-        )
-
-        urlSyncTimerRef.current =
-          null
-      }
-
-      /*
-        This is the original close operation.
-        URL restoration happens only after YARL has had time
-        to finish its teardown animation.
-      */
-      setIndex(-1)
-
-      urlSyncTimerRef.current =
-        setTimeout(
-          () => {
-            nativeReplaceUrl(
-              origin
-            )
-
-            lightboxOriginRef.current =
-              null
-
-            lightboxClosingRef.current =
-              false
-
-            urlSyncTimerRef.current =
-              null
-          },
-          350
-        )
     }
 
 
@@ -2049,22 +1920,6 @@ export default function Page() {
 
       __loader(true)
       fetchImages(null)
-    },
-    []
-  )
-
-
-  useEffect(
-    () => {
-      return () => {
-        if (
-          urlSyncTimerRef.current
-        ) {
-          clearTimeout(
-            urlSyncTimerRef.current
-          )
-        }
-      }
     },
     []
   )
@@ -2181,7 +2036,9 @@ export default function Page() {
           }
 
 
-          handleCloseLightbox()
+          setIndex(
+            -1
+          )
         }
 
 
@@ -2316,34 +2173,12 @@ export default function Page() {
           open={
             index >= 0
           }
-          close={
-            handleCloseLightbox
+          close={() =>
+            setIndex(-1)
           }
           plugins={[
             Video
           ]}
-          on={{
-            view: ({ index: viewedIndex }) => {
-              if (
-                lightboxClosingRef.current
-              ) {
-                return
-              }
-
-              const viewedImage =
-                images[
-                  viewedIndex
-                ]
-
-              if (viewedImage) {
-                scheduleUrlSync(
-                  getViewPath(
-                    viewedImage
-                  )
-                )
-              }
-            }
-          }}
           render={{
             slide:
               ({ slide, rect }) =>
