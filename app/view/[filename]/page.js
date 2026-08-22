@@ -396,6 +396,18 @@ export default function ViewPage() {
             const data =
               await response.json();
 
+
+            /* TEMPORARY:
+               Verify exactly what metadata the existing
+               get-single-image endpoint is returning.
+            */
+
+            console.log(
+              "VIEW FILE DATA:",
+              data.file
+            );
+
+
             if (
               cancelled
             ) {
@@ -579,9 +591,11 @@ export default function ViewPage() {
 
 
   /* -------------------------------------------------------
-     LOADING / FAILURE
+     LOADING
 
-     Still standalone. Nothing else is mounted underneath.
+     Use the site's normal page background while the
+     single image is being retrieved. The black lightbox
+     does not appear until the slide is ready.
   ------------------------------------------------------- */
 
   if (
@@ -589,13 +603,17 @@ export default function ViewPage() {
   ) {
     return (
       <RootLayout>
-        <div className="fixed inset-0 bg-black">
+        <div className="fixed inset-0">
           <Loader />
         </div>
       </RootLayout>
     );
   }
 
+
+  /* -------------------------------------------------------
+     FAILURE
+  ------------------------------------------------------- */
 
   if (
     failed ||
