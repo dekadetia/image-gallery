@@ -1768,35 +1768,11 @@ export default function Page() {
   const wasCalled =
     useRef(false)
 
-  const deepLinkReady =
-    useRef(false)
+  const lightboxOriginRef =
+    useRef(null)
 
-
-  /* -------------------------------------------------------
-     LIGHTBOX IMAGE SET
-
-     A direct permalink can point to an image outside the first
-     paginated wall batch. Keep that target available to YARL
-     without inserting it into the ordered homepage wall.
-  ------------------------------------------------------- */
-
-  const lightboxImages =
-    useMemo(
-      () => {
-        if (!deepLinkImage) {
-          return images
-        }
-
-        return [
-          deepLinkImage,
-          ...images.filter(
-            image =>
-              image.id !== deepLinkImage.id
-          )
-        ]
-      },
-      [images, deepLinkImage]
-    )
+  const permalinkFrameRef =
+    useRef(null)
 
 
   /* -------------------------------------------------------
@@ -1809,7 +1785,7 @@ export default function Page() {
   const slides =
     useMemo(
       () =>
-        lightboxImages.map(
+        images.map(
           photo => {
             const src =
               photo.src ?? ''
@@ -1884,7 +1860,7 @@ export default function Page() {
             }
           }
         ),
-      [lightboxImages]
+      [images]
     )
 
 
@@ -1994,29 +1970,13 @@ export default function Page() {
 
 
   /* -------------------------------------------------------
-     LIGHTBOX + CLEAN PERMALINKS
+     SESSION LIGHTBOX PERMALINKS
+
+     Main never navigates to /view. It opens the YARL overlay
+     immediately, then mirrors the current frame into the address
+     bar with replaceState. Closing restores the original URL in
+     place, so browser scroll restoration never fires.
   ------------------------------------------------------- */
-
-  const openPermalink =
-    image => {
-      if (!image) {
-        return
-      }
-
-      const currentPath =
-        `${window.location.pathname}${window.location.search}${window.location.hash}`
-
-      window.history.pushState(
-        {
-          ...(window.history.state || {}),
-          tndrLightbox: true,
-          tndrOrigin: currentPath
-        },
-        '',
-        getPermalinkPath(image)
-      )
-    }
-
 
   const replacePermalink =
     image => {
@@ -2025,10 +1985,7 @@ export default function Page() {
       }
 
       window.history.replaceState(
-        {
-          ...(window.history.state || {}),
-          tndrLightbox: true
-        },
+        window.history.state,
         '',
         getPermalinkPath(image)
       )
@@ -2043,42 +2000,86 @@ export default function Page() {
             img.id === imageId
         )
 
-      if (idx !== -1) {
-        const image =
-          images[idx]
-
-        setDeepLinkImage(null)
-        setIndex(idx)
-        openPermalink(image)
+      if (idx === -1) {
+        return
       }
+
+      const image =
+        images[idx]
+
+      if (!lightboxOriginRef.current) {
+        lightboxOriginRef.current =
+          `${window.location.pathname}${window.location.search}${window.location.hash}`
+      }
+
+      /*
+        Open first. URL work is deferred until the next frame so
+        it cannot hold up the initial lightbox paint.
+      */
+      setIndex(
+        idx
+      )
+
+      if (permalinkFrameRef.current) {
+        cancelAnimationFrame(
+          permalinkFrameRef.current
+        )
+      }
+
+      permalinkFrameRef.current =
+        requestAnimationFrame(
+          () => {
+            replacePermalink(
+              image
+            )
+          }
+        )
     }
 
 
   const handleCloseLightbox =
     () => {
-      const state =
-        window.history.state || {}
+      const origin =
+        lightboxOriginRef.current ||
+        '/'
 
-      if (
-        state.tndrLightbox &&
-        state.tndrOrigin
-      ) {
-        window.history.back()
-        return
+      /*
+        Close first, then restore the visible URL without history
+        navigation. Scroll position and the mounted gallery remain
+        exactly where they are.
+      */
+      setIndex(
+        -1
+      )
+
+      setDeepLinkImage(
+        null
+      )
+
+      if (permalinkFrameRef.current) {
+        cancelAnimationFrame(
+          permalinkFrameRef.current
+        )
       }
 
-      // A direct/external arrival (for example from Bluesky)
-      // has no TNDR browsing origin to restore.
-      window.location.assign('/rndm')
+      permalinkFrameRef.current =
+        requestAnimationFrame(
+          () => {
+            window.history.replaceState(
+              window.history.state,
+              '',
+              origin
+            )
+
+            lightboxOriginRef.current =
+              null
+          }
+        )
     }
 
 
   /* -------------------------------------------------------
-     INITIAL LOAD + DIRECT PERMALINK
-
-     /view/<full-filename-with-extension> is the canonical
-     public lightbox URL. The raw .webp/.webm asset URL is
-     unaffected.
+     INITIAL LOAD
   ------------------------------------------------------- */
 
   useEffect(
@@ -2092,135 +2093,28 @@ export default function Page() {
       wasCalled.current =
         true
 
-      const loadInitial =
-        async () => {
-          __loader(true)
+      __loader(
+        true
+      )
 
-          const requestedImage =
-            getRequestedImageFromLocation()
-
-          const initialImages =
-            await fetchImages(null) || []
-
-          if (!requestedImage) {
-            deepLinkReady.current =
-              true
-            return
-          }
-
-          const initialIndex =
-            initialImages.findIndex(
-              image =>
-                matchesImagePermalink(
-                  image,
-                  requestedImage
-                )
-            )
-
-          if (initialIndex !== -1) {
-            deepLinkReady.current =
-              true
-            setIndex(initialIndex)
-
-            // Normalize old ?image= links to the clean path.
-            window.history.replaceState(
-              window.history.state,
-              '',
-              getPermalinkPath(
-                initialImages[initialIndex]
-              )
-            )
-            return
-          }
-
-          try {
-            const response =
-              await fetch(
-                `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type':
-                      'application/json'
-                  },
-                  body:
-                    JSON.stringify({})
-                }
-              )
-
-            if (response.ok) {
-              const data =
-                await response.json()
-
-              const target =
-                (data.images || []).find(
-                  image =>
-                    matchesImagePermalink(
-                      image,
-                      requestedImage
-                    )
-                )
-
-              if (target) {
-                deepLinkReady.current =
-                  true
-                setDeepLinkImage(target)
-                setIndex(0)
-
-                window.history.replaceState(
-                  window.history.state,
-                  '',
-                  getPermalinkPath(target)
-                )
-                return
-              }
-            }
-          } catch (error) {
-            console.error(
-              'Failed to resolve image permalink:',
-              error
-            )
-          }
-
-          deepLinkReady.current =
-            true
-
-          // Invalid/stale permalink: discovery is the safest fallback.
-          window.location.replace('/rndm')
-        }
-
-      loadInitial()
+      fetchImages(
+        null
+      )
     },
     []
   )
 
 
-  /* Browser Back after an internally-opened lightbox restores
-     the originating TNDR page and closes the overlay state. */
   useEffect(
     () => {
-      const handlePopState =
-        () => {
-          if (
-            !window.location.pathname.startsWith(
-              '/view/'
-            )
-          ) {
-            setIndex(-1)
-            setDeepLinkImage(null)
-          }
-        }
-
-      window.addEventListener(
-        'popstate',
-        handlePopState
-      )
-
       return () => {
-        window.removeEventListener(
-          'popstate',
-          handlePopState
-        )
+        if (
+          permalinkFrameRef.current
+        ) {
+          cancelAnimationFrame(
+            permalinkFrameRef.current
+          )
+        }
       }
     },
     []
@@ -2481,15 +2375,30 @@ export default function Page() {
           ]}
           on={{
             view: ({ index: nextIndex }) => {
-              setIndex(nextIndex)
+              setIndex(
+                nextIndex
+              )
 
               const nextImage =
-                lightboxImages[nextIndex]
+                images[
+                  nextIndex
+                ]
 
               if (nextImage) {
-                replacePermalink(
-                  nextImage
-                )
+                if (permalinkFrameRef.current) {
+                  cancelAnimationFrame(
+                    permalinkFrameRef.current
+                  )
+                }
+
+                permalinkFrameRef.current =
+                  requestAnimationFrame(
+                    () => {
+                      replacePermalink(
+                        nextImage
+                      )
+                    }
+                  )
               }
             }
           }}
