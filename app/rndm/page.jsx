@@ -1373,59 +1373,6 @@ function TetrisWall({
 }
 
 
-
-/* ---------------------------------------------------------
-   VIEW PERMALINKS
-
-   Canonical TNDR presentation URL:
-     /view/<full-filename>
-
-   Direct/cold /view arrivals render RNDM underneath.
-   Internal opens keep the current page mounted and only
-   change browser history.
---------------------------------------------------------- */
-
-function getRequestedViewFilename() {
-  const match =
-    window.location.pathname.match(
-      /^\/view\/([^/]+)\/?$/
-    )
-
-  return match
-    ? decodeURIComponent(
-        match[1]
-      )
-    : null
-}
-
-
-function getViewPath(image) {
-  const filename =
-    image?.name ||
-    image?.id ||
-    ''
-
-  return `/view/${encodeURIComponent(
-    String(filename)
-  )}`
-}
-
-
-function matchesRequestedImage(
-  image,
-  requested
-) {
-  if (!requested) {
-    return false
-  }
-
-  return (
-    image?.name === requested ||
-    image?.id === requested
-  )
-}
-
-
 /* ---------------------------------------------------------
    PAGE
 --------------------------------------------------------- */
@@ -1447,22 +1394,8 @@ export default function Tetris() {
     __loader
   ] = useState(true)
 
-  const [
-    deepLinkImage,
-    setDeepLinkImage
-  ] = useState(null)
-
 
   const wasCalled =
-    useRef(false)
-
-  const lightboxOriginRef =
-    useRef(null)
-
-  const permalinkFrameRef =
-    useRef(null)
-
-  const directViewArrivalRef =
     useRef(false)
 
   const seenImageIds =
@@ -1648,43 +1581,13 @@ export default function Tetris() {
 
 
   /* -------------------------------------------------------
-     LIGHTBOX IMAGE SET
-
-     A direct /view target can live outside the current random
-     wall batch. Keep it available to YARL without inserting it
-     into the random wall itself.
-  ------------------------------------------------------- */
-
-  const lightboxImages =
-    useMemo(
-      () => {
-        if (!deepLinkImage) {
-          return Images
-        }
-
-        return [
-          deepLinkImage,
-          ...Images.filter(
-            image =>
-              image.id !== deepLinkImage.id
-          )
-        ]
-      },
-      [
-        Images,
-        deepLinkImage
-      ]
-    )
-
-
-  /* -------------------------------------------------------
      LIGHTBOX SLIDES
   ------------------------------------------------------- */
 
   const slides =
     useMemo(
       () =>
-        lightboxImages.map(
+        Images.map(
           photo => {
 
             const src =
@@ -1790,7 +1693,7 @@ export default function Tetris() {
             }
           }
         ),
-      [lightboxImages]
+      [Images]
     )
 
 
@@ -2001,86 +1904,21 @@ export default function Tetris() {
 
 
   /* -------------------------------------------------------
-     LIGHTBOX + VIEW PERMALINKS
-
-     Session opens stay on the mounted RNDM instance and use
-     replaceState only. Cold/direct /view arrivals are detected
-     during initial load and reveal RNDM in place when closed.
+     LIGHTBOX
   ------------------------------------------------------- */
-
-  const replaceViewPermalink =
-    image => {
-      if (!image) {
-        return
-      }
-
-      window.history.replaceState(
-        window.history.state,
-        '',
-        getViewPath(image)
-      )
-    }
-
 
   const handleCloseLightbox =
     () => {
-      const origin =
-        lightboxOriginRef.current
 
       setIndex(
         -1
       )
-
-      setDeepLinkImage(
-        null
-      )
-
-      if (permalinkFrameRef.current) {
-        cancelAnimationFrame(
-          permalinkFrameRef.current
-        )
-      }
-
-      permalinkFrameRef.current =
-        requestAnimationFrame(
-          () => {
-            if (
-              directViewArrivalRef.current ||
-              !origin
-            ) {
-              /*
-                Direct/external /view arrival: RNDM is already
-                painted underneath, so simply reveal it.
-              */
-              window.history.replaceState(
-                window.history.state,
-                '',
-                '/rndm'
-              )
-
-              directViewArrivalRef.current =
-                false
-            } else {
-              /*
-                Session open: restore the exact originating URL
-                without browser history navigation or scroll restore.
-              */
-              window.history.replaceState(
-                window.history.state,
-                '',
-                origin
-              )
-            }
-
-            lightboxOriginRef.current =
-              null
-          }
-        )
     }
 
 
   const handleImageClick =
     imageId => {
+
       const idx =
         Images.findIndex(
           img =>
@@ -2088,189 +1926,38 @@ export default function Tetris() {
             imageId
         )
 
+
       if (
-        idx === -1
+        idx !== -1
       ) {
-        return
-      }
 
-      const image =
-        Images[idx]
-
-      if (!lightboxOriginRef.current) {
-        lightboxOriginRef.current =
-          `${window.location.pathname}${window.location.search}${window.location.hash}`
-      }
-
-      directViewArrivalRef.current =
-        false
-
-      setDeepLinkImage(
-        null
-      )
-
-      /*
-        Paint YARL first. Mirror the permalink on the next frame.
-      */
-      setIndex(
-        idx
-      )
-
-      if (permalinkFrameRef.current) {
-        cancelAnimationFrame(
-          permalinkFrameRef.current
+        setIndex(
+          idx
         )
       }
-
-      permalinkFrameRef.current =
-        requestAnimationFrame(
-          () => {
-            replaceViewPermalink(
-              image
-            )
-          }
-        )
-    }
-
-
-  const fetchRequestedViewImage =
-    async requestedFilename => {
-      if (!requestedFilename) {
-        return null
-      }
-
-      const response =
-        await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL}/firebase/get-sorted-images`,
-          {
-            method: 'POST',
-
-            headers: {
-              'Content-Type':
-                'application/json'
-            },
-
-            body:
-              JSON.stringify({})
-          }
-        )
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to resolve view image: ${response.status}`
-        )
-      }
-
-      const data =
-        await response.json()
-
-      return (
-        (data.images || []).find(
-          image =>
-            matchesRequestedImage(
-              image,
-              requestedFilename
-            )
-        ) ||
-        null
-      )
     }
 
 
   /* -------------------------------------------------------
      INITIAL LOAD
-
-     Normal /rndm:
-       paint RNDM normally.
-
-     Cold/direct /view/<filename>:
-       start RNDM painting immediately and resolve the requested
-       lightbox target concurrently.
   ------------------------------------------------------- */
 
   useEffect(
     () => {
+
       if (
         wasCalled.current
       ) {
         return
       }
 
+
       wasCalled.current =
         true
 
-      const requestedFilename =
-        getRequestedViewFilename()
 
-      /*
-        Always begin painting RNDM immediately.
-      */
       getImages()
 
-      if (!requestedFilename) {
-        return
-      }
-
-      directViewArrivalRef.current =
-        true
-
-      fetchRequestedViewImage(
-        requestedFilename
-      )
-        .then(
-          target => {
-            if (!target) {
-              window.location.replace(
-                '/rndm'
-              )
-              return
-            }
-
-            setDeepLinkImage(
-              target
-            )
-
-            setIndex(
-              0
-            )
-
-            window.history.replaceState(
-              {},
-              '',
-              getViewPath(
-                target
-              )
-            )
-          }
-        )
-        .catch(
-          error => {
-            console.error(
-              'Failed to open direct view:',
-              error
-            )
-
-            window.location.replace(
-              '/rndm'
-            )
-          }
-        )
-    },
-    []
-  )
-
-
-  useEffect(
-    () => {
-      return () => {
-        if (
-          permalinkFrameRef.current
-        ) {
-          cancelAnimationFrame(
-            permalinkFrameRef.current
-          )
-        }
-      }
     },
     []
   )
@@ -2573,35 +2260,6 @@ export default function Tetris() {
             plugins={[
               Video
             ]}
-            on={{
-              view: ({ index: nextIndex }) => {
-                setIndex(
-                  nextIndex
-                )
-
-                const nextImage =
-                  lightboxImages[
-                    nextIndex
-                  ]
-
-                if (nextImage) {
-                  if (permalinkFrameRef.current) {
-                    cancelAnimationFrame(
-                      permalinkFrameRef.current
-                    )
-                  }
-
-                  permalinkFrameRef.current =
-                    requestAnimationFrame(
-                      () => {
-                        replaceViewPermalink(
-                          nextImage
-                        )
-                      }
-                    )
-                }
-              }
-            }}
             render={{
               slide:
                 ({
