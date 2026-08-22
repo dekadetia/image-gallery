@@ -1701,6 +1701,9 @@ export default function Page() {
   const historyKeyboardFallbackRef =
     useRef(false)
 
+  const lightboxControllerRef =
+    useRef(null)
+
 
   /* -------------------------------------------------------
      LIGHTBOX SLIDES
@@ -2223,9 +2226,11 @@ export default function Page() {
 
      After browser Forward, YARL's mounted pointer/touch
      controls survive but its keyboard sensor does not
-     reliably reattach. In that state only, handle the two
-     navigation keys here against the same controlled index.
+     reliably reattach. In that state only, capture the two
+     navigation keys and hand them back to YARL through its
+     own controller prev/next actions.
 
+     This preserves YARL's native slide-navigation animation.
      Normal lightbox opens continue using YARL's own
      keyboard handling.
   ------------------------------------------------------- */
@@ -2268,23 +2273,22 @@ export default function Page() {
           event.stopPropagation()
           event.stopImmediatePropagation()
 
-          const direction =
+          if (
             event.key ===
-              'ArrowRight'
-              ? 1
-              : -1
-
-          const nextIndex =
-            (
-              index +
-              direction +
-              slides.length
-            ) %
-            slides.length
-
-          setIndex(
-            nextIndex
-          )
+            'ArrowRight'
+          ) {
+            lightboxControllerRef
+              .current
+              ?.next({
+                count: 1
+              })
+          } else {
+            lightboxControllerRef
+              .current
+              ?.prev({
+                count: 1
+              })
+          }
         }
 
 
@@ -2599,6 +2603,10 @@ export default function Page() {
           close={
             handleCloseLightbox
           }
+          controller={{
+            ref:
+              lightboxControllerRef
+          }}
           on={{
             view:
               handleLightboxView
