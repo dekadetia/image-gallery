@@ -220,6 +220,29 @@ export default function Index() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [
+    lightboxHistoryVisible,
+    setLightboxHistoryVisible,
+  ] = useState(false);
+
+  const lightboxOriginUrlRef =
+    useRef(null);
+
+  const lightboxHistoryActiveRef =
+    useRef(false);
+
+  const pendingViewUrlTimerRef =
+    useRef(null);
+
+  const pendingSlideUrlTimerRef =
+    useRef(null);
+
+  const historyKeyboardFallbackRef =
+    useRef(false);
+
+  const lightboxControllerRef =
+    useRef(null);
+
   /* ---------- FETCH IMAGES ---------- */
 
   const getImages = async (token) => {
@@ -296,18 +319,213 @@ export default function Index() {
     }
   };
 
-  /* ---------- LIGHTBOX OPEN ---------- */
+  /* ---------- LIGHTBOX OPEN / URL HISTORY ---------- */
 
-  const openLightboxByImage = (photo) => {
-    const matchedIndex = slides.findIndex((slide) => {
-      if (slide.type === "tndr-webm") {
-        return slide.sources[0].src === photo.src;
+  const pushNativeUrl =
+    (
+      url,
+      state
+    ) => {
+      History.prototype.pushState.call(
+        window.history,
+        state,
+        "",
+        url
+      );
+    };
+
+
+  const getViewUrl =
+    image =>
+      `/view/${encodeURIComponent(
+        image.name
+      )}`;
+
+
+  const cancelPendingViewUrl =
+    () => {
+      if (
+        pendingViewUrlTimerRef.current
+      ) {
+        window.clearTimeout(
+          pendingViewUrlTimerRef.current
+        );
+
+        pendingViewUrlTimerRef.current =
+          null;
       }
-      return slide.src === photo.src;
-    });
+    };
 
-    if (matchedIndex !== -1) setIndex(matchedIndex);
-  };
+
+  const cancelPendingSlideUrl =
+    () => {
+      if (
+        pendingSlideUrlTimerRef.current
+      ) {
+        window.clearTimeout(
+          pendingSlideUrlTimerRef.current
+        );
+
+        pendingSlideUrlTimerRef.current =
+          null;
+      }
+    };
+
+
+  const handleCloseLightbox =
+    () => {
+      cancelPendingViewUrl();
+      cancelPendingSlideUrl();
+
+      historyKeyboardFallbackRef.current =
+        false;
+
+      setLightboxHistoryVisible(
+        false
+      );
+
+      setIndex(-1);
+
+      if (
+        lightboxHistoryActiveRef.current
+      ) {
+        window.history.back();
+      }
+    };
+
+
+  const openLightboxByImage =
+    photo => {
+      const matchedIndex =
+        slides.findIndex(
+          slide => {
+            if (
+              slide.type ===
+              "tndr-webm"
+            ) {
+              return (
+                slide.sources[0].src ===
+                photo.src
+              );
+            }
+
+            return (
+              slide.src ===
+              photo.src
+            );
+          }
+        );
+
+      if (
+        matchedIndex === -1
+      ) {
+        return;
+      }
+
+      historyKeyboardFallbackRef.current =
+        false;
+
+      if (
+        !lightboxOriginUrlRef.current
+      ) {
+        lightboxOriginUrlRef.current =
+          window.location.pathname +
+          window.location.search +
+          window.location.hash;
+      }
+
+      setIndex(
+        matchedIndex
+      );
+
+      setLightboxHistoryVisible(
+        true
+      );
+
+      if (
+        photo?.name
+      ) {
+        cancelPendingViewUrl();
+
+        pendingViewUrlTimerRef.current =
+          window.setTimeout(
+            () => {
+              pushNativeUrl(
+                getViewUrl(
+                  photo
+                ),
+                {
+                  tndrLightbox:
+                    true,
+
+                  filename:
+                    photo.name,
+                }
+              );
+
+              lightboxHistoryActiveRef.current =
+                true;
+
+              pendingViewUrlTimerRef.current =
+                null;
+            },
+            150
+          );
+      }
+    };
+
+
+  const handleLightboxView =
+    ({
+      index:
+        nextIndex,
+    }) => {
+      setIndex(
+        nextIndex
+      );
+
+      if (
+        !lightboxHistoryActiveRef.current
+      ) {
+        return;
+      }
+
+      const image =
+        Images[nextIndex];
+
+      if (
+        !image?.name
+      ) {
+        return;
+      }
+
+      cancelPendingSlideUrl();
+
+      pendingSlideUrlTimerRef.current =
+        window.setTimeout(
+          () => {
+            History.prototype.replaceState.call(
+              window.history,
+              {
+                tndrLightbox:
+                  true,
+
+                filename:
+                  image.name,
+              },
+              "",
+              getViewUrl(
+                image
+              )
+            );
+
+            pendingSlideUrlTimerRef.current =
+              null;
+          },
+          150
+        );
+    };
+
 
   /* ---------- SEARCH ---------- */
 
@@ -536,6 +754,235 @@ export default function Index() {
     getImages(nextPageToken);
   }, []);
 
+  /* ---------- BROWSER HISTORY ---------- */
+
+  useEffect(
+    () => {
+      const showHistorySlide =
+        state => {
+          if (
+            !state?.tndrLightbox ||
+            !state?.filename
+          ) {
+            return;
+          }
+
+          const idx =
+            Images.findIndex(
+              image =>
+                image.name ===
+                state.filename
+            );
+
+          if (
+            idx === -1
+          ) {
+            return;
+          }
+
+          lightboxHistoryActiveRef.current =
+            true;
+
+          if (
+            index < 0 ||
+            Images[index]?.name !==
+              state.filename
+          ) {
+            setIndex(
+              idx
+            );
+          }
+
+          setLightboxHistoryVisible(
+            true
+          );
+        };
+
+
+      const handlePopState =
+        event => {
+          cancelPendingViewUrl();
+          cancelPendingSlideUrl();
+
+          if (
+            event.state?.tndrLightbox
+          ) {
+            showHistorySlide(
+              event.state
+            );
+
+            return;
+          }
+
+          lightboxHistoryActiveRef.current =
+            false;
+
+          setLightboxHistoryVisible(
+            false
+          );
+
+          lightboxOriginUrlRef.current =
+            window.location.pathname +
+            window.location.search +
+            window.location.hash;
+        };
+
+
+      const handleLightboxForward =
+        event => {
+          cancelPendingViewUrl();
+          cancelPendingSlideUrl();
+
+          historyKeyboardFallbackRef.current =
+            true;
+
+          showHistorySlide(
+            event.detail
+          );
+        };
+
+
+      window.addEventListener(
+        "popstate",
+        handlePopState
+      );
+
+      window.addEventListener(
+        "tndr-lightbox-forward",
+        handleLightboxForward
+      );
+
+
+      return () => {
+        window.removeEventListener(
+          "popstate",
+          handlePopState
+        );
+
+        window.removeEventListener(
+          "tndr-lightbox-forward",
+          handleLightboxForward
+        );
+      };
+    },
+    [
+      Images,
+      index,
+    ]
+  );
+
+
+  /* ---------- FORWARD KEYBOARD FALLBACK ---------- */
+
+  useEffect(
+    () => {
+      const handleHistoryArrowKey =
+        event => {
+          if (
+            !historyKeyboardFallbackRef.current ||
+            !lightboxHistoryVisible ||
+            index < 0 ||
+            !slides.length
+          ) {
+            return;
+          }
+
+          if (
+            event.key !==
+              "ArrowLeft" &&
+            event.key !==
+              "ArrowRight"
+          ) {
+            return;
+          }
+
+          const target =
+            event.target;
+
+          if (
+            target instanceof Element &&
+            target.closest(
+              'input, textarea, select, [contenteditable="true"]'
+            )
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+
+          if (
+            event.key ===
+            "ArrowRight"
+          ) {
+            lightboxControllerRef
+              .current
+              ?.next({
+                count: 1,
+              });
+          } else {
+            lightboxControllerRef
+              .current
+              ?.prev({
+                count: 1,
+              });
+          }
+        };
+
+
+      window.addEventListener(
+        "keydown",
+        handleHistoryArrowKey,
+        true
+      );
+
+
+      return () => {
+        window.removeEventListener(
+          "keydown",
+          handleHistoryArrowKey,
+          true
+        );
+      };
+    },
+    [
+      index,
+      slides.length,
+      lightboxHistoryVisible,
+    ]
+  );
+
+
+  /* ---------- KEEP BACK-HIDDEN LIGHTBOX MOUNTED ---------- */
+
+  useEffect(
+    () => {
+      const className =
+        "tndr-history-lightbox-hidden";
+
+      const shouldHide =
+        index >= 0 &&
+        !lightboxHistoryVisible;
+
+      document.body.classList.toggle(
+        className,
+        shouldHide
+      );
+
+      return () => {
+        document.body.classList.remove(
+          className
+        );
+      };
+    },
+    [
+      index,
+      lightboxHistoryVisible,
+    ]
+  );
+
+
   /* ---------- CLEANUP TITLE ATTRIBUTE ---------- */
 
   useEffect(() => {
@@ -583,7 +1030,7 @@ export default function Index() {
         return;
       }
 
-      setIndex(-1);
+      handleCloseLightbox();
     };
 
     document.addEventListener(
@@ -695,6 +1142,11 @@ export default function Index() {
         {slides && (
           <>
             <style jsx global>{`
+              body.tndr-history-lightbox-hidden .yarl__root {
+                visibility: hidden !important;
+                pointer-events: none !important;
+              }
+
               .yarl__slide .tndr-lightbox-webm-box {
                 box-sizing: border-box;
               }
@@ -716,7 +1168,15 @@ export default function Index() {
               index={index}
               slides={slides}
               open={index >= 0}
-              close={() => setIndex(-1)}
+              close={handleCloseLightbox}
+              controller={{
+                ref:
+                  lightboxControllerRef,
+              }}
+              on={{
+                view:
+                  handleLightboxView,
+              }}
               plugins={[Video]}
               render={{
                 slide: ({ slide, rect }) =>
