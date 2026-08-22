@@ -2077,52 +2077,79 @@ export default function Page() {
   /* -------------------------------------------------------
      BROWSER HISTORY
 
-     Back closes the lightbox and restores the originating
-     page URL. Forward reopens the last-viewed /view/ slide.
+     Back returns to the originating gallery URL and hides
+     the still-mounted YARL instance.
+
+     Forward into one of our synthetic /view/ history entries
+     is intercepted before Next can mount the standalone route.
+     layout.tsx re-emits it as `tndr-lightbox-forward`, which
+     reveals this same mounted YARL instance.
   ------------------------------------------------------- */
 
   useEffect(
     () => {
+      const showHistorySlide =
+        state => {
+          if (
+            !state?.tndrLightbox ||
+            !state?.filename
+          ) {
+            return
+          }
+
+          const idx =
+            images.findIndex(
+              image =>
+                image.name ===
+                state.filename
+            )
+
+          if (
+            idx === -1
+          ) {
+            return
+          }
+
+          lightboxHistoryActiveRef.current =
+            true
+
+          if (
+            index < 0 ||
+            images[index]?.name !==
+              state.filename
+          ) {
+            setIndex(
+              idx
+            )
+          }
+
+          setLightboxHistoryVisible(
+            true
+          )
+        }
+
+
       const handlePopState =
         event => {
           cancelPendingViewUrl()
 
-          const state =
-            event.state
+          /*
+            A tndrLightbox=true Forward event should normally
+            be swallowed by the beforeInteractive guard and
+            arrive through the custom event below instead.
+
+            Keep this fallback harmless in case a browser
+            delivers it here anyway.
+          */
 
           if (
-            state?.tndrLightbox &&
-            state?.filename
+            event.state?.tndrLightbox
           ) {
-            const idx =
-              images.findIndex(
-                image =>
-                  image.name ===
-                  state.filename
-              )
+            showHistorySlide(
+              event.state
+            )
 
-            if (
-              idx !== -1
-            ) {
-              lightboxHistoryActiveRef.current =
-                true
-
-              if (
-                index < 0 ||
-                images[index]?.name !==
-                  state.filename
-              ) {
-                setIndex(
-                  idx
-                )
-              }
-
-              setLightboxHistoryVisible(
-                true
-              )
-
-              return
-            }
+            return
           }
 
           lightboxHistoryActiveRef.current =
@@ -2138,15 +2165,37 @@ export default function Page() {
             window.location.hash
         }
 
+
+      const handleLightboxForward =
+        event => {
+          cancelPendingViewUrl()
+
+          showHistorySlide(
+            event.detail
+          )
+        }
+
+
       window.addEventListener(
         'popstate',
         handlePopState
       )
 
+      window.addEventListener(
+        'tndr-lightbox-forward',
+        handleLightboxForward
+      )
+
+
       return () => {
         window.removeEventListener(
           'popstate',
           handlePopState
+        )
+
+        window.removeEventListener(
+          'tndr-lightbox-forward',
+          handleLightboxForward
         )
       }
     },
