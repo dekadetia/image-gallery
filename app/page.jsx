@@ -1687,6 +1687,15 @@ export default function Page() {
   const lightboxOriginUrlRef =
     useRef(null)
 
+  const lightboxHistoryActiveRef =
+    useRef(false)
+
+  const syncingFromHistoryRef =
+    useRef(false)
+
+  const pendingViewUrlTimerRef =
+    useRef(null)
+
 
   /* -------------------------------------------------------
      LIGHTBOX SLIDES
@@ -1887,31 +1896,54 @@ export default function Page() {
      resolve the clicked image back to its canonical array index.
   ------------------------------------------------------- */
 
-  const setNativeUrl =
-    url => {
-      History.prototype.replaceState.call(
+  const pushNativeUrl =
+    (
+      url,
+      state
+    ) => {
+      History.prototype.pushState.call(
         window.history,
-        null,
+        state,
         '',
         url
       )
     }
 
 
-  const handleCloseLightbox =
-    () => {
-      setIndex(-1)
+  const getViewUrl =
+    image =>
+      `/view/${encodeURIComponent(
+        image.name
+      )}`
 
+
+  const cancelPendingViewUrl =
+    () => {
       if (
-        lightboxOriginUrlRef.current
+        pendingViewUrlTimerRef.current
       ) {
-        setNativeUrl(
-          lightboxOriginUrlRef.current
+        window.clearTimeout(
+          pendingViewUrlTimerRef.current
         )
 
-        lightboxOriginUrlRef.current =
+        pendingViewUrlTimerRef.current =
           null
       }
+    }
+
+
+  const handleCloseLightbox =
+    () => {
+      cancelPendingViewUrl()
+
+      if (
+        lightboxHistoryActiveRef.current
+      ) {
+        window.history.back()
+        return
+      }
+
+      setIndex(-1)
     }
 
 
@@ -1944,18 +1976,76 @@ export default function Page() {
         if (
           image?.name
         ) {
-          window.setTimeout(
-            () => {
-              setNativeUrl(
-                `/view/${encodeURIComponent(
-                  image.name
-                )}`
-              )
-            },
-            150
-          )
+          cancelPendingViewUrl()
+
+          pendingViewUrlTimerRef.current =
+            window.setTimeout(
+              () => {
+                pushNativeUrl(
+                  getViewUrl(
+                    image
+                  ),
+                  {
+                    tndrLightbox:
+                      true,
+
+                    filename:
+                      image.name
+                  }
+                )
+
+                lightboxHistoryActiveRef.current =
+                  true
+
+                pendingViewUrlTimerRef.current =
+                  null
+              },
+              150
+            )
         }
       }
+    }
+
+
+  const handleLightboxView =
+    ({ index: nextIndex }) => {
+      if (
+        syncingFromHistoryRef.current
+      ) {
+        syncingFromHistoryRef.current =
+          false
+        return
+      }
+
+      if (
+        !lightboxHistoryActiveRef.current
+      ) {
+        return
+      }
+
+      const image =
+        images[nextIndex]
+
+      if (
+        !image?.name
+      ) {
+        return
+      }
+
+      History.prototype.replaceState.call(
+        window.history,
+        {
+          tndrLightbox:
+            true,
+
+          filename:
+            image.name
+        },
+        '',
+        getViewUrl(
+          image
+        )
+      )
     }
 
 
@@ -1980,6 +2070,80 @@ export default function Page() {
       fetchImages(null)
     },
     []
+  )
+
+
+  /* -------------------------------------------------------
+     BROWSER HISTORY
+
+     Back closes the lightbox and restores the originating
+     page URL. Forward reopens the last-viewed /view/ slide.
+  ------------------------------------------------------- */
+
+  useEffect(
+    () => {
+      const handlePopState =
+        event => {
+          cancelPendingViewUrl()
+
+          const state =
+            event.state
+
+          if (
+            state?.tndrLightbox &&
+            state?.filename
+          ) {
+            const idx =
+              images.findIndex(
+                image =>
+                  image.name ===
+                  state.filename
+              )
+
+            if (
+              idx !== -1
+            ) {
+              syncingFromHistoryRef.current =
+                true
+
+              lightboxHistoryActiveRef.current =
+                true
+
+              setIndex(
+                idx
+              )
+
+              return
+            }
+          }
+
+          lightboxHistoryActiveRef.current =
+            false
+
+          syncingFromHistoryRef.current =
+            false
+
+          setIndex(-1)
+
+          lightboxOriginUrlRef.current =
+            window.location.pathname +
+            window.location.search +
+            window.location.hash
+        }
+
+      window.addEventListener(
+        'popstate',
+        handlePopState
+      )
+
+      return () => {
+        window.removeEventListener(
+          'popstate',
+          handlePopState
+        )
+      }
+    },
+    [images]
   )
 
 
@@ -2232,6 +2396,10 @@ export default function Page() {
           close={
             handleCloseLightbox
           }
+          on={{
+            view:
+              handleLightboxView
+          }}
           plugins={[
             Video
           ]}
