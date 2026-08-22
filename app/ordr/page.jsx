@@ -969,122 +969,119 @@ function chooseRemainderBand(
 
 
 /*
-  WEBM HOTSPOT BAND MODE
+  ONE-WEBM-PER-BAND RULE
 
-  Canonical order remains completely untouched.
+  Canonical order is untouched.
 
-  When 3+ WebMs occur within the next 10 canonical records,
-  temporarily stretch that region vertically:
-
-    - if the next record is a WebM, give it a [1] full-width band
-    - otherwise consume only the stills before the next WebM,
-      capped at 3 records
-
-  This prevents dense WebM clusters from sharing the same
-  viewport neighborhood without reordering, deferring, or
-  hiding any item.
+  If the scheduled Tetris band would contain more than one WebM,
+  temporarily reduce that band's density until it contains at most one.
+  Nothing is reordered, deferred, hidden, or removed.
 */
-
-const WEBM_HOTSPOT_WINDOW =
-  10
-
-const WEBM_HOTSPOT_THRESHOLD =
-  3
-
-
-function isWebmHotspot(
-  remainingImages
+function chooseOneWebmPattern(
+  remainingImages,
+  normalPattern
 ) {
-  const windowImages =
+  const normalCount =
+    patternImageCount(
+      normalPattern
+    )
+
+  const normalSlice =
     remainingImages.slice(
       0,
-      WEBM_HOTSPOT_WINDOW
+      normalCount
     )
 
-  let count =
-    0
-
-  for (
-    const image of
-    windowImages
-  ) {
-    if (
-      isWebm(image)
-    ) {
-      count += 1
-    }
-  }
-
-  return (
-    count >=
-    WEBM_HOTSPOT_THRESHOLD
-  )
-}
+  const webmCount =
+    normalSlice.reduce(
+      (
+        count,
+        image
+      ) =>
+        count +
+        (
+          isWebm(image)
+            ? 1
+            : 0
+        ),
+      0
+    )
 
 
-function chooseHotspotPattern(
-  remainingImages
-) {
   if (
-    !isWebmHotspot(
-      remainingImages
-    )
+    webmCount <= 1
   ) {
-    return null
+    return normalPattern
   }
 
 
   /*
-    A WebM at the front gets its own full-width band.
-  */
-  if (
-    isWebm(
-      remainingImages[0]
-    )
-  ) {
-    return [1]
-  }
+    Consume only enough canonical records to stop before
+    the second WebM.
 
-
-  /*
-    Otherwise consume only stills up to the next WebM,
-    with a maximum density of 3 items.
+    Keep the count small and use exact patterns we already
+    know the wall can solve reliably.
   */
-  let stillCount =
+  let seenWebms =
     0
+
+  let safeCount =
+    0
+
 
   for (
     let i = 0;
     i <
-      remainingImages.length &&
-    i < 3;
+      normalSlice.length;
     i++
   ) {
     if (
       isWebm(
-        remainingImages[i]
+        normalSlice[i]
       )
     ) {
-      break
+      seenWebms += 1
+
+      if (
+        seenWebms >= 2
+      ) {
+        break
+      }
     }
 
-    stillCount += 1
+    safeCount += 1
   }
 
 
+  safeCount =
+    Math.max(
+      1,
+      Math.min(
+        safeCount,
+        4
+      )
+    )
+
+
   if (
-    stillCount <= 1
+    safeCount === 1
   ) {
     return [1]
   }
 
   if (
-    stillCount === 2
+    safeCount === 2
   ) {
     return [1, 1]
   }
 
-  return [1, 2]
+  if (
+    safeCount === 3
+  ) {
+    return [1, 2]
+  }
+
+  return [2, 2]
 }
 
 
@@ -1173,17 +1170,11 @@ function buildWall(
     }
 
 
-    const hotspotPattern =
-      chooseHotspotPattern(
-        remainingImages
+    pattern =
+      chooseOneWebmPattern(
+        remainingImages,
+        pattern
       )
-
-    if (
-      hotspotPattern
-    ) {
-      pattern =
-        hotspotPattern
-    }
 
 
     const requiredImages =
@@ -1730,7 +1721,8 @@ function VirtualPackedBand({
   band,
   bandIndex,
   bandCount,
-  onImageClick
+  onImageClick,
+  spaceBefore = 0
 }) {
   const bandRef =
     useRef(null)
@@ -1799,6 +1791,11 @@ function VirtualPackedBand({
 
         height:
           `${band.height}px`,
+
+        marginTop:
+          spaceBefore
+            ? `${spaceBefore}px`
+            : 0,
 
         marginBottom:
           bandIndex <
@@ -1881,6 +1878,43 @@ function PackedWall({
   desktopStartIndex
 }) {
 
+  const [
+    viewportHeight,
+    setViewportHeight
+  ] = useState(
+    () =>
+      typeof window !==
+        'undefined'
+        ? window.innerHeight
+        : 900
+  )
+
+
+  useEffect(
+    () => {
+      const updateViewportHeight =
+        () => {
+          setViewportHeight(
+            window.innerHeight
+          )
+        }
+
+      window.addEventListener(
+        'resize',
+        updateViewportHeight
+      )
+
+      return () => {
+        window.removeEventListener(
+          'resize',
+          updateViewportHeight
+        )
+      }
+    },
+    []
+  )
+
+
   const bands =
     useMemo(
       () =>
@@ -1897,12 +1931,96 @@ function PackedWall({
     )
 
 
+
+  const spacedBands =
+    useMemo(
+      () => {
+        let currentTop =
+          0
+
+        let lastWebmTop =
+          null
+
+
+        return bands.map(
+          band => {
+            const hasWebm =
+              band.columns
+                .some(
+                  column =>
+                    column.items
+                      .some(
+                        image =>
+                          isWebm(
+                            image
+                          )
+                      )
+                )
+
+            let spaceBefore =
+              0
+
+
+            if (
+              hasWebm &&
+              lastWebmTop !==
+                null
+            ) {
+              const minimumTop =
+                lastWebmTop +
+                viewportHeight
+
+              if (
+                currentTop <
+                minimumTop
+              ) {
+                spaceBefore =
+                  minimumTop -
+                  currentTop
+
+                currentTop +=
+                  spaceBefore
+              }
+            }
+
+
+            const top =
+              currentTop
+
+
+            if (
+              hasWebm
+            ) {
+              lastWebmTop =
+                top
+            }
+
+
+            currentTop +=
+              band.height +
+              GAP
+
+
+            return {
+              band,
+              spaceBefore
+            }
+          }
+        )
+      },
+      [
+        bands,
+        viewportHeight
+      ]
+    )
+
+
   return (
     <div className="w-full">
 
-      {bands.map(
+      {spacedBands.map(
         (
-          band,
+          item,
           bandIndex
         ) => (
 
@@ -1911,16 +2029,19 @@ function PackedWall({
               `band-${bandIndex}`
             }
             band={
-              band
+              item.band
             }
             bandIndex={
               bandIndex
             }
             bandCount={
-              bands.length
+              spacedBands.length
             }
             onImageClick={
               onImageClick
+            }
+            spaceBefore={
+              item.spaceBefore
             }
           />
 
